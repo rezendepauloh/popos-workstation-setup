@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/00_comum.sh"
 
 FLAG_NAME="COSMIC_MUSIC_APPLET"
 
-if check_flag "$FLAG_NAME"; then
+if check_flag "$FLAG_NAME" "$@"; then
     log_msg "INFO" "⏭️  Miniaplicativo de música do COSMIC já instalado. Pulando..."
     exit 0
 fi

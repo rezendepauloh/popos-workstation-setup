@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/00_comum.sh"
 
 FLAG_NAME="IDE_CONFIG_RESTORE"
 
-if check_flag "$FLAG_NAME"; then
+if check_flag "$FLAG_NAME" "$@"; then
     log_msg "INFO" "⏭️  Configurações das IDEs já restauradas anteriormente. Pulando..."
     exit 0
 fi

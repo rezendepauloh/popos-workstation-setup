@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/00_comum.sh"
 
 FLAG_NAME="CONFIG_TECLADO"
 
-if check_flag "$FLAG_NAME"; then
+if check_flag "$FLAG_NAME" "$@"; then
     log_msg "INFO" "⏭️  Configurações de Teclado, Cedilha e NumLock já aplicadas. Pulando..."
     exit 0
 fi

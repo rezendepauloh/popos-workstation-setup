@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/00_comum.sh"
 
 FLAG_NAME="AUTOSTART_CONFIG"
 
-if check_flag "$FLAG_NAME"; then
+if check_flag "$FLAG_NAME" "$@"; then
     log_msg "INFO" "⏭️  Entradas de Autostart já configuradas anteriormente. Pulando..."
     exit 0
 fi

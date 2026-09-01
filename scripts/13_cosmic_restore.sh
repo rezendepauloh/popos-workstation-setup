@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/00_comum.sh"
 
 FLAG_NAME="COSMIC_RESTORE"
 
-if check_flag "$FLAG_NAME"; then
+if check_flag "$FLAG_NAME" "$@"; then
     log_msg "INFO" "⏭️  Ambiente COSMIC já restaurado e configurado anteriormente. Pulando..."
     exit 0
 fi

@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/00_comum.sh"
 
 FLAG_NAME="FLATPAK_PERMISSIONS"
 
-if check_flag "$FLAG_NAME"; then
+if check_flag "$FLAG_NAME" "$@"; then
     log_msg "INFO" "⏭️  Permissões e overrides de Flatpak já aplicados. Pulando..."
     exit 0
 fi

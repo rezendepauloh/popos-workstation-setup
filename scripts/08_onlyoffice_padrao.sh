@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/00_comum.sh"
 
 FLAG_NAME="ONLYOFFICE_DEFAULT"
 
-if check_flag "$FLAG_NAME"; then
+if check_flag "$FLAG_NAME" "$@"; then
     log_msg "INFO" "⏭️  OnlyOffice já definido como padrão anteriormente. Pulando..."
     exit 0
 fi

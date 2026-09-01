@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/00_comum.sh"
 
 FLAG_NAME="JOGOS_PERFORMANCE"
 
-if check_flag "$FLAG_NAME"; then
+if check_flag "$FLAG_NAME" "$@"; then
     log_msg "INFO" "⏭️  Jogos e perfil de performance já configurados anteriormente. Pulando..."
     exit 0
 fi

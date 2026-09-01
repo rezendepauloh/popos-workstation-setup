@@ -44,6 +44,13 @@ log_msg() {
 # Sistema de Checkpoint / Idempotência
 check_flag() {
     local FLAG="$1"
+    shift || true
+    for arg in "$@"; do
+        if [ "$arg" == "--force" ] || [ "$arg" == "-f" ]; then
+            clear_flag "$FLAG"
+            return 1 # Forçar execução
+        fi
+    done
     if [ -f "$PROGRESS_LOG" ] && grep -Fxq "$FLAG" "$PROGRESS_LOG"; then
         return 0 # Concluído anteriormente
     else
