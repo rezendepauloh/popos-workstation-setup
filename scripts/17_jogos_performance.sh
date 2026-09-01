@@ -42,5 +42,16 @@ elif command -v powerprofilesctl >/dev/null 2>&1; then
     powerprofilesctl set performance 2>/dev/null || true
 fi
 
+# Configuração e Nomeação Amigável de Controles Bluetooth (DualSense / Gamepads)
+log_msg "INFO" "Configurando nomes amigáveis e reconexão automática para controles DualSense..."
+CONTROLLER_INDEX=1
+for mac in $(bluetoothctl devices 2>/dev/null | grep -iE 'dualsense|wireless controller' | awk '{print $2}'); do
+    dev_path="/org/bluez/hci0/dev_$(echo "$mac" | tr ':' '_')"
+    busctl set-property org.bluez "$dev_path" org.bluez.Device1 Alias s "DualSense 0$CONTROLLER_INDEX" 2>/dev/null || true
+    bluetoothctl trust "$mac" 2>/dev/null || true
+    log_msg "SUCCESS" "Controle DualSense $mac configurado como 'DualSense 0$CONTROLLER_INDEX' e confiável."
+    CONTROLLER_INDEX=$((CONTROLLER_INDEX + 1))
+done
+
 set_flag "$FLAG_NAME"
-log_msg "SUCCESS" "Jogos, permissões de armazenamento e perfil de performance configurados."
+log_msg "SUCCESS" "Jogos, permissões de armazenamento, controles e perfil de performance configurados."
