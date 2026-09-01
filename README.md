@@ -93,28 +93,70 @@ Script de automação e provisionamento idempotente para configuração completa
 
 ---
 
-## 📋 Estrutura de Logs e Idempotência
+## 🏗️ Arquitetura Modular V2 (`setup_popos_v2.sh` & `scripts/`)
 
-O script pode ser executado múltiplas vezes com segurança sem repetir etapas já concluídas. O controle é feito dentro da pasta local `./Logs/`:
+O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**. Agora você pode orquestrar a execução completa ou executar cada módulo de forma individual:
 
-| Arquivo | Finalidade | Formato / Exemplo |
-| :--- | :--- | :--- |
-| `Logs/.setup_estado.log` | Controle de idempotência (flags de etapas concluídas) | `IDE_CONFIG_RESTORE=1` |
-| `Logs/.setup_execucao.log` | Histórico cronológico detalhado de execução e erros | `[2026-08-31 21:15:00] [INFO] Mensagem` |
+```
+.
+├── setup_popos_v2.sh                   # Orquestrador Principal Modular
+├── scripts/                            # Módulos Independentes
+│   ├── 00_comum.sh                     # Biblioteca de logs, usuário real e idempotência
+│   ├── 01_otimizacao_sistema.sh        # Swappiness e Inotify file watchers
+│   ├── 02_teclado_cedilha_numlock.sh   # US-Intl, Cedilha ('+c = ç) e NumLock permanente
+│   ├── 03_atualizacao_sistema.sh       # Atualização de pacotes APT, Pop recovery e firmware
+│   ├── 04_pacotes_base_dev.sh          # Pacotes CLI essenciais, NVM, Rust e compilação
+│   ├── 05_rclone_storage.sh            # Montagens FUSE do Rclone (GDrive, OneDrive, MEGA)
+│   ├── 06_softwares_workflow.sh        # VS Code, Flatpaks, Jellyfin Server, Espanso e Kando
+│   ├── 07_antigravity_ide.sh           # Google Antigravity IDE (/opt, AppArmor, .desktop)
+│   ├── 08_onlyoffice_padrao.sh         # Associação do OnlyOffice como leitor padrão
+│   ├── 09_cosmic_music_applet.sh       # Compilação e instalação do miniaplicativo de mídia
+│   ├── 10_mouse_gaming.sh              # Logitech G502 X (DPIs, 1000Hz, macros on-board)
+│   ├── 11_kando_restore.sh             # Sincronização de configurações do Kando
+│   ├── 12_cosmic_restore.sh            # Restauração de temas COSMIC, App Library e Dock
+│   ├── 13_ide_config_restore.sh        # Restauração de settings, atalhos e snippets das IDEs
+│   ├── 14_zsh_p10k_setup.sh            # Zsh, Powerlevel10k, fontes MesloLGS NF e Ctrl+V
+│   ├── 15_jogos_performance.sh         # Steam, Gamemode, MangoHud, Heroic e perfil Performance
+│   ├── 16_flatpak_permissions.sh       # Overrides de discos e bandeja Wayland (CopyQ)
+│   ├── 17_manutencao_ssds.sh           # Ativação do fstrim.timer para saúde dos SSDs
+│   ├── 18_autostart_config.sh          # Entradas de autostart (CopyQ, Kando, Espanso, NumLock)
+│   └── 19_limpeza_otimizacao.sh        # Limpeza de caches e runtimes não utilizados
+├── setup_popos.sh                      # Script monolítico legado (preservado para segurança)
+└── scripts_avulsos/                    # Scripts avulsos legados (preservados para segurança)
+```
 
 ---
 
 ## ⚙️ Guia de Execução
 
-### No ambiente real (Pop!_OS 24.04):
-1. Conceda permissão de execução ao script:
-   ```bash
-   chmod +x setup_popos.sh
-   ```
-2. Execute o script:
-   ```bash
-   ./setup_popos.sh
-   ```
+### 🚀 Modo Automatizado Completo (V2):
+Executa todos os 19 módulos em sequência, pulando automaticamente o que já estiver concluído:
+```bash
+sudo ./setup_popos_v2.sh
+```
+
+### 📋 Listar Módulos Disponíveis:
+```bash
+./setup_popos_v2.sh --list
+```
+
+### 🎯 Executar um Módulo Específico:
+Você pode executar diretamente pelo orquestrador ou chamar o script dentro de `scripts/`:
+```bash
+# Pelo orquestrador (por número ou nome):
+sudo ./setup_popos_v2.sh 02
+sudo ./setup_popos_v2.sh 12
+
+# Ou diretamente pelo módulo individual:
+sudo ./scripts/01_otimizacao_sistema.sh
+sudo ./scripts/09_cosmic_music_applet.sh
+./scripts/12_cosmic_restore.sh
+```
+
+### 🔄 Forçar Reexecução Completa (Limpar Checkpoints):
+```bash
+sudo ./setup_popos_v2.sh --force
+```
 
 ---
 
@@ -123,7 +165,7 @@ O script pode ser executado múltiplas vezes com segurança sem repetir etapas j
 Para validar o script com segurança e sem alterar nada no seu sistema operacional hospedeiro, utilize a suíte de testes em container:
 
 #### 🟢 Opção 1: Teste Automatizado com Relatório Completo (Recomendado)
-O script `test_in_docker.sh` constrói a imagem Ubuntu 24.04, configura todos os mocks de hardware/desktop (gsettings, ratbagctl, rclone, flatpak, estrutura do Google Drive), executa o `setup_popos.sh` e valida todas as asserções:
+O script `test_in_docker.sh` constrói a imagem Ubuntu 24.04, configura todos os mocks de hardware/desktop (gsettings, ratbagctl, rclone, flatpak, estrutura do Google Drive), executa o setup e valida todas as asserções:
 ```bash
 chmod +x test_in_docker.sh
 ./test_in_docker.sh

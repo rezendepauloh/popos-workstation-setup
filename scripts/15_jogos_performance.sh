@@ -1,0 +1,46 @@
+#!/bin/bash
+# ==============================================================================
+# Módulo 15: Instalação de Jogos e Otimização de Performance Máxima
+# ==============================================================================
+
+set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/00_comum.sh"
+
+FLAG_NAME="JOGOS_PERFORMANCE"
+
+if check_flag "$FLAG_NAME"; then
+    log_msg "INFO" "⏭️  Jogos e perfil de performance já configurados anteriormente. Pulando..."
+    exit 0
+fi
+
+log_msg "HEADER" "15. JOGOS E PERFORMANCE MÁXIMA"
+
+log_msg "INFO" "Instalando Steam, Gamemode e MangoHud via APT..."
+sudo apt install -y steam gamemode mangohud
+
+log_msg "INFO" "Instalando Heroic Games Launcher via Flatpak..."
+flatpak install -y --system flathub com.heroicgameslauncher.hgl
+
+# Permissão para o Heroic acessar o SSD dedicado de jogos
+flatpak override --user --filesystem=/mnt/nvme_01 com.heroicgameslauncher.hgl 2>/dev/null || true
+
+# Criação da pasta de jogos no SSD dedicado
+log_msg "INFO" "Verificando diretório /mnt/nvme_01/Jogos..."
+if [ -d "/mnt/nvme_01" ]; then
+    sudo mkdir -p /mnt/nvme_01/Jogos
+    sudo chown -R "$REAL_USER:$REAL_USER" /mnt/nvme_01/Jogos
+    sudo chmod -R 775 /mnt/nvme_01/Jogos
+    log_msg "SUCCESS" "Diretório /mnt/nvme_01/Jogos configurado com permissão 775."
+fi
+
+# Configura o perfil de energia para Performance Máxima no Pop!_OS
+log_msg "INFO" "Definindo perfil de energia para Performance Máxima..."
+if command -v system76-power >/dev/null 2>&1; then
+    sudo system76-power profile performance 2>/dev/null || true
+elif command -v powerprofilesctl >/dev/null 2>&1; then
+    powerprofilesctl set performance 2>/dev/null || true
+fi
+
+set_flag "$FLAG_NAME"
+log_msg "SUCCESS" "Jogos, permissões de armazenamento e perfil de performance configurados."
