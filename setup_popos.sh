@@ -776,26 +776,35 @@ if ! check_flag "COSMIC_RESTORE"; then
         ),
     ),
     (
-        name: "Desenvolvimento & Produtividade",
+        name: "Desenvolvimento",
         icon: "applications-engineering-symbolic",
         filter: Categories(
             categories: [
                 "Development",
+            ],
+            include: [
+                "antigravity-ide",
+                "code",
+            ],
+            exclude: [],
+        ),
+    ),
+    (
+        name: "Escritório",
+        icon: "applications-office-symbolic",
+        filter: Categories(
+            categories: [
                 "Office",
             ],
             include: [
-                "code",
-                "antigravity-ide",
                 "org.onlyoffice.desktopeditors",
-                "com.github.hluk.copyq",
-                "menu.kando.Kando",
                 "com.dropbox.Client",
             ],
             exclude: [],
         ),
     ),
     (
-        name: "Mídia & Criação",
+        name: "Mídia",
         icon: "applications-multimedia-symbolic",
         filter: Categories(
             categories: [
@@ -818,12 +827,12 @@ if ! check_flag "COSMIC_RESTORE"; then
             ],
             include: [
                 "nm-connection-editor",
+                "com.github.hluk.copyq",
+                "menu.kando.Kando",
             ],
             exclude: [
                 "com.system76.CosmicEdit",
                 "com.system76.CosmicFiles",
-                "com.github.hluk.copyq",
-                "menu.kando.Kando",
             ],
         ),
     ),

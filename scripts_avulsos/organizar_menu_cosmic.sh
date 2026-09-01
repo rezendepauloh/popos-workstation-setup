@@ -1,12 +1,12 @@
 #!/bin/bash
 # ==============================================================================
 # Script para Organização do Menu / Biblioteca de Aplicativos do COSMIC Desktop
-# Cria grupos organizados (Jogos, Dev & Produtividade, Mídia, Utilitários, Sistema)
+# Cria grupos organizados (Jogos, Desenvolvimento, Escritório, Mídia, Utilitários, Sistema)
 # ==============================================================================
 
 set -e
 
-echo "🗂️  Organizando o Menu de Aplicativos do COSMIC..."
+echo "🗂️  Organizando o Menu de Aplicativos do COSMIC em grupos separados..."
 
 REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
@@ -32,26 +32,35 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
         ),
     ),
     (
-        name: "Desenvolvimento & Produtividade",
+        name: "Desenvolvimento",
         icon: "applications-engineering-symbolic",
         filter: Categories(
             categories: [
                 "Development",
+            ],
+            include: [
+                "antigravity-ide",
+                "code",
+            ],
+            exclude: [],
+        ),
+    ),
+    (
+        name: "Escritório",
+        icon: "applications-office-symbolic",
+        filter: Categories(
+            categories: [
                 "Office",
             ],
             include: [
-                "code",
-                "antigravity-ide",
                 "org.onlyoffice.desktopeditors",
-                "com.github.hluk.copyq",
-                "menu.kando.Kando",
                 "com.dropbox.Client",
             ],
             exclude: [],
         ),
     ),
     (
-        name: "Mídia & Criação",
+        name: "Mídia",
         icon: "applications-multimedia-symbolic",
         filter: Categories(
             categories: [
@@ -74,12 +83,12 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
             ],
             include: [
                 "nm-connection-editor",
+                "com.github.hluk.copyq",
+                "menu.kando.Kando",
             ],
             exclude: [
                 "com.system76.CosmicEdit",
                 "com.system76.CosmicFiles",
-                "com.github.hluk.copyq",
-                "menu.kando.Kando",
             ],
         ),
     ),
@@ -134,5 +143,5 @@ fi
 # Reiniciar o processo da biblioteca de aplicativos do COSMIC para recarregar visualmente
 pkill -f "cosmic-app-library" 2>/dev/null || true
 
-echo "  ✅ Grupos 'Jogos', 'Desenvolvimento & Produtividade', 'Mídia & Criação', 'Utilitários' e 'Sistema' criados com sucesso!"
-echo "🎉 Menu de Aplicativos do COSMIC organizado!"
+echo "  ✅ Grupos 'Jogos', 'Desenvolvimento', 'Escritório', 'Mídia', 'Utilitários' e 'Sistema' separados com sucesso!"
+echo "🎉 Menu de Aplicativos do COSMIC atualizado!"
