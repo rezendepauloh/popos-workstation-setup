@@ -108,20 +108,21 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 04_pacotes_base_dev.sh          # Pacotes CLI essenciais, NVM, Rust e compilação
 │   ├── 05_rclone_storage.sh            # Montagens FUSE do Rclone (GDrive, OneDrive, MEGA)
 │   ├── 06_softwares_workflow.sh        # VS Code, Flatpaks, Jellyfin Server, Espanso e Kando
-│   ├── 07_antigravity_ide.sh           # Google Antigravity IDE (/opt, AppArmor, .desktop)
-│   ├── 08_onlyoffice_padrao.sh         # Associação do OnlyOffice como leitor padrão
-│   ├── 09_cosmic_music_applet.sh       # Compilação e instalação do miniaplicativo de mídia
-│   ├── 10_mouse_gaming.sh              # Logitech G502 X (DPIs, 1000Hz, macros on-board)
-│   ├── 11_wacom_tablet.sh              # Suporte, drivers e pareamento da Wacom Intuos Pro
-│   ├── 12_kando_restore.sh             # Sincronização de configurações do Kando
-│   ├── 13_cosmic_restore.sh            # Restauração de temas COSMIC, App Library e Dock
-│   ├── 14_ide_config_restore.sh        # Restauração de settings, atalhos e snippets das IDEs
-│   ├── 15_zsh_p10k_setup.sh            # Zsh, Powerlevel10k, fontes MesloLGS NF e Ctrl+V
-│   ├── 16_jogos_performance.sh         # Steam, Gamemode, MangoHud, Heroic e perfil Performance
-│   ├── 17_flatpak_permissions.sh       # Overrides de discos e bandeja Wayland (CopyQ)
-│   ├── 18_manutencao_ssds.sh           # Ativação do fstrim.timer para saúde dos SSDs
-│   ├── 19_autostart_config.sh          # Entradas de autostart (CopyQ, Kando, Espanso, NumLock)
-│   └── 20_limpeza_otimizacao.sh        # Limpeza de caches e runtimes não utilizados
+│   ├── 07_powershell7.sh               # Instalação e perfil do Microsoft PowerShell 7 (pwsh)
+│   ├── 08_antigravity_ide.sh           # Google Antigravity IDE (/opt, AppArmor, .desktop)
+│   ├── 09_onlyoffice_padrao.sh         # Associação do OnlyOffice como leitor padrão
+│   ├── 10_cosmic_music_applet.sh       # Compilação e instalação do miniaplicativo de mídia
+│   ├── 11_mouse_gaming.sh              # Logitech G502 X (DPIs, 1000Hz, macros on-board)
+│   ├── 12_wacom_tablet.sh              # Suporte, drivers e pareamento da Wacom Intuos Pro
+│   ├── 13_kando_restore.sh             # Sincronização de configurações do Kando
+│   ├── 14_cosmic_restore.sh            # Restauração de temas COSMIC, App Library e Dock
+│   ├── 15_ide_config_restore.sh        # Restauração de settings, atalhos e snippets das IDEs
+│   ├── 16_zsh_p10k_setup.sh            # Zsh, Powerlevel10k, fontes MesloLGS NF e Ctrl+V
+│   ├── 17_jogos_performance.sh         # Steam, Gamemode, MangoHud, Heroic e perfil Performance
+│   ├── 18_flatpak_permissions.sh       # Overrides de discos e bandeja Wayland (CopyQ)
+│   ├── 19_manutencao_ssds.sh           # Ativação do fstrim.timer para saúde dos SSDs
+│   ├── 20_autostart_config.sh          # Entradas de autostart (CopyQ, Kando, Espanso, NumLock)
+│   └── 21_limpeza_otimizacao.sh        # Limpeza de caches e runtimes não utilizados
 ├── setup_popos.sh                      # Script monolítico legado (preservado para segurança)
 └── scripts_avulsos/                    # Scripts avulsos legados (preservados para segurança)
 ```
@@ -136,29 +137,30 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/02_teclado_cedilha_numlock.sh` | Módulo de layout US-Intl, resposta rápida (180ms/18ms), Cedilha (`'+c = ç`), `~/.XCompose`, immodules GTK e NumLock Systemd/Udev. |
 | `scripts/03_atualizacao_sistema.sh` | Módulo de atualização de pacotes APT, Pop recovery e firmware. |
 | `scripts/04_pacotes_base_dev.sh` | Módulo de utilitários base, compiladores, NVM, Cargo/Rust e dependências de desenvolvimento. |
-| `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone para montagem FUSE das nuvens (GDrive, OneDrive, MEGA). |
+| `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone para montagem FUSE das nuvens (GDrive, OneDrive, MEGA) e discos no COSMIC Files. |
 | `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Flatpaks principais, Jellyfin Server, Espanso e Kando com wrappers. |
-| `scripts/07_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
-| `scripts/08_onlyoffice_padrao.sh` | Módulo de associação do OnlyOffice como manipulador padrão de documentos office. |
-| `scripts/09_cosmic_music_applet.sh` | Módulo de compilação e instalação do miniaplicativo de controle de mídia para a Dock. |
-| `scripts/10_mouse_gaming.sh` | Módulo de gravação de polling rate 1000Hz, DPIs e macros na memória do mouse Logitech G502 X. |
-| `scripts/11_wacom_tablet.sh` | Módulo de suporte, regras udev, drivers libwacom e pareamento Bluetooth da mesa Wacom Intuos Pro. |
-| `scripts/12_kando_restore.sh` | Módulo de restauração de menus e atalho `Ctrl+Shift+F10` do Kando a partir do Google Drive. |
-| `scripts/13_cosmic_restore.sh` | Módulo de restauração de temas, auto-tiling desligado, abas da App Library (*Jogos, Dev, Escritório, Mídia, Utilitários, Sistema*) e Dock. |
-| `scripts/14_ide_config_restore.sh` | Módulo de sincronização de settings, atalhos (`Ctrl+V`, colar com botão direito) e snippets para VS Code e Antigravity. |
-| `scripts/15_zsh_p10k_setup.sh` | Módulo de instalação e configuração do Zsh, Powerlevel10k, fontes MesloLGS NF, shell padrão e `Ctrl+V`. |
-| `scripts/16_jogos_performance.sh` | Módulo de Steam, Gamemode, MangoHud, Heroic, `/mnt/nvme_01/Jogos` e perfil de Performance Máxima. |
-| `scripts/17_flatpak_permissions.sh` | Módulo de overrides de filesystem (`/mnt/storage_*`) e liberação de bandeja (`StatusNotifierWatcher`). |
-| `scripts/18_manutencao_ssds.sh` | Módulo de ativação do TRIM semanal (`fstrim.timer`) para os SSDs. |
-| `scripts/19_autostart_config.sh` | Módulo de provisionamento de inicialização automática no login (CopyQ, Kando, Espanso, NumLock). |
-| `scripts/20_limpeza_otimizacao.sh` | Módulo de limpeza de pacotes, autoremove e remoção de runtimes Flatpak não utilizados. |
+| `scripts/07_powershell7.sh` | Módulo de instalação oficial do Microsoft PowerShell 7 (`pwsh`), repositórios Microsoft e perfil do usuário. |
+| `scripts/08_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
+| `scripts/09_onlyoffice_padrao.sh` | Módulo de associação do OnlyOffice como manipulador padrão de documentos office. |
+| `scripts/10_cosmic_music_applet.sh` | Módulo de compilação e instalação do miniaplicativo de controle de mídia para a Dock. |
+| `scripts/11_mouse_gaming.sh` | Módulo de gravação de polling rate 1000Hz, DPIs e macros na memória do mouse Logitech G502 X. |
+| `scripts/12_wacom_tablet.sh` | Módulo de suporte, regras udev, drivers libwacom, OpenTabletDriver GUI e pareamento da Wacom Intuos Pro. |
+| `scripts/13_kando_restore.sh` | Módulo de restauração de menus e atalho `Ctrl+Shift+F10` do Kando a partir do Google Drive. |
+| `scripts/14_cosmic_restore.sh` | Módulo de restauração de temas, auto-tiling desligado, abas da App Library (*Jogos, Dev, Escritório, Mídia, Utilitários, Sistema*) e Dock. |
+| `scripts/15_ide_config_restore.sh` | Módulo de sincronização de settings, atalhos (`Ctrl+V`, colar com botão direito) e snippets para VS Code e Antigravity. |
+| `scripts/16_zsh_p10k_setup.sh` | Módulo de instalação e configuração do Zsh, Powerlevel10k, fontes MesloLGS NF, shell padrão e `Ctrl+V`. |
+| `scripts/17_jogos_performance.sh` | Módulo de Steam, Gamemode, MangoHud, Heroic, `/mnt/nvme_01/Jogos` e perfil de Performance Máxima. |
+| `scripts/18_flatpak_permissions.sh` | Módulo de overrides de filesystem (`/mnt/storage_*`) e liberação de bandeja (`StatusNotifierWatcher`). |
+| `scripts/19_manutencao_ssds.sh` | Módulo de ativação do TRIM semanal (`fstrim.timer`) para os SSDs. |
+| `scripts/20_autostart_config.sh` | Módulo de provisionamento de inicialização automática no login (CopyQ, Kando, Espanso, NumLock). |
+| `scripts/21_limpeza_otimizacao.sh` | Módulo de limpeza de pacotes, autoremove e remoção de runtimes Flatpak não utilizados. |
 
 ---
 
 ## ⚙️ Guia de Execução
 
 ### 🚀 Modo Automatizado Completo (V2):
-Executa todos os 20 módulos em sequência, pulando automaticamente o que já estiver concluído:
+Executa todos os 21 módulos em sequência, pulando automaticamente o que já estiver concluído:
 ```bash
 sudo ./setup_popos_v2.sh
 ```
