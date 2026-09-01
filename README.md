@@ -72,7 +72,10 @@ Script de automação e provisionamento idempotente para configuração completa
 
 ### 8. Restauração de Backups, Customizações e Dotfiles
 *   **Kando:** Restaura configurações gerais (`config.json`) e menus (`menus.json` com o atalho `Control+Shift+F10` injetado via `jq`) a partir de `~/GoogleDrive_Pessoal/Organização/Kando/Casa`.
-*   **COSMIC DE & Temas:** Restaura configurações do painel COSMIC (`~/.config/cosmic`) e pontes visuais legadas (`gtk-3.0`, `gtk-4.0`, `qt5ct`, `qt6ct`) a partir de `~/GoogleDrive_Pessoal/Organização/Backup_COSMIC`, garantindo o modo auto-tiling (mosaico automático de janelas) desligado por padrão.
+*   **COSMIC DE, Temas & Biblioteca de Apps:** Restaura configurações do painel COSMIC (`~/.config/cosmic`) e pontes visuais legadas (`gtk-3.0`, `gtk-4.0`, `qt5ct`, `qt6ct`) a partir de `~/GoogleDrive_Pessoal/Organização/Backup_COSMIC`, garantindo:
+    *   Modo **auto-tiling desligado** por padrão.
+    *   **NumLock ativado** por padrão no boot do compositor.
+    *   Organização automática do **Menu / Biblioteca de Aplicativos** em pastas e categorias inteligentes (*Jogos, Desenvolvimento & Produtividade, Mídia & Criação, Utilitários, Sistema*) e favoritos fixados.
 *   **IDEs (VS Code & Antigravity IDE):** Restaura de forma sincronizada os arquivos `settings.json`, `keybindings.json` (atalhos customizados) e pasta de `snippets/` a partir de `~/GoogleDrive_Pessoal/Organização/VSCode_Antigravity/` para os diretórios de configuração de ambos os editores (`~/.config/Code/User/` e `~/.config/Antigravity IDE/User/`).
 *   **Terminal ZSH & Powerlevel10k:**
     *   Execução do instalador a partir de `~/GoogleDrive_Pessoal/Organização/Terminal ZSH Linux/install.sh`.

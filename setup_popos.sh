@@ -753,6 +753,113 @@ if ! check_flag "COSMIC_RESTORE"; then
                 # Desativa o modo auto-tiling (mosaico automático de janelas) por padrão
                 mkdir -p "$HOME/.config/cosmic/com.system76.CosmicComp/v1"
                 echo "false" > "$HOME/.config/cosmic/com.system76.CosmicComp/v1/autotile"
+                echo "true" > "$HOME/.config/cosmic/com.system76.CosmicComp/v1/numlock_state"
+
+                # Garante os Grupos / Pastas organizados na Biblioteca de Aplicativos do COSMIC
+                mkdir -p "$HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1"
+                mkdir -p "$HOME/.config/cosmic/com.system76.CosmicAppList/v1"
+                
+                cat << 'EOF' > "$HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/groups"
+[
+    (
+        name: "Jogos",
+        icon: "input-gaming-symbolic",
+        filter: Categories(
+            categories: [
+                "Game",
+            ],
+            include: [
+                "steam",
+                "com.heroicgameslauncher.hgl",
+            ],
+            exclude: [],
+        ),
+    ),
+    (
+        name: "Desenvolvimento & Produtividade",
+        icon: "applications-engineering-symbolic",
+        filter: Categories(
+            categories: [
+                "Development",
+                "Office",
+            ],
+            include: [
+                "code",
+                "antigravity-ide",
+                "org.onlyoffice.desktopeditors",
+                "com.github.hluk.copyq",
+                "menu.kando.Kando",
+                "com.dropbox.Client",
+            ],
+            exclude: [],
+        ),
+    ),
+    (
+        name: "Mídia & Criação",
+        icon: "applications-multimedia-symbolic",
+        filter: Categories(
+            categories: [
+                "AudioVideo",
+                "Graphics",
+            ],
+            include: [
+                "org.jellyfin.JellyfinDesktop",
+                "org.gimp.GIMP",
+            ],
+            exclude: [],
+        ),
+    ),
+    (
+        name: "cosmic-utilities",
+        icon: "folder-symbolic",
+        filter: Categories(
+            categories: [
+                "Utility",
+            ],
+            include: [
+                "nm-connection-editor",
+            ],
+            exclude: [
+                "com.system76.CosmicEdit",
+                "com.system76.CosmicFiles",
+                "com.github.hluk.copyq",
+                "menu.kando.Kando",
+            ],
+        ),
+    ),
+    (
+        name: "cosmic-system",
+        icon: "folder-symbolic",
+        filter: Categories(
+            categories: [
+                "System",
+            ],
+            include: [
+                "gnome-language-selector",
+                "im-config",
+                "org.freedesktop.IBus.Setup",
+                "system76-driver",
+            ],
+            exclude: [
+                "com.system76.CosmicStore",
+                "com.system76.CosmicTerm",
+            ],
+        ),
+    ),
+]
+EOF
+
+                cat << 'EOF' > "$HOME/.config/cosmic/com.system76.CosmicAppList/v1/favorites"
+[
+    "firefox",
+    "com.system76.CosmicFiles",
+    "antigravity-ide",
+    "code",
+    "com.system76.CosmicTerm",
+    "com.system76.CosmicStore",
+    "com.system76.CosmicSettings",
+]
+EOF
                 
                 set_flag "COSMIC_RESTORE"
             else
