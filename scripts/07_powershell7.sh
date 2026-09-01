@@ -61,18 +61,22 @@ LOCAL_FALLBACK_DIR="$BASE_DIR/PowerShell"
 
 mkdir -p "$PWSH_CONFIG_DIR"
 
-if [ -d "$GDRIVE_PWSH_DIR" ]; then
-    log_msg "INFO" "Restaurando perfil, temas e módulos a partir do Google Drive..."
-    cp -ru "$GDRIVE_PWSH_DIR"/* "$PWSH_CONFIG_DIR/" 2>/dev/null || cp -r "$GDRIVE_PWSH_DIR"/* "$PWSH_CONFIG_DIR/" 2>/dev/null || true
-elif [ -d "$LOCAL_FALLBACK_DIR" ]; then
-    log_msg "INFO" "Google Drive não encontrado. Restaurando a partir da pasta local de fallback..."
-    cp -ru "$LOCAL_FALLBACK_DIR"/* "$PWSH_CONFIG_DIR/" 2>/dev/null || cp -r "$LOCAL_FALLBACK_DIR"/* "$PWSH_CONFIG_DIR/" 2>/dev/null || true
+if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+    if sudo -u "$REAL_USER" test -d "$GDRIVE_PWSH_DIR"; then
+        log_msg "INFO" "Restaurando perfil, temas e módulos a partir do Google Drive..."
+        sudo -u "$REAL_USER" cp -r "$GDRIVE_PWSH_DIR"/* "$PWSH_CONFIG_DIR/" 2>/dev/null || true
+    elif [ -d "$LOCAL_FALLBACK_DIR" ]; then
+        log_msg "INFO" "Google Drive não encontrado. Restaurando a partir da pasta local de fallback..."
+        sudo -u "$REAL_USER" cp -r "$LOCAL_FALLBACK_DIR"/* "$PWSH_CONFIG_DIR/" 2>/dev/null || true
+    fi
 else
-    log_msg "INFO" "Criando perfil padrão do PowerShell..."
-    cat << 'EOF' > "$PWSH_CONFIG_DIR/Microsoft.PowerShell_profile.ps1"
-$OutputEncoding = [System.Text.Encoding]::UTF8
-Set-PSReadLineOption -PredictionSource History -PredictionViewStyle ListView 2>$null
-EOF
+    if [ -d "$GDRIVE_PWSH_DIR" ]; then
+        log_msg "INFO" "Restaurando perfil, temas e módulos a partir do Google Drive..."
+        cp -r "$GDRIVE_PWSH_DIR"/* "$PWSH_CONFIG_DIR/" 2>/dev/null || true
+    elif [ -d "$LOCAL_FALLBACK_DIR" ]; then
+        log_msg "INFO" "Google Drive não encontrado. Restaurando a partir da pasta local de fallback..."
+        cp -r "$LOCAL_FALLBACK_DIR"/* "$PWSH_CONFIG_DIR/" 2>/dev/null || true
+    fi
 fi
 
 chown -R "$REAL_USER:$REAL_USER" "$PWSH_CONFIG_DIR" 2>/dev/null || true
