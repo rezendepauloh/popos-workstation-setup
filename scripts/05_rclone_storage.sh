@@ -19,15 +19,21 @@ log_msg "HEADER" "5. CONFIGURAÇÃO DO RCLONE E SERVIÇOS SYSTEMD"
 RCLONE_CONF_SRC="$BASE_DIR/rclone.conf"
 RCLONE_CONF_DST="$REAL_HOME/.config/rclone/rclone.conf"
 
-mkdir -p "$REAL_HOME/.config/rclone"
-mkdir -p "$REAL_HOME/.config/systemd/user"
-
-for dir in "$REAL_HOME/GoogleDrive_Pessoal" "$REAL_HOME/OneDrive_Pessoal" "$REAL_HOME/Mega_Pessoal" "$REAL_HOME/MEGA_Pessoal"; do
-    if ! mountpoint -q "$dir" 2>/dev/null && [ ! -d "$dir" ]; then
-        mkdir -p "$dir"
-        chown "$REAL_USER:$REAL_USER" "$dir" 2>/dev/null || true
-    fi
-done
+if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+    sudo -u "$REAL_USER" mkdir -p "$REAL_HOME/.config/rclone" "$REAL_HOME/.config/systemd/user" 2>/dev/null || true
+    for dir in "$REAL_HOME/GoogleDrive_Pessoal" "$REAL_HOME/OneDrive_Pessoal" "$REAL_HOME/Mega_Pessoal" "$REAL_HOME/MEGA_Pessoal"; do
+        if ! grep -qs " $dir " /proc/mounts; then
+            sudo -u "$REAL_USER" mkdir -p "$dir" 2>/dev/null || true
+        fi
+    done
+else
+    mkdir -p "$REAL_HOME/.config/rclone" "$REAL_HOME/.config/systemd/user" 2>/dev/null || true
+    for dir in "$REAL_HOME/GoogleDrive_Pessoal" "$REAL_HOME/OneDrive_Pessoal" "$REAL_HOME/Mega_Pessoal" "$REAL_HOME/MEGA_Pessoal"; do
+        if ! grep -qs " $dir " /proc/mounts; then
+            mkdir -p "$dir" 2>/dev/null || true
+        fi
+    done
+fi
 
 # Copia arquivo rclone.conf local se presente e não existente no destino
 if [ -f "$RCLONE_CONF_SRC" ] && [ ! -f "$RCLONE_CONF_DST" ]; then

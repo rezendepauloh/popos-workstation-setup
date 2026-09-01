@@ -83,9 +83,17 @@ set_user_gsetting() {
 # Verificação de montagem FUSE do Google Drive
 verificar_gdrive_montado() {
     local GDRIVE_PATH="$REAL_HOME/GoogleDrive_Pessoal"
-    if [ -d "$GDRIVE_PATH" ] && [ -n "$(ls -A "$GDRIVE_PATH" 2>/dev/null)" ]; then
+    if grep -qs " $GDRIVE_PATH " /proc/mounts; then
         return 0
-    else
-        return 1
     fi
+    if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+        if sudo -u "$REAL_USER" test -d "$GDRIVE_PATH" 2>/dev/null && [ -n "$(sudo -u "$REAL_USER" ls -A "$GDRIVE_PATH" 2>/dev/null)" ]; then
+            return 0
+        fi
+    else
+        if [ -d "$GDRIVE_PATH" ] 2>/dev/null && [ -n "$(ls -A "$GDRIVE_PATH" 2>/dev/null)" ]; then
+            return 0
+        fi
+    fi
+    return 1
 }
