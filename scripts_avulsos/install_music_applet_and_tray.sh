@@ -27,16 +27,19 @@ fi
 # ==============================================================================
 echo "🎵 2. Baixando e compilando o miniaplicativo de controle de mídia..."
 BUILD_DIR="/tmp/cosmic-applet-music-player-build"
-rm -rf "$BUILD_DIR"
-git clone --depth 1 https://github.com/Ebbo/cosmic-applet-music-player.git "$BUILD_DIR"
+if [ ! -d "$BUILD_DIR" ]; then
+    git clone --depth 1 https://github.com/Ebbo/cosmic-applet-music-player.git "$BUILD_DIR"
+fi
 cd "$BUILD_DIR"
 
-echo "  ⚙️ Compilando em modo Release (otimizado)..."
-cargo build --release --manifest-path music-player/Cargo.toml
+if [ ! -f "target/release/cosmic-ext-applet-music-player" ]; then
+    echo "  ⚙️ Compilando em modo Release (otimizado)..."
+    cargo build --release --manifest-path music-player/Cargo.toml
+fi
 
 echo "  📥 Instalando binário e recursos no sistema..."
 if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
-    sudo install -Dm755 music-player/target/release/cosmic-ext-applet-music-player /usr/bin/cosmic-ext-applet-music-player
+    sudo install -Dm755 target/release/cosmic-ext-applet-music-player /usr/bin/cosmic-ext-applet-music-player
     
     # Instalar arquivo .desktop
     if [ -f res/com.github.MusicPlayer.desktop ]; then

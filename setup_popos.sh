@@ -649,7 +649,7 @@ if ! check_flag "COSMIC_MUSIC_APPLET"; then
         
         cargo build --release --manifest-path music-player/Cargo.toml
         
-        sudo install -Dm755 music-player/target/release/cosmic-ext-applet-music-player /usr/bin/cosmic-ext-applet-music-player
+        sudo install -Dm755 target/release/cosmic-ext-applet-music-player /usr/bin/cosmic-ext-applet-music-player
         if [ -f res/com.github.MusicPlayer.desktop ]; then
             sudo install -Dm644 res/com.github.MusicPlayer.desktop /usr/share/applications/com.github.MusicPlayer.desktop
         fi
