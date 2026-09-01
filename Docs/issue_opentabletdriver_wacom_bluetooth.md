@@ -108,3 +108,62 @@ devices:
 
 ## 📎 Arquivos Relacionados no Setup
 * [`scripts/12_wacom_tablet.sh`](file:///home/rezendepauloh/Documentos/Scripts/scripts/12_wacom_tablet.sh)
+
+# Tentativa de solução:
+
+Viewed test_in_docker.sh:1-247
+Ran command: `lsmod | grep -i wacom || true
+ls -la /etc/modprobe.d/ || true
+cat /etc/modprobe.d/*wacom* 2>/dev/null || cat /etc/modprobe.d/*opentabletdriver* 2>/dev/null || true
+systemctl --user status opentabletdriver.service 2>&1 || true
+sudo systemctl status opentabletdriver.service 2>&1 || true`
+Used tool: manage_task
+Used tool: manage_task
+Ran command: `lsusb | grep -iE 'wacom|tablet|056a' || true
+xsetwacom --list devices 2>&1 || true
+libinput list-devices 2>/dev/null | grep -iE 'wacom|intuos|tablet|event' || true`
+Ran command: `bluetoothctl info E0:9F:2A:20:BC:DD || true`
+Ran command: `lsmod | grep -i wacom || modinfo wacom || true`
+Ran command: `ls -la /dev/uinput
+groups $USER
+getfacl /dev/uinput 2>/dev/null || true`
+Ran command: `cat ~/.config/OpenTabletDriver/settings.json 2>/dev/null || true
+ls -la ~/.config/OpenTabletDriver/ 2>/dev/null || true`
+Ran command: `cat ~/.config/OpenTabletDriver/Logs/* 2>/dev/null || true`
+Viewed test_in_docker.sh:1-60
+Viewed test_in_docker.sh:140-180
+Viewed test_in_docker.sh:220-247
+Edited test_in_docker.sh
+Edited test_in_docker.sh
+Viewed issue_opentabletdriver_wacom_bluetooth.md:1-80
+Created issue_opentabletdriver_wacom_bluetooth.md
+Ran command: `git status
+git add test_in_docker.sh Docs/issue_opentabletdriver_wacom_bluetooth.md README.md
+git commit -m "fix: atualizar test_in_docker.sh para orquestrador V2 e atualizar diagnóstico completo da Wacom" || true`
+
+### 2. ✍️ Diagnóstico da Caneta Wacom (USB & Bluetooth)
+
+Analisamos a fundo os logs do `otd-daemon` e o subsistema de entrada do kernel. Descobrimos a causa exata do porquê a caneta não respondeu:
+
+#### 🔍 O que está acontecendo:
+1. **No USB com OpenTabletDriver:**
+   * O OpenTabletDriver vem configurado por padrão com `LinuxArtistMode` (que depende de chamadas legadas do X11/XTest).
+   * No **Wayland** (`cosmic-comp`), o compositor ignora esses eventos X11. Para a caneta mover no Wayland pelo OpenTabletDriver, o modo de saída precisa ser alterado para **`LinuxVirtualTablet`** (que cria um dispositivo `/dev/uinput` com Stylus, Pressão e Tilt que o Wayland aceita).
+2. **No Bluetooth com OpenTabletDriver:**
+   * O PID do USB é `0x0392` e o do Bluetooth é `0x0393`.
+   * O OpenTabletDriver 0.6.7 não tem o PID `0x0393` na tabela e emite no log: `No known tablets added, skipping detect`.
+3. **Conflito com o Driver Nativo do Kernel (`wacom.ko`):**
+   * O Linux tem o driver oficial de kernel `wacom` que suporta a Intuos Pro S perfeitamente em USB e Bluetooth via `libinput`. Porém, enquanto o daemon do OpenTabletDriver estiver rodando, ele sequestra o dispositivo HID e bloqueia o driver do kernel.
+
+---
+
+### 💡 Como podemos resolver a caneta agora:
+
+Podemos seguir por dois caminhos:
+
+* **Opção 1 (Driver Nativo do Kernel - Recomendado):**
+  Desativar o daemon do OpenTabletDriver e deixar o `wacom.ko` + `libinput` assumirem a mesa nativamente no Wayland.
+* **Opção 2 (OpenTabletDriver para Wayland):**
+  Ajustar o `settings.json` do OpenTabletDriver para `LinuxVirtualTablet` e injetar a regra do PID `0x0393` do Bluetooth.
+
+O relatório completo foi atualizado em [`Docs/issue_opentabletdriver_wacom_bluetooth.md`](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_opentabletdriver_wacom_bluetooth.md) e todas as alterações estão commitadas no Git local! 🚀
