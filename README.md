@@ -76,10 +76,10 @@ Script de automação e provisionamento idempotente para configuração completa
     *   Modo **auto-tiling desligado** por padrão.
     *   **NumLock ativado** por padrão no boot do compositor.
     *   Organização automática do **Menu / Biblioteca de Aplicativos** em pastas e categorias inteligentes (*Jogos, Desenvolvimento, Escritório, Mídia, Utilitários, Sistema*) e favoritos fixados.
-*   **IDEs (VS Code & Antigravity IDE):** Restaura de forma sincronizada os arquivos `settings.json`, `keybindings.json` (atalhos customizados) e pasta de `snippets/` a partir de `~/GoogleDrive_Pessoal/Organização/VSCode_Antigravity/` para os diretórios de configuração de ambos os editores (`~/.config/Code/User/` e `~/.config/Antigravity IDE/User/`).
+*   **IDEs (VS Code & Antigravity IDE):** Restaura de forma sincronizada os arquivos `settings.json`, `keybindings.json` (atalhos customizados) e pasta de `snippets/` a partir de `~/GoogleDrive_Pessoal/Organização/VSCode_Antigravity/` para os diretórios de configuração de ambos os editores (`~/.config/Code/User/` e `~/.config/Antigravity IDE/User/`), incluindo suporte a **colar com botão direito do mouse** no terminal integrado e atalho `Ctrl+V`.
 *   **Terminal ZSH & Powerlevel10k:**
     *   Execução do instalador a partir de `~/GoogleDrive_Pessoal/Organização/Terminal ZSH Linux/install.sh`.
-    *   Restauração dos dotfiles `~/.zshrc` e `~/.p10k.zsh`.
+    *   Restauração dos dotfiles `~/.zshrc` e `~/.p10k.zsh` com suporte nativo ao **`Ctrl+V` para colar a área de transferência** (via `wl-paste` no Wayland e `xclip` no X11) e `ESC` para limpar a linha.
     *   Download automatizado das 4 variantes completas da fonte **MesloLGS NF** (*Regular, Bold, Italic, Bold Italic*) do repositório oficial do Powerlevel10k diretamente para `~/.local/share/fonts/`, com atualização de cache (`fc-cache -f`).
     *   Definição automática do **Zsh como shell padrão** do usuário (`chsh -s` / `usermod -s`).
 

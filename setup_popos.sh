@@ -975,6 +975,27 @@ if ! check_flag "ZSH_CONFIG"; then
                     log_msg "INFO" "Zsh definido como shell padrão para o usuário $USER."
                 fi
 
+                # Garante os atalhos de produtividade do Zsh (Ctrl+V para colar e ESC para limpar linha)
+                if ! grep -q "paste-from-clipboard" "$HOME/.zshrc" 2>/dev/null; then
+                    cat << 'EOF' >> "$HOME/.zshrc"
+
+# Colar da Área de Transferência com Ctrl+V no Terminal ZSH (Wayland / wl-paste & X11 / xclip)
+paste-from-clipboard() {
+    local text
+    if command -v wl-paste >/dev/null 2>&1; then
+        text=$(wl-paste --no-newline 2>/dev/null)
+    elif command -v xclip >/dev/null 2>&1; then
+        text=$(xclip -selection clipboard -o 2>/dev/null)
+    fi
+    LBUFFER="${LBUFFER}${text}"
+}
+zle -N paste-from-clipboard
+bindkey '^V' paste-from-clipboard
+bindkey -M emacs '^V' paste-from-clipboard
+bindkey -M viins '^V' paste-from-clipboard
+EOF
+                fi
+
                 set_flag "ZSH_CONFIG"
             else
                 log_msg "WARN" "⚠️ Script de instalação do ZSH não encontrado em '$ZSH_INSTALL_DIR/install.sh'. Ignorando..."
