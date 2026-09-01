@@ -70,6 +70,22 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
         ),
     ),
     (
+        name: "Comunicação",
+        icon: "chat-symbolic",
+        filter: Categories(
+            categories: [
+                "Network",
+                "Chat",
+                "InstantMessaging",
+            ],
+            include: [
+                "org.telegram.desktop",
+                "com.rtosta.zapzap",
+            ],
+            exclude: [],
+        ),
+    ),
+    (
         name: "Escritório",
         icon: "applications-office-symbolic",
         filter: Categories(

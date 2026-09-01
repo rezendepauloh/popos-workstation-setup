@@ -32,7 +32,9 @@ flatpak install -y --system flathub \
     com.github.hluk.copyq \
     org.onlyoffice.desktopeditors \
     org.jellyfin.JellyfinDesktop \
-    org.gimp.GIMP
+    org.gimp.GIMP \
+    org.telegram.desktop \
+    com.rtosta.zapzap
 
 # 3. Jellyfin Media Server (Repositório Oficial APT)
 log_msg "INFO" "Instalando Jellyfin Media Server nativo..."
