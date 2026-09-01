@@ -63,18 +63,20 @@ Script de automação e provisionamento idempotente para configuração completa
     *   Instalação de ícones hicolor de alta resolução e entrada `.desktop` com categorias e mimetypes no menu de aplicativos.
 *   **Aplicativos Flatpak & Overrides:**
     *   Instalação de **Dropbox**, **CopyQ**, **OnlyOffice Desktop Editors**, **Jellyfin Desktop** e **GIMP**.
-    *   Aplicação automática de overrides de permissão de sistema de arquivos para acesso aos discos `/mnt/storage_700`, `/mnt/storage_930` e `/mnt`.
+    *   Aplicação automática de overrides de permissão de sistema de arquivos para acesso aos discos `/mnt/storage_700`, `/mnt/storage_930`, `/mnt` e integração com a bandeja do Wayland (`StatusNotifierWatcher` para o CopyQ).
     *   Associação do **OnlyOffice** como leitor padrão para documentos (`.docx`, `.xlsx`, `.pptx`).
 *   **Jellyfin Media Server:** Instalação nativa via repositório oficial da equipe Jellyfin.
+*   **Miniaplicativo de Controle de Mídia (COSMIC):** Download e compilação do `cosmic-applet-music-player` (com exibição da capa do álbum/fotinha, título/artista, botões MPRIS e controle por scroll), posicionado no **canto inferior esquerdo da Dock**.
 *   **Espanso (Wayland):** Download do pacote `.deb` oficial, bibliotecas de compatibilidade wxWidgets 3.0 para o Pop!_OS 24.04 (noble), instalação e registro de serviço nativo (`espanso service register && espanso start`).
 *   **Kando:** Download dinâmico da última versão `.deb` diretamente da API do GitHub, com wrapper automático de compatibilidade para COSMIC Desktop / Wayland (forçando o backend XWayland).
 *   **Autostart do Sistema:** Configuração de inicialização automática no login do usuário (`~/.config/autostart`) para **CopyQ**, **Kando**, **Espanso** e **NumLock**.
 
 ### 8. Restauração de Backups, Customizações e Dotfiles
 *   **Kando:** Restaura configurações gerais (`config.json`) e menus (`menus.json` com o atalho `Control+Shift+F10` injetado via `jq`) a partir de `~/GoogleDrive_Pessoal/Organização/Kando/Casa`.
-*   **COSMIC DE, Temas & Biblioteca de Apps:** Restaura configurações do painel COSMIC (`~/.config/cosmic`) e pontes visuais legadas (`gtk-3.0`, `gtk-4.0`, `qt5ct`, `qt6ct`) a partir de `~/GoogleDrive_Pessoal/Organização/Backup_COSMIC`, garantindo:
+*   **COSMIC DE, Temas, Dock & Biblioteca de Apps:** Restaura configurações do painel COSMIC (`~/.config/cosmic`) e pontes visuais legadas (`gtk-3.0`, `gtk-4.0`, `qt5ct`, `qt6ct`) a partir de `~/GoogleDrive_Pessoal/Organização/Backup_COSMIC`, garantindo:
     *   Modo **auto-tiling desligado** por padrão.
     *   **NumLock ativado** por padrão no boot do compositor.
+    *   Miniaplicativo de **Controle de Mídia** no canto inferior esquerdo da Dock.
     *   Organização automática do **Menu / Biblioteca de Aplicativos** em pastas e categorias inteligentes (*Jogos, Desenvolvimento, Escritório, Mídia, Utilitários, Sistema*) e favoritos fixados.
 *   **IDEs (VS Code & Antigravity IDE):** Restaura de forma sincronizada os arquivos `settings.json`, `keybindings.json` (atalhos customizados) e pasta de `snippets/` a partir de `~/GoogleDrive_Pessoal/Organização/VSCode_Antigravity/` para os diretórios de configuração de ambos os editores (`~/.config/Code/User/` e `~/.config/Antigravity IDE/User/`), incluindo suporte a **colar com botão direito do mouse** no terminal integrado e atalho `Ctrl+V`.
 *   **Terminal ZSH & Powerlevel10k:**

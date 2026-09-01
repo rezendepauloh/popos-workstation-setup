@@ -634,6 +634,44 @@ if ! check_flag "ONLYOFFICE_DEFAULT"; then
 fi
 
 # ==============================================================================
+# 7.5. MINIAPLICATIVO DE CONTROLE DE MÍDIA (cosmic-applet-music-player)
+# ==============================================================================
+if ! check_flag "COSMIC_MUSIC_APPLET"; then
+    log_msg "INFO" "🎵 Baixando e instalando o miniaplicativo de controle de mídia para o COSMIC..."
+    if {
+        sudo apt update
+        sudo apt install -y cargo rustc just pkg-config libssl-dev libdbus-1-dev git libglib2.0-dev libasound2-dev
+        
+        BUILD_DIR="/tmp/cosmic-applet-music-player-build"
+        rm -rf "$BUILD_DIR"
+        git clone --depth 1 https://github.com/Ebbo/cosmic-applet-music-player.git "$BUILD_DIR"
+        cd "$BUILD_DIR"
+        
+        cargo build --release --manifest-path music-player/Cargo.toml
+        
+        sudo install -Dm755 music-player/target/release/cosmic-ext-applet-music-player /usr/bin/cosmic-ext-applet-music-player
+        if [ -f res/com.github.MusicPlayer.desktop ]; then
+            sudo install -Dm644 res/com.github.MusicPlayer.desktop /usr/share/applications/com.github.MusicPlayer.desktop
+        fi
+        if [ -f res/com.github.MusicPlayer.metainfo.xml ]; then
+            sudo install -Dm644 res/com.github.MusicPlayer.metainfo.xml /usr/share/metainfo/com.github.MusicPlayer.metainfo.xml
+        fi
+        if [ -d res/icons ]; then
+            sudo cp -r res/icons/* /usr/share/icons/ 2>/dev/null || true
+        fi
+        sudo update-desktop-database /usr/share/applications 2>/dev/null || true
+        rm -rf "$BUILD_DIR"
+        
+        set_flag "COSMIC_MUSIC_APPLET"
+    }; then
+        :
+    else
+        log_msg "ERROR" "❌ Falha ao compilar/instalar o miniaplicativo de mídia."
+        exit 1
+    fi
+fi
+
+# ==============================================================================
 # 8. JELLYFIN SERVER (Restauração)
 # ==============================================================================
 #if ! check_flag "JELLYFIN_RESTORE"; then
@@ -869,6 +907,19 @@ EOF
     "com.system76.CosmicSettings",
 ]
 EOF
+
+                # Garante o Miniaplicativo de Controle de Mídia no canto inferior esquerdo da Dock
+                mkdir -p "$HOME/.config/cosmic/com.system76.CosmicPanel.Dock/v1"
+                cat << 'EOF' > "$HOME/.config/cosmic/com.system76.CosmicPanel.Dock/v1/plugins_wings"
+Some(([
+    "com.github.MusicPlayer",
+], [
+    "com.system76.CosmicAppletTiling",
+    "com.system76.CosmicAppletTime",
+    "com.system76.CosmicAppletNotifications",
+    "com.system76.CosmicAppletPower",
+]))
+EOF
                 
                 set_flag "COSMIC_RESTORE"
             else
@@ -1044,6 +1095,10 @@ if ! check_flag "FLATPAK_PERMISSIONS"; then
         flatpak override --user --filesystem=/mnt/storage_700 org.onlyoffice.desktopeditors
         flatpak override --user --filesystem=/mnt/storage_930 org.onlyoffice.desktopeditors
         flatpak override --user --filesystem=/mnt org.gimp.GIMP
+        
+        # Permissões de bandeja do Wayland (StatusNotifierWatcher) para o CopyQ
+        flatpak override --user --talk-name=org.kde.StatusNotifierWatcher --talk-name=org.freedesktop.StatusNotifierWatcher com.github.hluk.copyq
+        sudo flatpak override --talk-name=org.kde.StatusNotifierWatcher --talk-name=org.freedesktop.StatusNotifierWatcher com.github.hluk.copyq 2>/dev/null || true
         
         set_flag "FLATPAK_PERMISSIONS"
     }; then
