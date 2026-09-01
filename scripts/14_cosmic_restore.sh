@@ -47,6 +47,8 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
             include: [
                 "steam",
                 "com.heroicgameslauncher.hgl",
+                "jstest-gtk",
+                "io.github.antimicrox.antimicrox",
             ],
             exclude: [],
         ),
@@ -61,6 +63,8 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
             include: [
                 "antigravity-ide",
                 "code",
+                "pwsh",
+                "com.system76.CosmicTerm",
             ],
             exclude: [],
         ),
@@ -90,6 +94,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
             include: [
                 "org.jellyfin.JellyfinDesktop",
                 "org.gimp.GIMP",
+                "opentabletdriver",
             ],
             exclude: [],
         ),
@@ -105,6 +110,9 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "nm-connection-editor",
                 "com.github.hluk.copyq",
                 "menu.kando.Kando",
+                "com.ranfdev.Celeste",
+                "rclone-browser",
+                "rclone-webui",
             ],
             exclude: [
                 "com.system76.CosmicEdit",

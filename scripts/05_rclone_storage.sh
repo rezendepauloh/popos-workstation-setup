@@ -173,7 +173,10 @@ for disk_entry in "file:///mnt/nvme_01 nvme_01" "file:///mnt/storage_930 hd_stor
 done
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/gtk-3.0" 2>/dev/null || true
 
-# 5. Instalação de GUIs e Bandeja de Nuvem (Celeste Tray & Rclone Web Dashboard)
+# 5. Instalação de GUIs e Bandeja de Nuvem (Rclone Browser, Celeste Tray & Web Dashboard)
+log_msg "INFO" "Instalando Rclone Browser (GUI Nativa Desktop) via APT..."
+sudo apt install -y rclone-browser
+
 log_msg "INFO" "Instalando Celeste (Cliente de Nuvem com Ícone na Bandeja)..."
 flatpak install -y --system flathub com.ranfdev.Celeste 2>/dev/null || true
 
