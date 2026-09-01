@@ -20,10 +20,14 @@ RCLONE_CONF_SRC="$BASE_DIR/rclone.conf"
 RCLONE_CONF_DST="$REAL_HOME/.config/rclone/rclone.conf"
 
 mkdir -p "$REAL_HOME/.config/rclone"
-mkdir -p "$REAL_HOME/GoogleDrive_Pessoal"
-mkdir -p "$REAL_HOME/OneDrive_Pessoal"
-mkdir -p "$REAL_HOME/Mega_Pessoal"
 mkdir -p "$REAL_HOME/.config/systemd/user"
+
+for dir in "$REAL_HOME/GoogleDrive_Pessoal" "$REAL_HOME/OneDrive_Pessoal" "$REAL_HOME/Mega_Pessoal" "$REAL_HOME/MEGA_Pessoal"; do
+    if ! mountpoint -q "$dir" 2>/dev/null && [ ! -d "$dir" ]; then
+        mkdir -p "$dir"
+        chown "$REAL_USER:$REAL_USER" "$dir" 2>/dev/null || true
+    fi
+done
 
 # Copia arquivo rclone.conf local se presente e não existente no destino
 if [ -f "$RCLONE_CONF_SRC" ] && [ ! -f "$RCLONE_CONF_DST" ]; then
@@ -32,10 +36,7 @@ if [ -f "$RCLONE_CONF_SRC" ] && [ ! -f "$RCLONE_CONF_DST" ]; then
     log_msg "INFO" "Arquivo rclone.conf copiado para ~/.config/rclone/."
 fi
 
-chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/rclone"
-chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/GoogleDrive_Pessoal"
-chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/OneDrive_Pessoal"
-chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/Mega_Pessoal"
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/rclone" 2>/dev/null || true
 
 # 1. Serviço Google Drive
 cat << 'EOF' > "$REAL_HOME/.config/systemd/user/gdrive-pessoal.service"
@@ -47,7 +48,7 @@ AssertPathExists=%h/.config/rclone/rclone.conf
 
 [Service]
 Type=notify
-ExecStart=/usr/bin/rclone mount GoogleDrive_Pessoal: %h/GoogleDrive_Pessoal \
+ExecStart=/usr/bin/rclone mount gdrive_pessoal: %h/GoogleDrive_Pessoal \
     --vfs-cache-mode full \
     --vfs-cache-max-age 24h \
     --vfs-read-chunk-size 32M \
@@ -76,7 +77,7 @@ AssertPathExists=%h/.config/rclone/rclone.conf
 
 [Service]
 Type=notify
-ExecStart=/usr/bin/rclone mount OneDrive_Pessoal: %h/OneDrive_Pessoal \
+ExecStart=/usr/bin/rclone mount onedrive_pessoal: %h/OneDrive_Pessoal \
     --vfs-cache-mode full \
     --vfs-cache-max-age 24h \
     --vfs-read-chunk-size 32M \
@@ -105,7 +106,7 @@ AssertPathExists=%h/.config/rclone/rclone.conf
 
 [Service]
 Type=notify
-ExecStart=/usr/bin/rclone mount Mega_Pessoal: %h/Mega_Pessoal \
+ExecStart=/usr/bin/rclone mount mega_pessoal: %h/Mega_Pessoal \
     --vfs-cache-mode full \
     --vfs-cache-max-age 24h \
     --vfs-read-chunk-size 32M \
@@ -124,7 +125,7 @@ RestartSec=10
 WantedBy=default.target
 EOF
 
-chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/systemd"
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/systemd" 2>/dev/null || true
 
 # Habilita allow_other no /etc/fuse.conf
 if [ -f /etc/fuse.conf ]; then
