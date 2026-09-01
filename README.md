@@ -125,6 +125,32 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 └── scripts_avulsos/                    # Scripts avulsos legados (preservados para segurança)
 ```
 
+### 📋 Módulos e Responsabilidades:
+
+| Módulo | Descrição / Função |
+| :--- | :--- |
+| `setup_popos_v2.sh` | **Orquestrador Central:** Executa todos os módulos sequencialmente, suporta flags `--list`, `--help`, `--force` e execução de módulos isolados. |
+| `scripts/00_comum.sh` | **Biblioteca Central:** Cores, timestamps, funções `log_msg`, sistema de checkpoints (`check_flag`/`set_flag`), resolução de `REAL_USER`/`REAL_HOME` e validação do Google Drive. |
+| `scripts/01_otimizacao_sistema.sh` | Módulo de Swappiness (`vm.swappiness=10`) e File Watchers inotify (`524288`). |
+| `scripts/02_teclado_cedilha_numlock.sh` | Módulo de layout US-Intl, resposta rápida (180ms/18ms), Cedilha (`'+c = ç`), `~/.XCompose`, immodules GTK e NumLock Systemd/Udev. |
+| `scripts/03_atualizacao_sistema.sh` | Módulo de atualização de pacotes APT, Pop recovery e firmware. |
+| `scripts/04_pacotes_base_dev.sh` | Módulo de utilitários base, compiladores, NVM, Cargo/Rust e dependências de desenvolvimento. |
+| `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone para montagem FUSE das nuvens (GDrive, OneDrive, MEGA). |
+| `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Flatpaks principais, Jellyfin Server, Espanso e Kando com wrappers. |
+| `scripts/07_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
+| `scripts/08_onlyoffice_padrao.sh` | Módulo de associação do OnlyOffice como manipulador padrão de documentos office. |
+| `scripts/09_cosmic_music_applet.sh` | Módulo de compilação e instalação do miniaplicativo de controle de mídia para a Dock. |
+| `scripts/10_mouse_gaming.sh` | Módulo de gravação de polling rate 1000Hz, DPIs e macros na memória do mouse Logitech G502 X. |
+| `scripts/11_kando_restore.sh` | Módulo de restauração de menus e atalho `Ctrl+Shift+F10` do Kando a partir do Google Drive. |
+| `scripts/12_cosmic_restore.sh` | Módulo de restauração de temas, auto-tiling desligado, abas da App Library (*Jogos, Dev, Escritório, Mídia, Utilitários, Sistema*) e Dock. |
+| `scripts/13_ide_config_restore.sh` | Módulo de sincronização de settings, atalhos (`Ctrl+V`, colar com botão direito) e snippets para VS Code e Antigravity. |
+| `scripts/14_zsh_p10k_setup.sh` | Módulo de instalação e configuração do Zsh, Powerlevel10k, fontes MesloLGS NF, shell padrão e `Ctrl+V`. |
+| `scripts/15_jogos_performance.sh` | Módulo de Steam, Gamemode, MangoHud, Heroic, `/mnt/nvme_01/Jogos` e perfil de Performance Máxima. |
+| `scripts/16_flatpak_permissions.sh` | Módulo de overrides de filesystem (`/mnt/storage_*`) e liberação de bandeja (`StatusNotifierWatcher`). |
+| `scripts/17_manutencao_ssds.sh` | Módulo de ativação do TRIM semanal (`fstrim.timer`) para os SSDs. |
+| `scripts/18_autostart_config.sh` | Módulo de provisionamento de inicialização automática no login (CopyQ, Kando, Espanso, NumLock). |
+| `scripts/19_limpeza_otimizacao.sh` | Módulo de limpeza de pacotes, autoremove e remoção de runtimes Flatpak não utilizados. |
+
 ---
 
 ## ⚙️ Guia de Execução

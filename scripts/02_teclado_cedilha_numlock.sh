@@ -21,10 +21,12 @@ sudo apt update
 sudo apt install -y numlockx
 
 # 2. Definição do layout do teclado US-International com Dead Keys no sistema e no COSMIC
-log_msg "INFO" "Configurando layout US-International com Dead Keys..."
-sudo localectl set-x11-keymap us pc105 alt-intl
+log_msg "INFO" "Configurando layout US-International com Dead Keys e resposta ultra-rápida..."
+sudo localectl set-x11-keymap us pc105 alt-intl 2>/dev/null || true
 
-set_user_gsetting "org.gnome.desktop.input-sources" "sources" "[('xkb', 'us+alt-intl')]"
+set_user_gsetting "org.gnome.desktop.peripherals.keyboard" "delay" "180"
+set_user_gsetting "org.gnome.desktop.peripherals.keyboard" "repeat-interval" "18"
+set_user_gsetting "org.gnome.desktop.input-sources" "sources" "[('xkb', 'us+intl')]"
 set_user_gsetting "org.gnome.desktop.peripherals.keyboard" "numlock-state" "true"
 set_user_gsetting "org.gnome.desktop.peripherals.keyboard" "remember-numlock-state" "true"
 
@@ -38,8 +40,8 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicComp/v1/xkb_config"
     layout: "us",
     variant: "intl",
     options: None,
-    repeat_delay: 600,
-    repeat_rate: 25,
+    repeat_delay: 180,
+    repeat_rate: 18,
 )
 EOF
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/cosmic"
