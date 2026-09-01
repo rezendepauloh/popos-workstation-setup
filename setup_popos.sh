@@ -640,7 +640,7 @@ if ! check_flag "COSMIC_MUSIC_APPLET"; then
     log_msg "INFO" "🎵 Baixando e instalando o miniaplicativo de controle de mídia para o COSMIC..."
     if {
         sudo apt update
-        sudo apt install -y cargo rustc just pkg-config libssl-dev libdbus-1-dev git libglib2.0-dev libasound2-dev
+        sudo apt install -y cargo rustc just pkg-config libssl-dev libdbus-1-dev git libglib2.0-dev libasound2-dev libxkbcommon-dev libwayland-dev libfontconfig1-dev libfreetype6-dev libpipewire-0.3-dev libspa-0.2-dev
         
         BUILD_DIR="/tmp/cosmic-applet-music-player-build"
         rm -rf "$BUILD_DIR"

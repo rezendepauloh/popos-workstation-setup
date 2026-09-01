@@ -36,3 +36,5 @@ Olds/
 Thumbs.db
 .idea/
 .vscode/*.log
+
+/temp/

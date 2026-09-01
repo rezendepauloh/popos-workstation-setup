@@ -19,7 +19,7 @@ REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 echo "📦 1. Instalando ferramentas e bibliotecas de desenvolvimento..."
 if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
     sudo apt update
-    sudo apt install -y cargo rustc just pkg-config libssl-dev libdbus-1-dev git libglib2.0-dev libasound2-dev
+    sudo apt install -y cargo rustc just pkg-config libssl-dev libdbus-1-dev git libglib2.0-dev libasound2-dev libxkbcommon-dev libwayland-dev libfontconfig1-dev libfreetype6-dev libpipewire-0.3-dev libspa-0.2-dev
 fi
 
 # ==============================================================================
