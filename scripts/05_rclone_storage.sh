@@ -149,6 +149,30 @@ else
     systemctl --user start gdrive-pessoal.service onedrive-pessoal.service mega-pessoal.service 2>/dev/null || true
 fi
 
+# 4. Configuração de Visibilidade dos Discos Secundários no Gerenciador de Arquivos (COSMIC Files)
+log_msg "INFO" "Configurando exibição dos discos secundários no COSMIC Files..."
+
+# Atualiza /etc/fstab para exibir os discos no navegador de arquivos com nomes amigáveis
+if [ -f /etc/fstab ]; then
+    sudo sed -i 's|/mnt/storage_930 ext4 defaults,noatime|/mnt/storage_930 ext4 defaults,noatime,x-gvfs-show,x-gvfs-name=hd_storage_930|g' /etc/fstab
+    sudo sed -i 's|/mnt/storage_700 ext4 defaults,noatime|/mnt/storage_700 ext4 defaults,noatime,x-gvfs-show,x-gvfs-name=hd_storage_700|g' /etc/fstab
+    sudo sed -i 's|/mnt/nvme_01 ext4 defaults,noatime|/mnt/nvme_01 ext4 defaults,noatime,x-gvfs-show,x-gvfs-name=nvme_01|g' /etc/fstab
+    sudo systemctl daemon-reload 2>/dev/null || true
+fi
+
+# Adiciona atalhos favoritos no bookmarks do usuário para a barra lateral do COSMIC Files
+BOOKMARKS_FILE="$REAL_HOME/.config/gtk-3.0/bookmarks"
+mkdir -p "$REAL_HOME/.config/gtk-3.0"
+touch "$BOOKMARKS_FILE"
+
+for disk_entry in "file:///mnt/nvme_01 nvme_01" "file:///mnt/storage_930 hd_storage_930" "file:///mnt/storage_700 hd_storage_700"; do
+    disk_path=$(echo "$disk_entry" | awk '{print $1}')
+    if ! grep -q "$disk_path" "$BOOKMARKS_FILE" 2>/dev/null; then
+        echo "$disk_entry" >> "$BOOKMARKS_FILE"
+    fi
+done
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/gtk-3.0" 2>/dev/null || true
+
 sleep 2
 if verificar_gdrive_montado; then
     log_msg "SUCCESS" "Google Drive montado com sucesso em '$REAL_HOME/GoogleDrive_Pessoal'."
@@ -157,4 +181,4 @@ else
 fi
 
 set_flag "$FLAG_NAME"
-log_msg "SUCCESS" "Serviços Systemd do Rclone provisionados com sucesso."
+log_msg "SUCCESS" "Serviços Rclone e Discos Secundários configurados no COSMIC Files com sucesso."
