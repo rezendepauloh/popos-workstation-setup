@@ -1,42 +1,42 @@
-# [Bug / Feature Request]: Wacom Intuos Pro S (PTH-460) Bluetooth reconnection & HID stream detection on Linux (Pop!_OS 24.04 / COSMIC)
+# [Relatório de Problema / Investigação]: Reconexão Bluetooth e Detecção do Fluxo HID da Wacom Intuos Pro S (PTH-460) no Linux (Pop!_OS 24.04 / COSMIC)
 
-## 📌 Environment Information
-- **OS:** Pop!_OS 24.04 LTS (Ubuntu 24.04 noble base)
-- **Desktop Environment:** COSMIC Desktop (Wayland / cosmic-comp)
-- **Kernel:** Linux 6.9.3-76060903-generic (x86_64)
-- **OpenTabletDriver Version:** 0.6.7 (Debian package `opentabletdriver_0.6.7-1_x64.deb` with .NET 8 runtime)
-- **Device:** Wacom Intuos Pro Small (Model: PTH-460)
-  - **USB VID:PID:** `056a:0392`
-  - **Bluetooth VID:PID:** `056a:0393`
-  - **Bluetooth MAC:** `E0:9F:2A:20:BC:DD`
-
----
-
-## 🔍 Description
-When the Wacom Intuos Pro S (PTH-460) is connected via USB cable, OpenTabletDriver immediately detects the device (`Wacom PTH-460`), applies custom button bindings, pen pressure curve, and 180° rotation (Left-handed mode) perfectly.
-
-However, when disconnecting the USB cable and turning on Bluetooth mode (pressing/holding the Touch Ring center button until the blue LED turns on), the device successfully pairs and connects to BlueZ (`bluetoothctl connect` succeeds with `Trusted: yes` and creates kernel input nodes `/dev/input/event25` [Pen], `event26` [Finger], `event27` [Pad]), but **OpenTabletDriver GUI and daemon fail to capture the stream or switch to Bluetooth mode seamlessly**.
+## 📌 Informações do Ambiente
+- **Sistema Operacional:** Pop!_OS 24.04 LTS (Base Ubuntu 24.04 noble)
+- **Ambiente de Trabalho:** COSMIC Desktop (Wayland / `cosmic-comp`)
+- **Kernel Linux:** 6.9.3-76060903-generic (x86_64)
+- **Versão do OpenTabletDriver:** 0.6.7 (Pacote Debian `opentabletdriver_0.6.7-1_x64.deb` com runtime .NET 8)
+- **Dispositivo:** Wacom Intuos Pro Small (Modelo: PTH-460)
+  - **VID:PID via USB:** `056a:0392`
+  - **VID:PID via Bluetooth:** `056a:0393`
+  - **MAC Bluetooth:** `E0:9F:2A:20:BC:DD`
 
 ---
 
-## 📋 Steps to Reproduce
-1. Connect Wacom Intuos Pro S via USB cable.
-2. Open `otd-gui` -> Tablet is recognized as `Wacom PTH-460` and functions normally.
-3. Unplug the USB cable.
-4. Press/hold the Touch Ring button on the tablet to turn on Bluetooth.
-5. In BlueZ / `bluetoothctl`, the tablet status changes to `Connected: yes` and `/proc/bus/input/devices` shows:
+## 🔍 Descrição do Problema
+Quando a mesa digitalizadora Wacom Intuos Pro S (PTH-460) é conectada diretamente pelo cabo USB, o OpenTabletDriver a detecta imediatamente como `Wacom PTH-460`. Todas as funções funcionam perfeitamente: atalhos dos botões físicos (ExpressKeys), curva de pressão da caneta (Pro Pen 2) e rotação de 180° (Modo Canhoto).
+
+No entanto, ao desconectar o cabo USB e ligar o modo Bluetooth (pressionando/segurando o botão central do Touch Ring até o LED azul piscar/acender), a mesa se conecta com sucesso ao Bluetooth do sistema operacional (`bluetoothctl connect` tem êxito com `Trusted: yes` e cria os nós de entrada no kernel `/dev/input/event25` [Pen], `event26` [Finger] e `event27` [Pad]), mas **o OpenTabletDriver (GUI e serviço em segundo plano) não captura o fluxo do dispositivo no modo sem fio nem faz a transição automática**.
+
+---
+
+## 📋 Passos para Reproduzir
+1. Conectar a Wacom Intuos Pro S via cabo USB.
+2. Abrir o aplicativo gráfico `otd-gui` -> A mesa é reconhecida perfeitamente como `Wacom PTH-460`.
+3. Desconectar o cabo USB.
+4. Ligar a mesa no modo Bluetooth segurando o botão central do Touch Ring.
+5. No BlueZ / `bluetoothctl`, o dispositivo muda para `Connected: yes` e o `/proc/bus/input/devices` registra os 3 nós de entrada do kernel:
    ```text
    N: Name="Wacom Intuos Pro S Pen" (Handlers=mouse2 event25)
    N: Name="Wacom Intuos Pro S Finger" (Handlers=mouse3 event26)
    N: Name="Wacom Intuos Pro S Pad" (Handlers=event27 js0)
    ```
-6. OpenTabletDriver GUI reports "No tablet detected" or fails to process pen/touch input from the Bluetooth stream.
+6. O OpenTabletDriver exibe "Nenhuma mesa detectada" e não processa os comandos de caneta/toque vindos da conexão Bluetooth.
 
 ---
 
-## 🔬 System Diagnostics & Logs
+## 🔬 Diagnósticos do Sistema e Logs
 
-### 1. Bluetoothctl Device Information:
+### 1. Informações do Dispositivo no Bluetoothctl:
 ```text
 Device E0:9F:2A:20:BC:DD (public)
 	Name: IntuosPro S
@@ -53,7 +53,7 @@ Device E0:9F:2A:20:BC:DD (public)
 	Modalias: usb:v056Ap0393d0000
 ```
 
-### 2. Libwacom detection:
+### 2. Detecção Local via Libwacom (`libwacom-list-local-devices`):
 ```yaml
 devices:
 - name: 'Wacom Intuos Pro S'
@@ -66,7 +66,7 @@ devices:
   - /dev/input/event25: 'Wacom Intuos Pro S Pen'
 ```
 
-### 3. OpenTabletDriver Service Status:
+### 3. Status do Serviço OpenTabletDriver:
 ```text
 ● opentabletdriver.service - OpenTabletDriver Daemon
    Loaded: loaded (~/.config/systemd/user/opentabletdriver.service)
@@ -75,5 +75,5 @@ devices:
 
 ---
 
-## 💡 Expected Behavior
-OpenTabletDriver should automatically hook into the Bluetooth HID stream (`056a:0393`) when the USB cable (`056a:0392`) is unplugged and Bluetooth is connected, preserving user configurations (rotation 180°, pen pressure curves, and ExpressKeys bindings).
+## 💡 Comportamento Esperado
+O OpenTabletDriver deve interceptar automaticamente o fluxo HID Bluetooth (`056a:0393`) assim que o cabo USB (`056a:0392`) for desconectado e o Bluetooth estiver ativo, mantendo todas as preferências do usuário (rotação 180° para canhotos, sensibilidade de pressão e atalhos de botões).
