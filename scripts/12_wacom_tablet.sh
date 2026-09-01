@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "11. CONFIGURAÇÃO DA MESA DIGITALIZADORA WACOM (INTUOS PRO)"
+log_msg "HEADER" "12. CONFIGURAÇÃO DA MESA DIGITALIZADORA WACOM (INTUOS PRO)"
 
 # 1. Instalação das bibliotecas nativas da Wacom e do OpenTabletDriver (GUI)
 log_msg "INFO" "Instalando utilitários Wacom, .NET Runtime e OpenTabletDriver (GUI)..."

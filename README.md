@@ -122,7 +122,15 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 18_flatpak_permissions.sh       # Overrides de discos e bandeja Wayland (CopyQ)
 │   ├── 19_manutencao_ssds.sh           # Ativação do fstrim.timer para saúde dos SSDs
 │   ├── 20_autostart_config.sh          # Entradas de autostart (CopyQ, Kando, Espanso, NumLock)
-│   └── 21_limpeza_otimizacao.sh        # Limpeza de caches e runtimes não utilizados
+│   ├── 14_cosmic_theme_restore.sh      # Restauração de temas visuais e GTK/Qt do Google Drive
+│   ├── 15_cosmic_menu_dock.sh          # Configuração instantânea do menu e dock do COSMIC
+│   ├── 16_ide_config_restore.sh        # Sincronização de atalhos e configurações das IDEs
+│   ├── 17_zsh_p10k_setup.sh            # Instalação do Zsh, Oh-My-Zsh, P10k e fontes Meslo
+│   ├── 18_jogos_performance.sh         # Steam, Heroic, jstest-gtk, AntiMicroX e modo de energia
+│   ├── 19_flatpak_permissions.sh       # Permissões de discos e barramento D-Bus para Flatpaks
+│   ├── 20_manutencao_ssds.sh           # Ativação do fstrim.timer para TRIM semanal
+│   ├── 21_autostart_config.sh          # Configuração de apps na inicialização da sessão
+│   └── 22_limpeza_otimizacao.sh        # Limpeza de caches e runtimes não utilizados
 ├── setup_popos.sh                      # Script monolítico legado (preservado para segurança)
 └── scripts_avulsos/                    # Scripts avulsos legados (preservados para segurança)
 ```
@@ -137,8 +145,8 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/02_teclado_cedilha_numlock.sh` | Módulo de layout US-Intl, resposta rápida (180ms/18ms), Cedilha (`'+c = ç`), `~/.XCompose`, immodules GTK e NumLock Systemd/Udev. |
 | `scripts/03_atualizacao_sistema.sh` | Módulo de atualização de pacotes APT, Pop recovery e firmware. |
 | `scripts/04_pacotes_base_dev.sh` | Módulo de utilitários base, compiladores, NVM, Cargo/Rust e dependências de desenvolvimento. |
-| `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone (GDrive, OneDrive, MEGA), Celeste (Tray), Web Dashboard e Discos no COSMIC Files. |
-| `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Flatpaks principais, Jellyfin Server, Espanso e Kando com wrappers. |
+| `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone (GDrive, OneDrive, MEGA), Celeste (Tray), Web Dashboard, Rclone Browser e Discos no COSMIC Files. |
+| `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Telegram, ZapZap (WhatsApp), OnlyOffice, Jellyfin Server, Espanso e Kando. |
 | `scripts/07_powershell7.sh` | Módulo de instalação oficial do Microsoft PowerShell 7 (`pwsh`), repositórios Microsoft e perfil do usuário. |
 | `scripts/08_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
 | `scripts/09_onlyoffice_padrao.sh` | Módulo de associação do OnlyOffice como manipulador padrão de documentos office. |
@@ -146,21 +154,22 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/11_mouse_gaming.sh` | Módulo de gravação de polling rate 1000Hz, DPIs e macros na memória do mouse Logitech G502 X. |
 | `scripts/12_wacom_tablet.sh` | Módulo de suporte, regras udev, drivers libwacom, OpenTabletDriver GUI e pareamento da Wacom Intuos Pro. |
 | `scripts/13_kando_restore.sh` | Módulo de restauração de menus e atalho `Ctrl+Shift+F10` do Kando a partir do Google Drive. |
-| `scripts/14_cosmic_restore.sh` | Módulo de restauração de temas, auto-tiling desligado, abas da App Library (*Jogos, Dev, Escritório, Mídia, Utilitários, Sistema*) e Dock. |
-| `scripts/15_ide_config_restore.sh` | Módulo de sincronização de settings, atalhos (`Ctrl+V`, colar com botão direito) e snippets para VS Code e Antigravity. |
-| `scripts/16_zsh_p10k_setup.sh` | Módulo de instalação e configuração do Zsh, Powerlevel10k, fontes MesloLGS NF, shell padrão e `Ctrl+V`. |
-| `scripts/17_jogos_performance.sh` | Módulo de Steam, Gamemode, MangoHud, Heroic, jstest-gtk, AntiMicroX e perfil de Performance Máxima. |
-| `scripts/18_flatpak_permissions.sh` | Módulo de overrides de filesystem (`/mnt/storage_*`) e liberação de bandeja (`StatusNotifierWatcher`). |
-| `scripts/19_manutencao_ssds.sh` | Módulo de ativação do TRIM semanal (`fstrim.timer`) para os SSDs. |
-| `scripts/20_autostart_config.sh` | Módulo de provisionamento de inicialização automática no login (CopyQ, Kando, Espanso, NumLock). |
-| `scripts/21_limpeza_otimizacao.sh` | Módulo de limpeza de pacotes, autoremove e remoção de runtimes Flatpak não utilizados. |
+| `scripts/14_cosmic_theme_restore.sh` | Módulo de restauração de temas visuais do COSMIC, GTK e Qt a partir do Google Drive. |
+| `scripts/15_cosmic_menu_dock.sh` | Módulo de configuração instantânea (< 1s) das categorias da App Library (*Jogos, Dev, Comunicação, Escritório, Mídia, Utilitários, Sistema*), Favoritos e Dock. |
+| `scripts/16_ide_config_restore.sh` | Módulo de sincronização de settings, atalhos (`Ctrl+V`, colar com botão direito) e snippets para VS Code e Antigravity. |
+| `scripts/17_zsh_p10k_setup.sh` | Módulo de instalação e configuração do Zsh, Powerlevel10k, fontes MesloLGS NF, shell padrão e `Ctrl+V`. |
+| `scripts/18_jogos_performance.sh` | Módulo de Steam, Gamemode, MangoHud, Heroic, jstest-gtk, AntiMicroX e perfil de Performance Máxima. |
+| `scripts/19_flatpak_permissions.sh` | Módulo de overrides de filesystem (`/mnt/storage_*`, host para Rclone UI) e liberação de bandeja (`StatusNotifierWatcher`). |
+| `scripts/20_manutencao_ssds.sh` | Módulo de ativação do TRIM semanal (`fstrim.timer`) para os SSDs. |
+| `scripts/21_autostart_config.sh` | Módulo de provisionamento de inicialização automática no login (CopyQ, Kando, Espanso, NumLock). |
+| `scripts/22_limpeza_otimizacao.sh` | Módulo de limpeza de pacotes, autoremove e remoção de runtimes Flatpak não utilizados. |
 
 ---
 
 ## ⚙️ Guia de Execução
 
 ### 🚀 Modo Automatizado Completo (V2):
-Executa todos os 21 módulos em sequência, pulando automaticamente o que já estiver concluído:
+Executa todos os 22 módulos em sequência, pulando automaticamente o que já estiver concluído:
 ```bash
 sudo ./setup_popos_v2.sh
 ```

@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "13. RESTAURAÇÃO DE CONFIGURAÇÕES DAS IDES"
+log_msg "HEADER" "16. RESTAURAÇÃO DE CONFIGURAÇÕES DE IDES (VS CODE & ANTIGRAVITY)"
 
 IDE_BACKUP_DIR="$REAL_HOME/GoogleDrive_Pessoal/Organização/VSCode_Antigravity"
 VSCODE_USER_DIR="$REAL_HOME/.config/Code/User"

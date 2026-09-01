@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "18. CONFIGURAÇÃO DE AUTOSTART (LOGIN DO USUÁRIO)"
+log_msg "HEADER" "21. CONFIGURAÇÃO DE INICIALIZAÇÃO AUTOMÁTICA (AUTOSTART)"
 
 AUTOSTART_DIR="$REAL_HOME/.config/autostart"
 mkdir -p "$AUTOSTART_DIR"

@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "14. CONFIGURAÇÃO DO TERMINAL ZSH E POWERLEVEL10K"
+log_msg "HEADER" "17. CONFIGURAÇÃO DO TERMINAL ZSH E POWERLEVEL10K"
 
 ZSH_INSTALL_DIR="$REAL_HOME/GoogleDrive_Pessoal/Organização/Terminal ZSH Linux"
 

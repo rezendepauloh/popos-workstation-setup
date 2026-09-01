@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "18. PERMISSÕES ADICIONAIS DE FLATPAK (OVERRIDES)"
+log_msg "HEADER" "19. PERMISSÕES ADICIONAIS DE FLATPAK (OVERRIDES)"
 
 log_msg "INFO" "Aplicando permissões de discos secundários..."
 flatpak override --user --filesystem=/mnt/storage_700 org.onlyoffice.desktopeditors 2>/dev/null || true

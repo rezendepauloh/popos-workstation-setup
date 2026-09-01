@@ -98,14 +98,15 @@ MODULES=(
     "11_mouse_gaming.sh"
     "12_wacom_tablet.sh"
     "13_kando_restore.sh"
-    "14_cosmic_restore.sh"
-    "15_ide_config_restore.sh"
-    "16_zsh_p10k_setup.sh"
-    "17_jogos_performance.sh"
-    "18_flatpak_permissions.sh"
-    "19_manutencao_ssds.sh"
-    "20_autostart_config.sh"
-    "21_limpeza_otimizacao.sh"
+    "14_cosmic_theme_restore.sh"
+    "15_cosmic_menu_dock.sh"
+    "16_ide_config_restore.sh"
+    "17_zsh_p10k_setup.sh"
+    "18_jogos_performance.sh"
+    "19_flatpak_permissions.sh"
+    "20_manutencao_ssds.sh"
+    "21_autostart_config.sh"
+    "22_limpeza_otimizacao.sh"
 )
 
 TOTAL_MODULES=${#MODULES[@]}

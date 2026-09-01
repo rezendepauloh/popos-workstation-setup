@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "17. JOGOS, CONTROLES E PERFORMANCE MÁXIMA"
+log_msg "HEADER" "18. JOGOS, CONTROLES E PERFORMANCE MÁXIMA"
 
 log_msg "INFO" "Instalando Steam, Gamemode, MangoHud e jstest-gtk (Testador de Controles)..."
 sudo apt install -y steam gamemode mangohud jstest-gtk

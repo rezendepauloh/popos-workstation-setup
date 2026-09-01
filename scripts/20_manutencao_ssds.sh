@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "17. MANUTENÇÃO E SAÚDE DOS SSDS"
+log_msg "HEADER" "20. MANUTENÇÃO E SAÚDE DOS SSDS (TRIM SEMANAL)"
 
 log_msg "INFO" "Habilitando e iniciando o temporizador fstrim.timer..."
 sudo systemctl enable fstrim.timer

@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "11. RESTAURAÇÃO DO KANDO (PIE MENU)"
+log_msg "HEADER" "13. RESTAURAÇÃO DO KANDO (PIE MENU)"
 
 if ! verificar_gdrive_montado; then
     log_msg "WARN" "⚠️ Google Drive não está montado em '$REAL_HOME/GoogleDrive_Pessoal'. Pulando restauração por enquanto..."

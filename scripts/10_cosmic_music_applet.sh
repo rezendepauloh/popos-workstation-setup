@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "9. MINIAPLICATIVO DE CONTROLE DE MÍDIA (COSMIC)"
+log_msg "HEADER" "10. MINIAPLICATIVO DE CONTROLE DE MÍDIA (COSMIC)"
 
 log_msg "INFO" "Garantindo dependências de compilação..."
 sudo apt update

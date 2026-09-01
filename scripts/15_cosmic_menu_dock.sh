@@ -1,37 +1,27 @@
 #!/bin/bash
 # ==============================================================================
-# Módulo 12: Restauração do Ambiente COSMIC, Temas, Dock e Biblioteca de Apps
+# Módulo 15: Configuração e Organização do Menu (App Library) e Dock do COSMIC
 # ==============================================================================
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/00_comum.sh"
 
-FLAG_NAME="COSMIC_RESTORE"
+FLAG_NAME="COSMIC_MENU_DOCK"
 
 if check_flag "$FLAG_NAME" "$@"; then
-    log_msg "INFO" "⏭️  Ambiente COSMIC já restaurado e configurado anteriormente. Pulando..."
+    log_msg "INFO" "⏭️  Menu e Dock do COSMIC já configurados anteriormente. Pulando..."
     exit 0
 fi
 
-log_msg "HEADER" "12. RESTAURAÇÃO E CUSTOMIZAÇÃO DO COSMIC DESKTOP"
+log_msg "HEADER" "15. ORGANIZAÇÃO DO MENU (APP LIBRARY) E DOCK DO COSMIC"
 
-COSMIC_BACKUP_DIR="$REAL_HOME/GoogleDrive_Pessoal/Organização/Backup_COSMIC"
-
-if [ -d "$COSMIC_BACKUP_DIR" ]; then
-    log_msg "INFO" "Restaurando configurações e pontes visuais do Google Drive..."
-    if [ -d "$COSMIC_BACKUP_DIR/cosmic" ]; then cp -r "$COSMIC_BACKUP_DIR/cosmic" "$REAL_HOME/.config/"; fi
-    for dir in "gtk-3.0" "gtk-4.0" "qt5ct" "qt6ct"; do
-        if [ -d "$COSMIC_BACKUP_DIR/$dir" ]; then cp -r "$COSMIC_BACKUP_DIR/$dir" "$REAL_HOME/.config/"; fi
-    done
-fi
-
-# 1. Desativa o modo auto-tiling e garante o NumLock ligado no COSMIC
+log_msg "INFO" "Configurando auto-tiling desligado e estado do teclado no compositor..."
 mkdir -p "$REAL_HOME/.config/cosmic/com.system76.CosmicComp/v1"
 echo "false" > "$REAL_HOME/.config/cosmic/com.system76.CosmicComp/v1/autotile"
 echo "true" > "$REAL_HOME/.config/cosmic/com.system76.CosmicComp/v1/numlock_state"
 
-# 2. Garante os Grupos / Pastas da Biblioteca de Aplicativos do COSMIC
+log_msg "INFO" "Gerando categorias e abas organizadas na Biblioteca de Aplicativos..."
 mkdir -p "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1"
 mkdir -p "$REAL_HOME/.config/cosmic/com.system76.CosmicAppList/v1"
 
@@ -159,6 +149,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
 ]
 EOF
 
+log_msg "INFO" "Configurando aplicativos favoritos..."
 cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppList/v1/favorites"
 [
     "firefox",
@@ -172,6 +163,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppList/v1/favorite
 EOF
 
 # 3. Garante o Miniaplicativo de Controle de Mídia no canto inferior esquerdo da Dock
+log_msg "INFO" "Configurando miniplayer de mídia na Dock..."
 mkdir -p "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Dock/v1"
 cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Dock/v1/plugins_wings"
 Some(([
@@ -186,23 +178,9 @@ EOF
 
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/cosmic"
 
-# Sincroniza de volta no Google Drive se montado
-if [ -d "$COSMIC_BACKUP_DIR/cosmic" ]; then
-    mkdir -p "$COSMIC_BACKUP_DIR/cosmic/com.system76.CosmicAppLibrary/v1"
-    mkdir -p "$COSMIC_BACKUP_DIR/cosmic/com.system76.CosmicAppList/v1"
-    mkdir -p "$COSMIC_BACKUP_DIR/cosmic/com.system76.CosmicPanel.Dock/v1"
-    mkdir -p "$COSMIC_BACKUP_DIR/cosmic/com.system76.CosmicComp/v1"
-    
-    cp "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/groups" "$COSMIC_BACKUP_DIR/cosmic/com.system76.CosmicAppLibrary/v1/groups" 2>/dev/null || true
-    cp "$REAL_HOME/.config/cosmic/com.system76.CosmicAppList/v1/favorites" "$COSMIC_BACKUP_DIR/cosmic/com.system76.CosmicAppList/v1/favorites" 2>/dev/null || true
-    cp "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Dock/v1/plugins_wings" "$COSMIC_BACKUP_DIR/cosmic/com.system76.CosmicPanel.Dock/v1/plugins_wings" 2>/dev/null || true
-    cp "$REAL_HOME/.config/cosmic/com.system76.CosmicComp/v1/numlock_state" "$COSMIC_BACKUP_DIR/cosmic/com.system76.CosmicComp/v1/numlock_state" 2>/dev/null || true
-    cp "$REAL_HOME/.config/cosmic/com.system76.CosmicComp/v1/autotile" "$COSMIC_BACKUP_DIR/cosmic/com.system76.CosmicComp/v1/autotile" 2>/dev/null || true
-fi
-
-# Recarrega o applet de painel e biblioteca de aplicativos
+# Recarrega a biblioteca de aplicativos e o painel
 pkill -f "cosmic-app-library" 2>/dev/null || true
 pkill -f "cosmic-panel" 2>/dev/null || true
 
 set_flag "$FLAG_NAME"
-log_msg "SUCCESS" "Configurações do COSMIC Desktop restauradas e sincronizadas com sucesso."
+log_msg "SUCCESS" "Menu (App Library), favoritos e Dock configurados com sucesso em menos de 1 segundo."

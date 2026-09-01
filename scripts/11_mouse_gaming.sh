@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "10. CONFIGURAÇÃO DO MOUSE GAMING (LOGITECH G502 X)"
+log_msg "HEADER" "11. CONFIGURAÇÃO DO MOUSE GAMING (LOGITECH G502 X)"
 
 # 1. Aceleração Flat 1:1 no GNOME / COSMIC
 set_user_gsetting "org.gnome.desktop.peripherals.mouse" "accel-profile" "'flat'"

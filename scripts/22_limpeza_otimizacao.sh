@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "19. LIMPEZA FINAL E OTIMIZAÇÃO"
+log_msg "HEADER" "22. LIMPEZA FINAL E OTIMIZAÇÃO DO SISTEMA"
 
 log_msg "INFO" "Removendo pacotes residuais e limpando cache..."
 sudo apt autoremove -y --purge
