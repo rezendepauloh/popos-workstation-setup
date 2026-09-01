@@ -21,7 +21,7 @@ sudo apt install -y \
     curl wget git build-essential \
     software-properties-common apt-transport-https ca-certificates gnupg lsb-release \
     htop btop neofetch p7zip-full unrar \
-    vlc piper ratbagd libratbag-tools jq tree rclone \
+    vlc piper ratbagd jq tree rclone \
     zsh cargo rustc just pkg-config libssl-dev libdbus-1-dev libglib2.0-dev libasound2-dev \
     libxkbcommon-dev libwayland-dev libfontconfig1-dev libfreetype-dev libpipewire-0.3-dev libspa-0.2-dev
 
