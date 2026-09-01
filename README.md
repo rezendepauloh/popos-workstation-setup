@@ -115,13 +115,6 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 11_mouse_gaming.sh              # Logitech G502 X (DPIs, 1000Hz, macros on-board)
 │   ├── 12_wacom_tablet.sh              # Suporte, drivers e pareamento da Wacom Intuos Pro
 │   ├── 13_kando_restore.sh             # Sincronização de configurações do Kando
-│   ├── 14_cosmic_restore.sh            # Restauração de temas COSMIC, App Library e Dock
-│   ├── 15_ide_config_restore.sh        # Restauração de settings, atalhos e snippets das IDEs
-│   ├── 16_zsh_p10k_setup.sh            # Zsh, Powerlevel10k, fontes MesloLGS NF e Ctrl+V
-│   ├── 17_jogos_performance.sh         # Steam, Gamemode, MangoHud, Heroic e perfil Performance
-│   ├── 18_flatpak_permissions.sh       # Overrides de discos e bandeja Wayland (CopyQ)
-│   ├── 19_manutencao_ssds.sh           # Ativação do fstrim.timer para saúde dos SSDs
-│   ├── 20_autostart_config.sh          # Entradas de autostart (CopyQ, Kando, Espanso, NumLock)
 │   ├── 14_cosmic_theme_restore.sh      # Restauração de temas visuais e GTK/Qt do Google Drive
 │   ├── 15_cosmic_menu_dock.sh          # Configuração instantânea do menu e dock do COSMIC
 │   ├── 16_ide_config_restore.sh        # Sincronização de atalhos e configurações das IDEs
@@ -131,8 +124,6 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 20_manutencao_ssds.sh           # Ativação do fstrim.timer para TRIM semanal
 │   ├── 21_autostart_config.sh          # Configuração de apps na inicialização da sessão
 │   └── 22_limpeza_otimizacao.sh        # Limpeza de caches e runtimes não utilizados
-├── setup_popos.sh                      # Script monolítico legado (preservado para segurança)
-└── scripts_avulsos/                    # Scripts avulsos legados (preservados para segurança)
 ```
 
 ### 📋 Módulos e Responsabilidades:

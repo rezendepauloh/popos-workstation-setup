@@ -17,7 +17,7 @@ if [ "$1" != "--inside" ] && [ ! -f "/.dockerenv" ]; then
     fi
     
     echo ""
-    echo "🚀 [HOST WSL] Iniciando testes do setup_popos.sh no container..."
+    echo "🚀 [HOST WSL] Iniciando testes do setup_popos_v2.sh no container..."
     docker run --rm $CA_MOUNT -v "$SCRIPT_DIR:/workspace" popos-provision-test /bin/bash /workspace/test_in_docker.sh --inside
     exit 0
 fi
@@ -141,18 +141,19 @@ fi
 
 chown -R paulogoncalves:paulogoncalves /home/paulogoncalves
 
-# 5. Criar cópia de trabalho do setup_popos.sh para o teste
+# 5. Criar cópia de trabalho do setup_popos_v2.sh e scripts/ para o teste
 TEST_SCRIPT_DIR="/home/paulogoncalves/test_run"
 mkdir -p "$TEST_SCRIPT_DIR"
-cp /workspace/setup_popos.sh "$TEST_SCRIPT_DIR/setup_popos.sh"
+cp /workspace/setup_popos_v2.sh "$TEST_SCRIPT_DIR/setup_popos_v2.sh"
+cp -r /workspace/scripts "$TEST_SCRIPT_DIR/scripts"
 chown -R paulogoncalves:paulogoncalves "$TEST_SCRIPT_DIR"
-chmod +x "$TEST_SCRIPT_DIR/setup_popos.sh"
+chmod +x "$TEST_SCRIPT_DIR/setup_popos_v2.sh" "$TEST_SCRIPT_DIR"/scripts/*.sh
 
 echo "============================================================"
-echo "▶️ [CONTAINER] Executando setup_popos.sh como paulogoncalves..."
+echo "▶️ [CONTAINER] Executando setup_popos_v2.sh como paulogoncalves..."
 echo "============================================================"
 
-su - paulogoncalves -c "export PATH=/usr/local/mock-bin:\$PATH; export DEBIAN_FRONTEND=noninteractive; bash /home/paulogoncalves/test_run/setup_popos.sh"
+su - paulogoncalves -c "export PATH=/usr/local/mock-bin:\$PATH; export DEBIAN_FRONTEND=noninteractive; sudo /home/paulogoncalves/test_run/setup_popos_v2.sh"
 
 echo ""
 echo "============================================================"
@@ -222,12 +223,12 @@ else
 fi
 
 # Validar Flags de Estado
-STATE_FILE="$TEST_SCRIPT_DIR/Logs/.setup_estado.log"
+STATE_FILE="/home/paulogoncalves/.setup_progress.log"
 if [ -f "$STATE_FILE" ]; then
     echo "  ✅ Arquivo de estado gerado: $STATE_FILE"
     cat "$STATE_FILE"
 else
-    echo "  ❌ ERRO: Arquivo de estado não encontrado!"
+    echo "  ❌ ERRO: Arquivo de progresso não encontrado!"
     ERRORS=$((ERRORS + 1))
 fi
 
