@@ -24,7 +24,7 @@ set_user_gsetting "org.gnome.desktop.peripherals.mouse" "speed" "0.0"
 log_msg "INFO" "Identificando mouse compatível via libratbag..."
 sudo systemctl enable --now ratbagd 2>/dev/null || true
 
-MOUSE_ID=$(ratbagctl list 2>/dev/null | grep -iE 'G502|G502 X|Logitech' | head -n 1 | cut -d: -f1 || true)
+MOUSE_ID=$(ratbagctl list 2>/dev/null | grep -iE 'G502|G502 X|mouse' | grep -ivE 'headset|headphone|audio|webcam|keyboard' | head -n 1 | cut -d: -f1 || true)
 if [ -n "$MOUSE_ID" ]; then
     log_msg "INFO" "Mouse detectado: $MOUSE_ID. Gravando perfis e macros..."
     for p in {0..4}; do
