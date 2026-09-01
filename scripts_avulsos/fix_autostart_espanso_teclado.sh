@@ -38,7 +38,7 @@ chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/cosmic"
 
 # Backup do Google Drive (se montado)
 if [ -d "$REAL_HOME/GoogleDrive_Pessoal/Organização/Backup_COSMIC/cosmic/com.system76.CosmicComp/v1" ]; then
-    echo "true" > "$REAL_HOME/GoogleDrive_Pessoal/Organização/Backup_COSMIC/cosmic/com.system76.CosmicComp/v1/numlock_state"
+    echo "true" > "$REAL_HOME/GoogleDrive_Pessoal/Organização/Backup_COSMIC/cosmic/com.system76.CosmicComp/v1/numlock_state" 2>/dev/null || true
 fi
 
 # GNOME / XWayland flags
@@ -139,22 +139,27 @@ echo "📦 3. Configurando bibliotecas de compatibilidade do Espanso..."
 if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
     sudo mkdir -p /usr/local/lib/espanso
     
-    # Baixar pacotes wxWidgets 3.0 se necessário
+    # Limpa downloads anteriores para evitar conflito de permissões
+    sudo rm -rf /tmp/libwx*.deb /tmp/wx_extract
+    
     if [ ! -f /usr/local/lib/espanso/libwx_gtk3u_core-3.0.so.0 ]; then
-        wget -qO /tmp/libwxbase3.0.deb http://archive.ubuntu.com/ubuntu/pool/universe/w/wxwidgets3.0/libwxbase3.0-0v5_3.0.5.1+dfsg-4_amd64.deb || true
-        wget -qO /tmp/libwxgtk3.0.deb http://archive.ubuntu.com/ubuntu/pool/universe/w/wxwidgets3.0/libwxgtk3.0-gtk3-0v5_3.0.5.1+dfsg-4_amd64.deb || true
+        sudo wget -qO /tmp/libwxbase3.0.deb http://archive.ubuntu.com/ubuntu/pool/universe/w/wxwidgets3.0/libwxbase3.0-0v5_3.0.5.1+dfsg-4_amd64.deb || true
+        sudo wget -qO /tmp/libwxgtk3.0.deb http://archive.ubuntu.com/ubuntu/pool/universe/w/wxwidgets3.0/libwxgtk3.0-gtk3-0v5_3.0.5.1+dfsg-4_amd64.deb || true
         
         if [ -f /tmp/libwxbase3.0.deb ] && [ -f /tmp/libwxgtk3.0.deb ]; then
-            mkdir -p /tmp/wx_extract
-            dpkg-deb -x /tmp/libwxbase3.0.deb /tmp/wx_extract
-            dpkg-deb -x /tmp/libwxgtk3.0.deb /tmp/wx_extract
-            sudo cp -rn /tmp/wx_extract/usr/lib/x86_64-linux-gnu/* /usr/local/lib/espanso/
-            rm -rf /tmp/wx_extract /tmp/libwx*.deb
+            sudo mkdir -p /tmp/wx_extract
+            sudo dpkg-deb -x /tmp/libwxbase3.0.deb /tmp/wx_extract
+            sudo dpkg-deb -x /tmp/libwxgtk3.0.deb /tmp/wx_extract
+            sudo cp -r /tmp/wx_extract/usr/lib/x86_64-linux-gnu/* /usr/local/lib/espanso/
+            sudo rm -rf /tmp/wx_extract /tmp/libwx*.deb
         fi
     fi
     
-    # Symlink para libtiff.so.5
-    if [ -f /usr/lib/x86_64-linux-gnu/libtiff.so.6 ] && [ ! -f /usr/local/lib/espanso/libtiff.so.5 ]; then
+    # Symlink para libtiff.so.5 -> libtiff.so.6.0.1
+    sudo rm -f /usr/local/lib/espanso/libtiff.so*
+    if [ -f /usr/lib/x86_64-linux-gnu/libtiff.so.6.0.1 ]; then
+        sudo ln -sf /usr/lib/x86_64-linux-gnu/libtiff.so.6.0.1 /usr/local/lib/espanso/libtiff.so.5
+    elif [ -f /usr/lib/x86_64-linux-gnu/libtiff.so.6 ]; then
         sudo ln -sf /usr/lib/x86_64-linux-gnu/libtiff.so.6 /usr/local/lib/espanso/libtiff.so.5
     fi
     
