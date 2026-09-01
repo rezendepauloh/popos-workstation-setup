@@ -137,7 +137,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/02_teclado_cedilha_numlock.sh` | Módulo de layout US-Intl, resposta rápida (180ms/18ms), Cedilha (`'+c = ç`), `~/.XCompose`, immodules GTK e NumLock Systemd/Udev. |
 | `scripts/03_atualizacao_sistema.sh` | Módulo de atualização de pacotes APT, Pop recovery e firmware. |
 | `scripts/04_pacotes_base_dev.sh` | Módulo de utilitários base, compiladores, NVM, Cargo/Rust e dependências de desenvolvimento. |
-| `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone para montagem FUSE das nuvens (GDrive, OneDrive, MEGA) e discos no COSMIC Files. |
+| `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone (GDrive, OneDrive, MEGA), Celeste (Tray), Web Dashboard e Discos no COSMIC Files. |
 | `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Flatpaks principais, Jellyfin Server, Espanso e Kando com wrappers. |
 | `scripts/07_powershell7.sh` | Módulo de instalação oficial do Microsoft PowerShell 7 (`pwsh`), repositórios Microsoft e perfil do usuário. |
 | `scripts/08_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
@@ -149,7 +149,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/14_cosmic_restore.sh` | Módulo de restauração de temas, auto-tiling desligado, abas da App Library (*Jogos, Dev, Escritório, Mídia, Utilitários, Sistema*) e Dock. |
 | `scripts/15_ide_config_restore.sh` | Módulo de sincronização de settings, atalhos (`Ctrl+V`, colar com botão direito) e snippets para VS Code e Antigravity. |
 | `scripts/16_zsh_p10k_setup.sh` | Módulo de instalação e configuração do Zsh, Powerlevel10k, fontes MesloLGS NF, shell padrão e `Ctrl+V`. |
-| `scripts/17_jogos_performance.sh` | Módulo de Steam, Gamemode, MangoHud, Heroic, `/mnt/nvme_01/Jogos` e perfil de Performance Máxima. |
+| `scripts/17_jogos_performance.sh` | Módulo de Steam, Gamemode, MangoHud, Heroic, jstest-gtk, AntiMicroX e perfil de Performance Máxima. |
 | `scripts/18_flatpak_permissions.sh` | Módulo de overrides de filesystem (`/mnt/storage_*`) e liberação de bandeja (`StatusNotifierWatcher`). |
 | `scripts/19_manutencao_ssds.sh` | Módulo de ativação do TRIM semanal (`fstrim.timer`) para os SSDs. |
 | `scripts/20_autostart_config.sh` | Módulo de provisionamento de inicialização automática no login (CopyQ, Kando, Espanso, NumLock). |

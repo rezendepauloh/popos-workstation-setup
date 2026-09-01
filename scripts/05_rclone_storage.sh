@@ -173,6 +173,29 @@ for disk_entry in "file:///mnt/nvme_01 nvme_01" "file:///mnt/storage_930 hd_stor
 done
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/gtk-3.0" 2>/dev/null || true
 
+# 5. Instalação de GUIs e Bandeja de Nuvem (Celeste Tray & Rclone Web Dashboard)
+log_msg "INFO" "Instalando Celeste (Cliente de Nuvem com Ícone na Bandeja)..."
+flatpak install -y --system flathub com.ranfdev.Celeste 2>/dev/null || true
+
+# Criação do Lançador Desktop para o Rclone Web Dashboard (Gráficos e Monitoramento de Envio)
+log_msg "INFO" "Configurando lançador do Rclone Web Dashboard..."
+USER_APPS_DIR="$REAL_HOME/.local/share/applications"
+mkdir -p "$USER_APPS_DIR"
+
+cat << 'EOF' > "$USER_APPS_DIR/rclone-webui.desktop"
+[Desktop Entry]
+Name=Rclone Web Dashboard
+Comment=Painel Gráfico do Rclone com Monitoramento de Upload/Download em Tempo Real
+Exec=sh -c "rclone rcd --rc-web-gui --rc-web-gui-no-open-browser & sleep 2 && xdg-open http://127.0.0.1:5572"
+Icon=folder-remote
+Terminal=false
+Type=Application
+Categories=Network;Utility;FileTransfer;
+StartupNotify=true
+EOF
+
+chown -R "$REAL_USER:$REAL_USER" "$USER_APPS_DIR/rclone-webui.desktop" 2>/dev/null || true
+
 sleep 2
 if verificar_gdrive_montado; then
     log_msg "SUCCESS" "Google Drive montado com sucesso em '$REAL_HOME/GoogleDrive_Pessoal'."
@@ -181,4 +204,4 @@ else
 fi
 
 set_flag "$FLAG_NAME"
-log_msg "SUCCESS" "Serviços Rclone e Discos Secundários configurados no COSMIC Files com sucesso."
+log_msg "SUCCESS" "Serviços Rclone, Celeste (Tray), Web Dashboard e Discos Secundários configurados com sucesso."
