@@ -1,0 +1,38 @@
+# ==============================================================================
+# GitIgnore: Proteção de Credenciais e Arquivos Temporários
+# ==============================================================================
+
+# Arquivos de Configuração Sensíveis e Credenciais (CRÍTICO)
+rclone.conf
+*.conf.bak
+.env
+.env.*
+!.env.example
+
+# Certificados, Chaves e Segredos
+*.crt
+*.key
+*.pem
+*.pfx
+*.cer
+
+# Logs e Arquivos de Estado/Idempotência
+Logs/
+*.log
+.setup_progress.log
+*.bak
+
+# Arquivos Temporários, Pacotes e Caches
+*.tmp
+*.deb
+*.iso
+/tmp/
+
+# Diretório de Scripts Antigos / Rascunhos (opcional)
+Olds/
+
+# Arquivos de Sistema e IDEs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*.log
