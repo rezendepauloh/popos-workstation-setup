@@ -129,6 +129,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "com.ranfdev.Celeste",
                 "rclone-browser",
                 "rclone-webui",
+                "com.rcloneui.RcloneUI",
             ],
             exclude: [
                 "com.system76.CosmicEdit",

@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "16. PERMISSÕES ADICIONAIS DE FLATPAK (OVERRIDES)"
+log_msg "HEADER" "18. PERMISSÕES ADICIONAIS DE FLATPAK (OVERRIDES)"
 
 log_msg "INFO" "Aplicando permissões de discos secundários..."
 flatpak override --user --filesystem=/mnt/storage_700 org.onlyoffice.desktopeditors 2>/dev/null || true
@@ -25,6 +25,12 @@ log_msg "INFO" "Liberando barramento StatusNotifierWatcher para o CopyQ..."
 flatpak override --user --talk-name=org.kde.StatusNotifierWatcher --talk-name=org.freedesktop.StatusNotifierWatcher com.github.hluk.copyq 2>/dev/null || true
 if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
     sudo flatpak override --talk-name=org.kde.StatusNotifierWatcher --talk-name=org.freedesktop.StatusNotifierWatcher com.github.hluk.copyq 2>/dev/null || true
+fi
+
+log_msg "INFO" "Liberando acesso ao sistema de arquivos e agendamento para o Rclone UI..."
+flatpak override --user --filesystem=host --talk-name=org.freedesktop.Flatpak com.rcloneui.RcloneUI 2>/dev/null || true
+if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
+    sudo flatpak override --filesystem=host --talk-name=org.freedesktop.Flatpak com.rcloneui.RcloneUI 2>/dev/null || true
 fi
 
 set_flag "$FLAG_NAME"

@@ -177,8 +177,8 @@ chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/gtk-3.0" 2>/dev/null || tru
 log_msg "INFO" "Instalando Rclone Browser (GUI Nativa Desktop) via APT..."
 sudo apt install -y rclone-browser
 
-log_msg "INFO" "Instalando Celeste (Cliente de Nuvem com Ícone na Bandeja)..."
-flatpak install -y --system flathub com.ranfdev.Celeste 2>/dev/null || true
+log_msg "INFO" "Instalando Celeste e Rclone UI via Flatpak..."
+flatpak install -y --system flathub com.ranfdev.Celeste com.rcloneui.RcloneUI 2>/dev/null || true
 
 # Criação do Lançador Desktop para o Rclone Web Dashboard (Gráficos e Monitoramento de Envio)
 log_msg "INFO" "Configurando lançador do Rclone Web Dashboard..."
