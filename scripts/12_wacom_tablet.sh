@@ -240,8 +240,8 @@ cat << 'EOF' > "$OTD_CONFIG_DIR/settings.json"
               {
                 "Property": "Keys",
                 "Value": [
-                  "Control",
-                  "Z"
+                  "KeyboardLeftControl",
+                  "KeyboardZ"
                 ]
               }
             ],
@@ -253,32 +253,9 @@ cat << 'EOF' > "$OTD_CONFIG_DIR/settings.json"
               {
                 "Property": "Keys",
                 "Value": [
-                  "Control",
-                  "Shift",
-                  "Z"
-                ]
-              }
-            ],
-            "Enable": true
-          },
-          {
-            "Path": "OpenTabletDriver.Desktop.Binding.KeyBinding",
-            "Settings": [
-              {
-                "Property": "Key",
-                "Value": "Space"
-              }
-            ],
-            "Enable": true
-          },
-          {
-            "Path": "OpenTabletDriver.Desktop.Binding.MultiKeyBinding",
-            "Settings": [
-              {
-                "Property": "Keys",
-                "Value": [
-                  "Control",
-                  "S"
+                  "KeyboardLeftControl",
+                  "KeyboardLeftShift",
+                  "KeyboardZ"
                 ]
               }
             ],
@@ -290,8 +267,7 @@ cat << 'EOF' > "$OTD_CONFIG_DIR/settings.json"
               {
                 "Property": "Keys",
                 "Value": [
-                  "Control",
-                  "C"
+                  "KeyboardSpace"
                 ]
               }
             ],
@@ -303,8 +279,34 @@ cat << 'EOF' > "$OTD_CONFIG_DIR/settings.json"
               {
                 "Property": "Keys",
                 "Value": [
-                  "Control",
-                  "V"
+                  "KeyboardLeftControl",
+                  "KeyboardS"
+                ]
+              }
+            ],
+            "Enable": true
+          },
+          {
+            "Path": "OpenTabletDriver.Desktop.Binding.MultiKeyBinding",
+            "Settings": [
+              {
+                "Property": "Keys",
+                "Value": [
+                  "KeyboardLeftControl",
+                  "KeyboardC"
+                ]
+              }
+            ],
+            "Enable": true
+          },
+          {
+            "Path": "OpenTabletDriver.Desktop.Binding.MultiKeyBinding",
+            "Settings": [
+              {
+                "Property": "Keys",
+                "Value": [
+                  "KeyboardLeftControl",
+                  "KeyboardV"
                 ]
               }
             ],
@@ -325,8 +327,8 @@ cat << 'EOF' > "$OTD_CONFIG_DIR/settings.json"
                 {
                   "Property": "Keys",
                   "Value": [
-                    "Control",
-                    "Equal"
+                    "KeyboardLeftControl",
+                    "KeyboardEqual"
                   ]
                 }
               ],
@@ -339,8 +341,8 @@ cat << 'EOF' > "$OTD_CONFIG_DIR/settings.json"
                 {
                   "Property": "Keys",
                   "Value": [
-                    "Control",
-                    "Minus"
+                    "KeyboardLeftControl",
+                    "KeyboardMinus"
                   ]
                 }
               ],
