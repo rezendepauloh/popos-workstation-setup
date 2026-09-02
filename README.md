@@ -13,9 +13,12 @@ Script de automação e provisionamento idempotente para configuração completa
 ### 2. Configurações de Periféricos, Teclado & Usabilidade
 *   **Teclado (Redragon Horus Pro):**
     *   Delay do Backspace ajustado para 180ms (resposta imediata) e taxa de repetição para 18ms (~55 caracteres/seg).
-    *   Layout configurado para `us+intl` (US Internacional tradicional com dead keys idêntico ao Windows).
-    *   **Fix Oficial e Robusto do Cedilha & Aspas do Windows:** Configuração completa com `~/.XCompose`, correção da tabela de Compose do sistema (`/usr/share/X11/locale/en_US.UTF-8/Compose`), exportação de `XCOMPOSEFILE` e remoção de módulos legados (`GTK_IM_MODULE`/`QT_IM_MODULE`). Garante `' + c = ç` nativo, `'` duas vezes soltando `''` e `"` duas vezes soltando `""` (sem o trema `¨`).
-    *   **NumLock Permanente:** Ativação automática do teclado numérico por padrão em toda nova sessão (`numlock-state` e `remember-numlock-state`).
+    *   **Fix Oficial do Cedilha & Aspas do Windows:** Configuração com `~/.XCompose`, correção das tabelas de Compose (`/usr/share/X11/locale/pt_BR.UTF-8/Compose` e `en_US.UTF-8/Compose`) e exportação de `XCOMPOSEFILE`. Garante `' + c = ç` nativo em terminais e apps do sistema.
+    *   **Nota Técnica sobre Chromium & Electron no Wayland (`' + c = ć`):** Devido à tabela estática interna do Chromium (`ui::CharacterComposer`), navegadores (Chrome/Brave) e IDEs Electron (Antigravity/VS Code) geram `ć` via Wayland. Nesses aplicativos, utilize o atalho universal de hardware <kbd>AltGr</kbd>+<kbd>,</kbd> (para `ç`) e <kbd>AltGr</kbd>+<kbd>Shift</kbd>+<kbd>'</kbd> (para `"`). Diagnóstico completo e issues oficiais documentadas em [`Docs/issue_chromium_electron_cedilha_wayland.md`](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_chromium_electron_cedilha_wayland.md).
+    *   **NumLock Permanente & Consistente (XKB + LED Sync):**
+        *   Configuração nativa no motor de layout do COSMIC (`xkb_config` com `options: Some("numpad:mac")`) garantindo que o teclado numérico emita números em 100% das vezes, sem depender de modificadores instáveis.
+        *   Persistência sincronizada em `/var/lib/cosmic-greeter/.config/cosmic/com.system76.CosmicComp/v1/` para ativação desde a tela de login.
+        *   Utilitário nativo `/usr/local/bin/numlock-on` (Python/evdev/uinput) e serviço no autostart para acender imediatamente o LED físico do teclado no login. Documentação em [`Docs/issue_cosmic_numlock_boot.md`](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_cosmic_numlock_boot.md).
 *   **Janelas (Estilo Windows):** Ativa botões de Minimizar, Maximizar e Fechar na barra de título e minimização com clique do botão do meio.
 *   **Mouse (Logitech G502 X):**
     *   Desativa a aceleração dinâmica de ponteiro (perfil plano linear `flat` 1:1).
@@ -24,6 +27,25 @@ Script de automação e provisionamento idempotente para configuração completa
         *   **Botão 4:** Gatilho do Kando (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F10</kbd>)
         *   **Botão 5:** Copiar (<kbd>Ctrl</kbd>+<kbd>C</kbd>)
         *   **Botões 6 e 7:** Rolagem horizontal (*Tilt Wheel* esquerda/direita).
+*   **Mesa Digitalizadora (Wacom Intuos Pro S / PTH-460):**
+    *   **Configuração Atual (Daemon OpenTabletDriver Headless):**
+        *   Opera via `otd-daemon` rodando silenciosamente em segundo plano (com inicialização automática em `~/.config/autostart/otd-daemon.desktop` e `systemctl --user`), sem a interface gráfica para evitar resets indesejados.
+        *   **Modo Absoluto 180° (Modo Canhoto):** Rotação matemática de 180° e trava de aspecto 1:1 aplicadas via `/dev/uinput` para a Caneta (Pro Pen 2) com níveis completos de pressão e inclinação.
+        *   **Mapeamento dos 6 Botões Físicos (ExpressKeys) e Touch Ring:**
+            *   `AuxButton 0`: <kbd>Ctrl</kbd>+<kbd>Z</kbd> *(Desfazer)*
+            *   `AuxButton 1`: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> *(Refazer)*
+            *   `AuxButton 2`: <kbd>Espaço</kbd> *(Pan / Arrastar tela)*
+            *   `AuxButton 3`: <kbd>Ctrl</kbd>+<kbd>S</kbd> *(Salvar)*
+            *   `AuxButton 4`: <kbd>Ctrl</kbd>+<kbd>C</kbd> *(Copiar)*
+            *   `AuxButton 5`: <kbd>Ctrl</kbd>+<kbd>V</kbd> *(Colar)*
+            *   `Touch Ring`: Rotação para Zoom In (<kbd>Ctrl</kbd>+<kbd>+</kbd>) e Zoom Out (<kbd>Ctrl</kbd>+<kbd>-</kbd>).
+        *   **Suporte a Bluetooth & USB:** Definições para os identificadores USB (`056a:0392`) e Bluetooth (`056a:0393`) com confiança automática no BlueZ.
+    *   **Nota Técnica & Roadmap Futuro (COSMIC Desktop / Wayland):**
+        *   O compositor do **COSMIC Desktop (`cosmic-comp` / Smithay)** ainda está em desenvolvimento ativo e atualmente não possui suporte nativo implementado para rotação 180° (Modo Canhoto) nem repasse do protocolo `zwp_tablet_pad_v2` (botões físicos) no driver nativo do kernel.
+        *   Issues oficiais da System76 para acompanhamento:
+            *   [pop-os/cosmic-settings #141](https://github.com/pop-os/cosmic-settings/issues/141) — *Feature request/brainstorming: Drawing tablet support (wacom)*
+            *   [pop-os/cosmic-comp #313](https://github.com/pop-os/cosmic-comp/issues/313) — *Support for Graphic & Display Drawing Tablets*
+        *   **Planejamento de Migração Futura:** Assim que o COSMIC Desktop implementar nativamente essas funcionalidades, o módulo 12 será refatorado para o driver 100% nativo do kernel (`wacom.ko` + `libinput`), unificando Caneta, Touch multitoque de 1 a 4 dedos, ExpressKeys e Modo Canhoto sem necessidade de daemons adicionais.
 
 ### 3. Pacotes Base, Repositórios & Navegadores
 *   **Atualização do Sistema & Fontes:** `apt update && upgrade -y`, pré-aceite da licença EULA para fontes Microsoft TrueType (`Arial`, `Times New Roman` para OnlyOffice), fontes de código (`Fira Code`, `JetBrains Mono`), utilitários essenciais (`git`, `curl`, `jq`, `vlc`, `piper`, `ratbagd`, `numlockx`, `unzip`) e instalação binária oficial do **Rclone**.
@@ -46,15 +68,24 @@ Script de automação e provisionamento idempotente para configuração completa
 *   **Manutenção de SSDs & Limpeza:** Ativação do TRIM semanal (`fstrim.timer`) para preservação dos NVMes, além de limpeza profunda do sistema com `apt autoremove/clean` e remoção de flatpaks órfãos.
 
 ### 6. Sincronização de Múltiplas Nuvens (Rclone VFS)
+*   **Versão Oficial Completa do Rclone (v1.75+):** Instalação automatizada via script oficial da Rclone com suporte nativo completo a todos os backends (Google Drive, OneDrive e MEGA), prevenindo loops de falha e travamentos de I/O no boot.
 *   **Autenticação Automatizada & Fallback:** Leitura inteligente de variáveis do `.env`. Possui sistema de fallbacks com cópia automática de `rclone.conf` local ou abertura graciosa do assistente interativo `rclone config` se faltar algum remote.
-*   **Serviços em Background (Systemd User):** Configuração com cache VFS sob demanda (`--vfs-cache-mode full`, retenção de 720h e limite de 50GB):
+*   **Serviços em Background Otimizados (Systemd User):** Configuração com cache VFS sob demanda (`--vfs-cache-mode full`, retenção de 72h e limite de 50GB, `--attr-timeout 10m` e `--vfs-fast-fingerprint`) para evitar engasgos e travamentos de UI em gerenciadores de arquivos como o COSMIC Files.
     *   `gdrive_pessoal` -> `~/GoogleDrive_Pessoal`
     *   `onedrive_pessoal` -> `~/OneDrive_Pessoal`
     *   `mega_pessoal` -> `~/MEGA_Pessoal`
+*   **Diagnóstico de Performance no COSMIC Files:** Documentação técnica sobre I/O em discos secundários e FUSE disponível em [`Docs/issue_cosmic_files_fuse_freeze.md`](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_cosmic_files_fuse_freeze.md).
 *   **Validação de Montagem:** Função `verificar_gdrive_montado` que checa pontos FUSE e conteúdo antes de disparar etapas dependentes de backup.
 
 ### 7. Softwares de Workflow, Produtividade & Mídia
 *   **VS Code:** Repositório oficial APT da Microsoft e instalação do pacote nativo `code`.
+*   **Espanso (Wayland) & Suíte de Automações STI:**
+    *   Text Expander nativo integrado diretamente com o repositório de automações [`espanso-automacoes-sti`](https://github.com/rezendepauloh/espanso-automacoes-sti) clonado em `~/.config/espanso`.
+    *   **Formulários Dinâmicos Nativos no Linux:** Executor de interface gráfica nativa (`form_runner.py` em Tkinter/Zenity) para formulários interativos (`:ola`, `:transporte`, `:viagem`, `:diaria`, `:cel`, `:limpar`, `:analisar`).
+    *   **Motor NLP de Correção e Limpeza:** Correção ortográfica de contexto com spaCy (`:arrumar`), atalhos de clipboard e sincronização universal com CopyQ e Kando.
+    *   **Compatibilidade Wayland:** Operação em modo daemon em background (`show_icon: false`, `backend: EVDEV`), permissões `cap_dac_override` e layout `us-intl` garantidos.
+*   **Kando & CopyQ:** Pie menu com atalho <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F10</kbd> e gerenciador de área de transferência com servidor ativo e ícone integrado na bandeja superior do painel COSMIC.
+*   **Autostart Fluido e Escalonado:** Entradas de inicialização automática otimizadas com pequenos atrasos escalonados (`X-GNOME-Autostart-Delay`) para eliminar sobrecarga no D-Bus e engasgos de carregamento da área de trabalho.
 *   **Google Antigravity IDE:**
     *   Download e extração do pacote oficial em `/opt/antigravity`.
     *   Ajuste de permissões do sandbox do Electron (`chrome-sandbox` com suid 4755).
@@ -143,7 +174,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/09_onlyoffice_padrao.sh` | Módulo de associação do OnlyOffice como manipulador padrão de documentos office. |
 | `scripts/10_cosmic_music_applet.sh` | Módulo de compilação e instalação do miniaplicativo de controle de mídia para a Dock. |
 | `scripts/11_mouse_gaming.sh` | Módulo de gravação de polling rate 1000Hz, DPIs e macros na memória do mouse Logitech G502 X. |
-| `scripts/12_wacom_tablet.sh` | Módulo de suporte, regras udev, drivers libwacom, OpenTabletDriver GUI e pareamento da Wacom Intuos Pro. |
+| `scripts/12_wacom_tablet.sh` | Módulo de suporte, regras udev, OpenTabletDriver Daemon Headless (Modo Canhoto 180° e atalhos) e pareamento da Wacom Intuos Pro. |
 | `scripts/13_kando_restore.sh` | Módulo de restauração de menus e atalho `Ctrl+Shift+F10` do Kando a partir do Google Drive. |
 | `scripts/14_cosmic_theme_restore.sh` | Módulo de restauração de temas visuais do COSMIC, GTK e Qt a partir do Google Drive. |
 | `scripts/15_cosmic_menu_dock.sh` | Módulo de configuração instantânea (< 1s) das categorias da App Library (*Jogos, Dev, Comunicação, Escritório, Mídia, Utilitários, Sistema*), Favoritos e Dock. |
@@ -220,4 +251,16 @@ Dentro do container:
 su - paulogoncalves
 bash /workspace/setup_popos.sh
 ```
+
+---
+
+## 📚 Documentação Técnica & Diagnósticos Especiais (`Docs/`)
+
+O repositório conta com relatórios técnicos aprofundados sobre comportamentos específicos do hardware, desktop COSMIC e roadmap de melhorias:
+
+1. 📄 [**NumLock Permanente & LED Físico no COSMIC**](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_cosmic_numlock_boot.md): Diagnóstico completo do motor XKB e sincronização do LED via udev.
+2. 📄 [**Mesa Wacom Intuos Pro no Wayland**](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_opentabletdriver_wacom_bluetooth.md): Mapeamento de ExpressKeys, pareamento Bluetooth e modo canhoto 180°.
+3. 📄 [**Cedilha no Chromium & Electron (`'+c = ć`)**](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_chromium_electron_cedilha_wayland.md): Causa raiz no código C++ do Chromium e atalhos de hardware.
+4. 📄 [**Engasgos no COSMIC Files & Otimização FUSE**](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_cosmic_files_fuse_freeze.md): Otimizações de I/O e cache de atributos do Rclone.
+5. 🚀 [**Roadmap de Melhorias Futuras**](file:///home/rezendepauloh/Documentos/Scripts/Docs/melhorias_futuras_workstation.md): Sugestões de alto valor para ZRAM, limites de inotify, Docker sob demanda, PipeWire e backup automático.
 

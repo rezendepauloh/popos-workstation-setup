@@ -39,7 +39,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicComp/v1/xkb_config"
     model: "pc105",
     layout: "us",
     variant: "intl",
-    options: None,
+    options: Some("numpad:mac"),
     repeat_delay: 180,
     repeat_rate: 18,
 )
@@ -91,12 +91,41 @@ for cache in /usr/lib/x86_64-linux-gnu/gtk-3.0/3.0.0/immodules.cache /usr/lib/x8
     fi
 done
 
-if [ -f /usr/share/X11/locale/en_US.UTF-8/Compose ]; then
-    sudo sed -i 's/"ć"\s*U0107/"ç"\tccedilla/g' /usr/share/X11/locale/en_US.UTF-8/Compose
-    sudo sed -i 's/"Ć"\s*U0106/"Ç"\tCcedilla/g' /usr/share/X11/locale/en_US.UTF-8/Compose
-    sudo sed -i 's/<dead_diaeresis> <dead_diaeresis>\s*:\s*"¨"\s*diaeresis/<dead_diaeresis> <dead_diaeresis>\t: "\\"\\""\tquotedbl/g' /usr/share/X11/locale/en_US.UTF-8/Compose
-    sudo sed -i "s/<dead_acute> <dead_acute>\s*:\s*\"´\"\s*acute/<dead_acute> <dead_acute>\t: \"''\"\tapostrophe/g" /usr/share/X11/locale/en_US.UTF-8/Compose
-fi
+for compose_file in /usr/share/X11/locale/en_US.UTF-8/Compose /usr/share/X11/locale/pt_BR.UTF-8/Compose; do
+    if [ -f "$compose_file" ]; then
+        sudo sed -i 's/"ć"\s*U0107/"ç"\tccedilla/g' "$compose_file"
+        sudo sed -i 's/"Ć"\s*U0106/"Ç"\tCcedilla/g' "$compose_file"
+        sudo sed -i 's/<dead_diaeresis> <dead_diaeresis>\s*:\s*"¨"\s*diaeresis/<dead_diaeresis> <dead_diaeresis>\t: "\\"\\""\tquotedbl/g' "$compose_file"
+        sudo sed -i "s/<dead_acute> <dead_acute>\s*:\s*\"´\"\s*acute/<dead_acute> <dead_acute>\t: \"''\"\tapostrophe/g" "$compose_file"
+    fi
+done
+
+# Configuração de flags para Electron / Chromium / IDEs utilizarem o motor XCompose do XWayland ('+c = ç)
+for conf in "$REAL_HOME/.config/antigravity-flags.conf" "$REAL_HOME/.config/antigravity-ide-flags.conf" "$REAL_HOME/.config/code-flags.conf" "$REAL_HOME/.config/chrome-flags.conf" "$REAL_HOME/.config/brave-flags.conf" "$REAL_HOME/.config/electron-flags.conf"; do
+    cat << 'EOF' > "$conf"
+--ozone-platform=x11
+EOF
+done
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/"*-flags.conf 2>/dev/null || true
+
+# Configura keyboard.dispatch nos editores para mapear keycodes nativos
+python3 -c "
+import json, os
+for p in [
+    os.path.expanduser('~/.config/Antigravity IDE/User/settings.json'),
+    os.path.expanduser('~/.config/Code/User/settings.json')
+]:
+    if os.path.exists(p):
+        with open(p, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        if not any('keyboard.dispatch' in l for l in lines):
+            for i, line in enumerate(lines):
+                if '{' in line:
+                    lines.insert(i + 1, '  \"keyboard.dispatch\": \"keyCode\",\n')
+                    break
+            with open(p, 'w', encoding='utf-8') as f:
+                f.writelines(lines)
+" 2>/dev/null || true
 
 # 6. Ativação física e persistente do NumLock no Boot (Systemd e Udev)
 log_msg "INFO" "Criando serviço Systemd e regras Udev para o NumLock..."
@@ -121,15 +150,53 @@ sudo systemctl enable numlock.service
 sudo systemctl start numlock.service 2>/dev/null || true
 
 cat << 'EOF' | sudo tee /etc/udev/rules.d/99-numlock.rules > /dev/null
-ACTION=="add", SUBSYSTEM=="leds", KERNEL=="*::numlock", ATTR{brightness}="1"
+ACTION=="add|change", SUBSYSTEM=="leds", KERNEL=="*::numlock", ATTR{brightness}="1", MODE="0666"
 EOF
 sudo udevadm control --reload-rules 2>/dev/null || true
+sudo udevadm trigger --subsystem-match=leds 2>/dev/null || true
+
+# 7. Configuração do NumLock no COSMIC Greeter (Tela de Login) e Perfil do Usuário
+log_msg "INFO" "Configurando persistência do NumLock no COSMIC Greeter e Sessão do Usuário..."
+USER_COSMIC_DIR="$REAL_HOME/.config/cosmic/com.system76.CosmicComp/v1"
+mkdir -p "$USER_COSMIC_DIR"
+echo "true" > "$USER_COSMIC_DIR/numlock_state"
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/cosmic" 2>/dev/null || true
+
+GREETER_COSMIC_DIR="/var/lib/cosmic-greeter/.config/cosmic/com.system76.CosmicComp/v1"
+sudo mkdir -p "$GREETER_COSMIC_DIR"
+echo "true" | sudo tee "$GREETER_COSMIC_DIR/numlock_state" > /dev/null
+
+if [ -f "$USER_COSMIC_DIR/xkb_config" ]; then
+    sudo cp "$USER_COSMIC_DIR/xkb_config" "$GREETER_COSMIC_DIR/xkb_config" 2>/dev/null || true
+fi
+sudo chown -R cosmic-greeter:cosmic-greeter /var/lib/cosmic-greeter/.config 2>/dev/null || true
+
+# Criação do utilitário numlock-on via uinput para sincronização do LED físico
+cat << 'EOF' | sudo tee /usr/local/bin/numlock-on > /dev/null
+#!/usr/bin/env python3
+import evdev, time, sys
+
+try:
+    ui = evdev.UInput({evdev.ecodes.EV_KEY: [evdev.ecodes.KEY_NUMLOCK]}, name="NumLock-Enabler")
+    time.sleep(0.2)
+    ui.write(evdev.ecodes.EV_KEY, evdev.ecodes.KEY_NUMLOCK, 1)
+    ui.syn()
+    time.sleep(0.05)
+    ui.write(evdev.ecodes.EV_KEY, evdev.ecodes.KEY_NUMLOCK, 0)
+    ui.syn()
+    time.sleep(0.1)
+    ui.close()
+except Exception:
+    sys.exit(0)
+EOF
+sudo chmod +x /usr/local/bin/numlock-on
 
 # Liga imediatamente o NumLock para a sessão atual
+/usr/local/bin/numlock-on 2>/dev/null || true
 numlockx on 2>/dev/null || true
 for led in /sys/class/leds/*::numlock/brightness; do
     if [ -w "$led" ]; then echo 1 > "$led" 2>/dev/null || true; fi
 done
 
 set_flag "$FLAG_NAME"
-log_msg "SUCCESS" "Teclado US-Intl, Cedilha e NumLock configurados com sucesso."
+log_msg "SUCCESS" "Teclado US-Intl, Cedilha e NumLock (Boot, Login Greeter, LED e Sessão) configurados com sucesso."

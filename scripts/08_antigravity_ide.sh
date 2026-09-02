@@ -45,10 +45,14 @@ EOF
     sudo apparmor_parser -r /etc/apparmor.d/antigravity 2>/dev/null || true
 fi
 
-# Links simbólicos no PATH
-sudo ln -sf /opt/antigravity/bin/antigravity-ide /usr/local/bin/antigravity
-sudo ln -sf /opt/antigravity/bin/antigravity-ide /usr/local/bin/antigravity-ide
-sudo ln -sf /opt/antigravity/bin/antigravity-ide /usr/local/bin/agy
+# Links e wrappers no PATH com suporte nativo a XCompose e Cedilha ('+c = ç)
+cat << 'EOF' | sudo tee /usr/local/bin/antigravity > /dev/null
+#!/bin/bash
+exec /opt/antigravity/antigravity-ide --ozone-platform=x11 "$@"
+EOF
+sudo chmod +x /usr/local/bin/antigravity
+sudo ln -sf /usr/local/bin/antigravity /usr/local/bin/antigravity-ide
+sudo ln -sf /usr/local/bin/antigravity /usr/local/bin/agy
 
 # Ícone e Lançador .desktop no sistema
 if [ -f /opt/antigravity/resources/app/resources/linux/code.png ]; then
@@ -61,7 +65,7 @@ cat << 'EOF' | sudo tee /usr/share/applications/antigravity.desktop > /dev/null
 Name=Antigravity
 Comment=Google Antigravity IDE (Advanced Agentic Coding)
 GenericName=Text Editor
-Exec=/opt/antigravity/antigravity-ide %F
+Exec=/opt/antigravity/antigravity-ide --ozone-platform=x11 %F
 Icon=antigravity
 Type=Application
 StartupNotify=false

@@ -19,19 +19,21 @@ log_msg "HEADER" "21. CONFIGURAÇÃO DE INICIALIZAÇÃO AUTOMÁTICA (AUTOSTART)"
 AUTOSTART_DIR="$REAL_HOME/.config/autostart"
 mkdir -p "$AUTOSTART_DIR"
 
-# 1. CopyQ
-cat << 'EOF' > "$AUTOSTART_DIR/com.github.hluk.copyq.desktop"
+# 1. CopyQ (Nativo)
+cat << 'EOF' > "$AUTOSTART_DIR/copyq.desktop"
 [Desktop Entry]
 Type=Application
 Name=CopyQ
 GenericName=Clipboard Manager
 Comment=Gerenciador de Área de Transferência
-Exec=/usr/bin/flatpak run --branch=stable --arch=x86_64 --command=copyq com.github.hluk.copyq --hide
-Icon=com.github.hluk.copyq
+Exec=/usr/bin/copyq
+Icon=copyq
 Terminal=false
 Categories=Utility;
 X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=2
 EOF
+rm -f "$AUTOSTART_DIR/com.github.hluk.copyq.desktop" 2>/dev/null || true
 
 # 2. Kando
 cat << 'EOF' > "$AUTOSTART_DIR/menu.kando.Kando.desktop"
@@ -44,33 +46,26 @@ Icon=kando
 Terminal=false
 Categories=Utility;
 X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=2
 EOF
 
-# 3. Espanso
-cat << 'EOF' > "$AUTOSTART_DIR/espanso.desktop"
+# 3. Sincronização do LED do NumLock no Hardware
+cat << 'EOF' > "$AUTOSTART_DIR/numlock-led.desktop"
 [Desktop Entry]
 Type=Application
-Name=Espanso
-Comment=Cross-platform Text Expander
-Exec=espanso daemon
-Icon=espanso
+Name=NumLock LED Sync
+Exec=/bin/bash -c 'for led in /sys/class/leds/*::numlock/brightness; do echo 1 > "$led" 2>/dev/null || true; done'
 Terminal=false
-Categories=Utility;
-X-GNOME-Autostart-enabled=true
-EOF
-
-# 4. NumLock
-cat << 'EOF' > "$AUTOSTART_DIR/numlock.desktop"
-[Desktop Entry]
-Type=Application
-Name=NumLock Auto-On
-Exec=/bin/bash -c 'numlockx on 2>/dev/null || true; for led in /sys/class/leds/*::numlock/brightness; do echo 1 > "$led" 2>/dev/null || true; done'
 Hidden=false
 NoDisplay=true
 X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=1
 EOF
+
+# Remove entradas duplicadas, legadas ou obsoletas (Espanso roda via systemd user service)
+rm -f "$AUTOSTART_DIR/numlock.desktop" "$AUTOSTART_DIR/espanso.desktop" 2>/dev/null || true
 
 chown -R "$REAL_USER:$REAL_USER" "$AUTOSTART_DIR"
 
 set_flag "$FLAG_NAME"
-log_msg "SUCCESS" "Entradas de autostart criadas para CopyQ, Kando, Espanso e NumLock."
+log_msg "SUCCESS" "Entradas de autostart otimizadas para CopyQ, Kando, NumLock LED e OpenTabletDriver."

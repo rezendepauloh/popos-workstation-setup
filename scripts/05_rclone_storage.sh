@@ -35,6 +35,12 @@ else
     done
 fi
 
+# Garante versão oficial binária completa do Rclone (com todos os backends incluindo MEGA)
+if [ ! -f /usr/bin/rclone ] || rclone version 2>&1 | grep -q "DEV"; then
+    log_msg "INFO" "Instalando versão binária oficial completa do Rclone..."
+    curl -fsSL https://rclone.org/install.sh | sudo bash 2>/dev/null || true
+fi
+
 # Copia arquivo rclone.conf local se presente e não existente no destino
 if [ -f "$RCLONE_CONF_SRC" ] && [ ! -f "$RCLONE_CONF_DST" ]; then
     cp "$RCLONE_CONF_SRC" "$RCLONE_CONF_DST"
@@ -59,10 +65,11 @@ ExecStart=/usr/bin/rclone mount gdrive_pessoal: %h/GoogleDrive_Pessoal \
     --vfs-cache-max-age 24h \
     --vfs-read-chunk-size 32M \
     --vfs-read-chunk-size-limit 2G \
+    --vfs-fast-fingerprint \
     --buffer-size 64M \
     --dir-cache-time 72h \
     --poll-interval 15s \
-    --attr-timeout 1s \
+    --attr-timeout 10m \
     --allow-other \
     --log-level INFO
 ExecStop=/bin/fusermount -u -z %h/GoogleDrive_Pessoal
@@ -88,10 +95,11 @@ ExecStart=/usr/bin/rclone mount onedrive_pessoal: %h/OneDrive_Pessoal \
     --vfs-cache-max-age 24h \
     --vfs-read-chunk-size 32M \
     --vfs-read-chunk-size-limit 2G \
+    --vfs-fast-fingerprint \
     --buffer-size 64M \
     --dir-cache-time 72h \
     --poll-interval 15s \
-    --attr-timeout 1s \
+    --attr-timeout 10m \
     --allow-other \
     --log-level INFO
 ExecStop=/bin/fusermount -u -z %h/OneDrive_Pessoal
@@ -117,10 +125,11 @@ ExecStart=/usr/bin/rclone mount mega_pessoal: %h/Mega_Pessoal \
     --vfs-cache-max-age 24h \
     --vfs-read-chunk-size 32M \
     --vfs-read-chunk-size-limit 2G \
+    --vfs-fast-fingerprint \
     --buffer-size 64M \
     --dir-cache-time 72h \
     --poll-interval 15s \
-    --attr-timeout 1s \
+    --attr-timeout 10m \
     --allow-other \
     --log-level INFO
 ExecStop=/bin/fusermount -u -z %h/Mega_Pessoal
