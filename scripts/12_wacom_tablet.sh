@@ -16,28 +16,25 @@ fi
 
 log_msg "HEADER" "12. CONFIGURAÇÃO DA MESA WACOM INTUOS PRO (DRIVER NATIVO)"
 
-# 1. Instalação das bibliotecas e utilitários nativos da Wacom (libwacom)
+# 1. Remoção de bloqueios/blacklists do OpenTabletDriver e restauração do módulo 'wacom'
+log_msg "INFO" "Removendo bloqueios de kernel do OpenTabletDriver..."
+sudo rm -f /etc/modprobe.d/*opentabletdriver*.conf /usr/lib/modprobe.d/*opentabletdriver*.conf /lib/modprobe.d/*opentabletdriver*.conf 2>/dev/null || true
+if dpkg -l | grep -q opentabletdriver; then
+    sudo apt purge -y opentabletdriver 2>/dev/null || true
+fi
+
+# 2. Instalação das bibliotecas e utilitários nativos da Wacom (libwacom)
 log_msg "INFO" "Instalando utilitários e drivers nativos da Wacom (libwacom)..."
 sudo apt update
 sudo apt install -y libwacom-bin libwacom-common libwacom9 xserver-xorg-input-wacom
 
-# 2. Desativação do OpenTabletDriver para evitar conflitos de HID e caneta
-log_msg "INFO" "Garantindo que daemons conflitantes (OpenTabletDriver) fiquem desativados..."
-if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
-    sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user stop opentabletdriver.service 2>/dev/null || true
-    sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user disable opentabletdriver.service 2>/dev/null || true
-else
-    systemctl --user stop opentabletdriver.service 2>/dev/null || true
-    systemctl --user disable opentabletdriver.service 2>/dev/null || true
-fi
-
 # 3. Carregamento e persistência do módulo de kernel oficial 'wacom'
 log_msg "INFO" "Carregando módulo oficial de kernel 'wacom' e configurando persistência..."
-sudo modprobe wacom 2>/dev/null || true
+sudo modprobe -i wacom 2>/dev/null || sudo modprobe wacom 2>/dev/null || true
 echo "wacom" | sudo tee /etc/modules-load.d/wacom.conf > /dev/null
 
 # 4. Regras Udev e permissões de acesso para hardware Wacom (USB e Bluetooth)
-log_msg "INFO" "Configurando regras Udev para permissões de entrada da Wacom..."
+log_msg "INFO" "Configurando regras Udev e permissões de entrada..."
 cat << 'EOF' | sudo tee /etc/udev/rules.d/99-wacom.rules > /dev/null
 # Wacom Intuos Pro (USB e Bluetooth)
 KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput", MODE="0660", GROUP="input"
