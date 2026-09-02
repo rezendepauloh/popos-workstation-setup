@@ -16,12 +16,10 @@ fi
 
 log_msg "HEADER" "12. CONFIGURAÇÃO DA MESA WACOM INTUOS PRO (OPENTABLETDRIVER WAYLAND)"
 
-# Hardware IDs do .env
-WACOM_USB_ID="${USB_ID_WACOM_PTH460_USB:-"056a:0392"}"
-WACOM_BT_ID="${USB_ID_WACOM_PTH460_BT:-"056a:0393"}"
-WACOM_MAC="${MAC_WACOM_INTUOS:-"E0:9F:2A:20:BC:DD"}"
-
-log_msg "INFO" "Hardware configurado: USB ($WACOM_USB_ID), Bluetooth ($WACOM_BT_ID), MAC ($WACOM_MAC)"
+# Variáveis do ambiente (.env)
+WACOM_USB_ID="${USB_ID_WACOM_PTH460_USB:-}"
+WACOM_BT_ID="${USB_ID_WACOM_PTH460_BT:-}"
+WACOM_MAC="${MAC_WACOM_INTUOS:-}"
 
 # 1. Instalação das bibliotecas e utilitários (.NET Runtime 8 e OpenTabletDriver)
 log_msg "INFO" "Instalando dependências (.NET Runtime 8, libwacom) e OpenTabletDriver GUI..."
@@ -37,7 +35,11 @@ fi
 
 # 2. Configuração de permissões Udev para Wayland / uinput
 log_msg "INFO" "Configurando regras Udev para emulação de caneta via /dev/uinput..."
-WACOM_VENDOR=$(echo "$WACOM_USB_ID" | cut -d: -f1)
+WACOM_VENDOR="056a"
+if [ -n "$WACOM_USB_ID" ]; then
+    WACOM_VENDOR="${WACOM_USB_ID%%:*}"
+fi
+
 cat << EOF | sudo tee /etc/udev/rules.d/99-opentabletdriver.rules > /dev/null
 KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput", MODE="0660", GROUP="input"
 SUBSYSTEM=="input", ATTRS{idVendor}=="$WACOM_VENDOR", MODE="0664", GROUP="input"
@@ -184,18 +186,19 @@ else
     systemctl --user restart opentabletdriver.service 2>/dev/null || true
 fi
 
-# 5. Aplicação direta via CLI do OpenTabletDriver (otd)
+# 5. Aplicação direta via CLI do OpenTabletDriver (otd com locale C)
 log_msg "INFO" "Garantindo Modo Absoluto e Rotação 180° via CLI (otd)..."
 if command -v otd >/dev/null 2>&1; then
-    otd setoutputmode "Wacom PTH-460" OpenTabletDriver.Desktop.Output.AbsoluteMode 2>/dev/null || true
-    otd settabletarea "Wacom PTH-460" 159.6 99.75 79.8 49.875 180 2>/dev/null || true
-    otd setlockaspectratio "Wacom PTH-460" true 2>/dev/null || true
-    otd savedefaultsettings 2>/dev/null || true
+    LC_ALL=C otd setoutputmode "Wacom PTH-460" OpenTabletDriver.Desktop.Output.AbsoluteMode 2>/dev/null || true
+    LC_ALL=C otd settabletarea "Wacom PTH-460" 159.6 99.75 79.8 49.875 180 2>/dev/null || true
+    LC_ALL=C otd setlockaspectratio "Wacom PTH-460" true 2>/dev/null || true
+    LC_ALL=C otd savedefaultsettings 2>/dev/null || true
 fi
 
 # 6. Detecção e Confiança (Trust) no Bluetooth BlueZ
-log_msg "INFO" "Garantindo dispositivo Wacom ($WACOM_MAC) como confiável no Bluetooth BlueZ..."
-bluetoothctl trust "$WACOM_MAC" 2>/dev/null || true
+if [ -n "$WACOM_MAC" ]; then
+    bluetoothctl trust "$WACOM_MAC" 2>/dev/null || true
+fi
 
 set_flag "$FLAG_NAME"
 log_msg "SUCCESS" "OpenTabletDriver (AbsoluteMode Wayland), Modo Canhoto 180° e GUI configurados com sucesso."

@@ -25,8 +25,8 @@ log_msg "INFO" "Identificando mouse compatível via libratbag..."
 sudo systemctl enable --now ratbagd 2>/dev/null || true
 
 # Utiliza IDs de hardware definidos no .env se disponíveis
-G502_USB_ID="${USB_ID_LOGITECH_G502X:-"046d:c547"}"
-G733_USB_ID="${USB_ID_LOGITECH_G733:-"046d:0ab5"}"
+G502_USB_ID="${USB_ID_LOGITECH_G502X:-}"
+G733_USB_ID="${USB_ID_LOGITECH_G733:-}"
 
 log_msg "INFO" "Verificando hardware (G502 X: $G502_USB_ID, ignorando Headset: $G733_USB_ID)..."
 MOUSE_ID=$(ratbagctl list 2>/dev/null | grep -iE 'G502|G502 X|mouse' | grep -ivE 'headset|headphone|audio|webcam|keyboard' | head -n 1 | cut -d: -f1 || true)
