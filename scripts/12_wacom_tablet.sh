@@ -366,6 +366,8 @@ chown -R "$REAL_USER:$REAL_USER" "$OTD_CONFIG_DIR"
 
 # 5. Ativação e Inicialização do Serviço de Segundo Plano do OpenTabletDriver
 log_msg "INFO" "Ativando serviço opentabletdriver.service no ambiente do usuário..."
+killall -9 OpenTabletDriver.UX.Gtk 2>/dev/null || true
+
 if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
     sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user daemon-reload 2>/dev/null || true
     sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user enable opentabletdriver.service 2>/dev/null || true
