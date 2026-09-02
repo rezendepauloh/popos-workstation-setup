@@ -21,6 +21,14 @@ BASE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SCRIPTS_DIR="$BASE_DIR/scripts"
 PROGRESS_LOG="$BASE_DIR/.setup_progress.log"
 
+# Carrega variáveis de ambiente do .env se existir
+if [ -f "$BASE_DIR/.env" ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "$BASE_DIR/.env"
+    set +a
+fi
+
 REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 REAL_UID=$(id -u "$REAL_USER" 2>/dev/null || echo 1000)
