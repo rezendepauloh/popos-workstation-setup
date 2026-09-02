@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Módulo 12: Suporte, Drivers e Configuração da Mesa Wacom (OpenTabletDriver Wayland)
+# Módulo 12: Suporte, Drivers e Mapeamento da Mesa Wacom (OpenTabletDriver Wayland)
 # ==============================================================================
 
 set -e
@@ -16,7 +16,7 @@ fi
 
 log_msg "HEADER" "12. CONFIGURAÇÃO DA MESA WACOM INTUOS PRO (OPENTABLETDRIVER WAYLAND)"
 
-# Variáveis do ambiente (.env)
+# Variáveis de ambiente (.env)
 WACOM_USB_ID="${USB_ID_WACOM_PTH460_USB:-}"
 WACOM_BT_ID="${USB_ID_WACOM_PTH460_BT:-}"
 WACOM_MAC="${MAC_WACOM_INTUOS:-}"
@@ -33,28 +33,124 @@ if ! dpkg -l | grep -q opentabletdriver; then
     rm -f /tmp/opentabletdriver.deb
 fi
 
-# 2. Configuração de permissões Udev para Wayland / uinput
-log_msg "INFO" "Configurando regras Udev para emulação de caneta via /dev/uinput..."
-WACOM_VENDOR="056a"
-if [ -n "$WACOM_USB_ID" ]; then
-    WACOM_VENDOR="${WACOM_USB_ID%%:*}"
-fi
-
-cat << EOF | sudo tee /etc/udev/rules.d/99-opentabletdriver.rules > /dev/null
+# 2. Configuração de permissões Udev para Wayland / uinput / Bluetooth
+log_msg "INFO" "Configurando regras Udev para emulação de caneta via /dev/uinput e Bluetooth..."
+cat << 'EOF' | sudo tee /etc/udev/rules.d/99-opentabletdriver.rules > /dev/null
+# OpenTabletDriver Wayland / Uinput Permissions
 KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput", MODE="0660", GROUP="input"
-SUBSYSTEM=="input", ATTRS{idVendor}=="$WACOM_VENDOR", MODE="0664", GROUP="input"
-SUBSYSTEM=="hidraw", ATTRS{idVendor}=="$WACOM_VENDOR", MODE="0664", GROUP="input"
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", TAG+="uaccess", MODE="0664", GROUP="input"
+SUBSYSTEM=="hidraw", TAG+="uaccess", MODE="0664", GROUP="input"
+SUBSYSTEM=="input", TAG+="uaccess", MODE="0664", GROUP="input"
 EOF
 
 sudo udevadm control --reload-rules 2>/dev/null || true
 sudo udevadm trigger 2>/dev/null || true
 sudo usermod -aG input "$REAL_USER" 2>/dev/null || true
 
-# 3. Configuração Declarativa do OpenTabletDriver para Wayland (AbsoluteMode & 180° Canhoto)
-log_msg "INFO" "Configurando modo de saída 'AbsoluteMode' (Wayland) e Modo Canhoto (180°)..."
+# 3. Definição de Hardware da Mesa PTH-460 (USB 914 + Bluetooth 915)
+log_msg "INFO" "Instalando definição de hardware da Wacom PTH-460 para USB e Bluetooth..."
 OTD_CONFIG_DIR="$REAL_HOME/.config/OpenTabletDriver"
-mkdir -p "$OTD_CONFIG_DIR"
+mkdir -p "$OTD_CONFIG_DIR/Configurations"
 
+cat << 'EOF' > "$OTD_CONFIG_DIR/Configurations/Wacom PTH-460.json"
+{
+  "Name": "Wacom PTH-460",
+  "Specifications": {
+    "Digitizer": {
+      "Width": 159.6,
+      "Height": 99.75,
+      "MaxX": 31920,
+      "MaxY": 19950
+    },
+    "Pen": {
+      "MaxPressure": 8191,
+      "ButtonCount": 2
+    },
+    "AuxiliaryButtons": {
+      "ButtonCount": 6
+    },
+    "Wheels": [
+      {
+        "AbsoluteWheelMax": 71,
+        "AngleOfZeroReading": 90.0,
+        "ButtonCount": 1
+      }
+    ]
+  },
+  "DigitizerIdentifiers": [
+    {
+      "VendorID": 1386,
+      "ProductID": 914,
+      "InputReportLength": 192,
+      "OutputReportLength": 0,
+      "ReportParser": "OpenTabletDriver.Configurations.Parsers.Wacom.IntuosV2.IntuosV2ReportParser",
+      "FeatureInitReport": [
+        "AgI="
+      ],
+      "InitializationStrings": [
+        0
+      ]
+    },
+    {
+      "VendorID": 1386,
+      "ProductID": 914,
+      "InputReportLength": 193,
+      "OutputReportLength": 0,
+      "ReportParser": "OpenTabletDriver.Configurations.Parsers.Wacom.IntuosV2.WacomDriverIntuosV2ReportParser",
+      "InitializationStrings": [
+        0
+      ]
+    },
+    {
+      "VendorID": 1386,
+      "ProductID": 915,
+      "InputReportLength": 192,
+      "OutputReportLength": 0,
+      "ReportParser": "OpenTabletDriver.Configurations.Parsers.Wacom.IntuosV2.IntuosV2ReportParser",
+      "InitializationStrings": [
+        0
+      ]
+    },
+    {
+      "VendorID": 1386,
+      "ProductID": 915,
+      "InputReportLength": 193,
+      "OutputReportLength": 0,
+      "ReportParser": "OpenTabletDriver.Configurations.Parsers.Wacom.IntuosV2.WacomDriverIntuosV2ReportParser",
+      "InitializationStrings": [
+        0
+      ]
+    },
+    {
+      "VendorID": 1386,
+      "ProductID": 988,
+      "InputReportLength": 192,
+      "OutputReportLength": 0,
+      "ReportParser": "OpenTabletDriver.Configurations.Parsers.Wacom.IntuosV2.IntuosV2ReportParser",
+      "InitializationStrings": [
+        0
+      ]
+    }
+  ],
+  "AuxiliaryDeviceIdentifiers": [
+    {
+      "VendorID": 1386,
+      "ProductID": 914,
+      "InputReportLength": 44,
+      "ReportParser": "OpenTabletDriver.Configurations.Parsers.Wacom.IntuosV2.IntuosV2ReportParser"
+    },
+    {
+      "VendorID": 1386,
+      "ProductID": 915,
+      "InputReportLength": 44,
+      "ReportParser": "OpenTabletDriver.Configurations.Parsers.Wacom.IntuosV2.IntuosV2ReportParser"
+    }
+  ]
+}
+EOF
+
+# 4. Configuração Declarativa dos Botões e Modo Canhoto (180°)
+log_msg "INFO" "Configurando atalhos de botões, rotação 180° e modo absoluto..."
 cat << 'EOF' > "$OTD_CONFIG_DIR/settings.json"
 {
   "Revision": "0.6.7",
@@ -117,33 +213,103 @@ cat << 'EOF' > "$OTD_CONFIG_DIR/settings.json"
         },
         "PenButtons": [
           {
-            "Path": "OpenTabletDriver.Desktop.Binding.AdaptiveBinding",
+            "Path": "OpenTabletDriver.Desktop.Binding.MouseBinding",
             "Settings": [
               {
-                "Property": "Binding",
-                "Value": "Button 1"
+                "Property": "Button",
+                "Value": "Right"
               }
             ],
             "Enable": true
           },
           {
-            "Path": "OpenTabletDriver.Desktop.Binding.AdaptiveBinding",
+            "Path": "OpenTabletDriver.Desktop.Binding.MouseBinding",
             "Settings": [
               {
-                "Property": "Binding",
-                "Value": "Button 2"
+                "Property": "Button",
+                "Value": "Middle"
               }
             ],
             "Enable": true
           }
         ],
         "AuxButtons": [
-          null,
-          null,
-          null,
-          null,
-          null,
-          null
+          {
+            "Path": "OpenTabletDriver.Desktop.Binding.MultiKeyBinding",
+            "Settings": [
+              {
+                "Property": "Keys",
+                "Value": [
+                  "Control",
+                  "Z"
+                ]
+              }
+            ],
+            "Enable": true
+          },
+          {
+            "Path": "OpenTabletDriver.Desktop.Binding.MultiKeyBinding",
+            "Settings": [
+              {
+                "Property": "Keys",
+                "Value": [
+                  "Control",
+                  "Shift",
+                  "Z"
+                ]
+              }
+            ],
+            "Enable": true
+          },
+          {
+            "Path": "OpenTabletDriver.Desktop.Binding.KeyBinding",
+            "Settings": [
+              {
+                "Property": "Key",
+                "Value": "Space"
+              }
+            ],
+            "Enable": true
+          },
+          {
+            "Path": "OpenTabletDriver.Desktop.Binding.MultiKeyBinding",
+            "Settings": [
+              {
+                "Property": "Keys",
+                "Value": [
+                  "Control",
+                  "S"
+                ]
+              }
+            ],
+            "Enable": true
+          },
+          {
+            "Path": "OpenTabletDriver.Desktop.Binding.MultiKeyBinding",
+            "Settings": [
+              {
+                "Property": "Keys",
+                "Value": [
+                  "Control",
+                  "C"
+                ]
+              }
+            ],
+            "Enable": true
+          },
+          {
+            "Path": "OpenTabletDriver.Desktop.Binding.MultiKeyBinding",
+            "Settings": [
+              {
+                "Property": "Keys",
+                "Value": [
+                  "Control",
+                  "V"
+                ]
+              }
+            ],
+            "Enable": true
+          }
         ],
         "MouseButtons": [],
         "MouseScrollUp": null,
@@ -153,9 +319,33 @@ cat << 'EOF' > "$OTD_CONFIG_DIR/settings.json"
             "WheelButtons": [
               null
             ],
-            "ClockwiseRotation": null,
+            "ClockwiseRotation": {
+              "Path": "OpenTabletDriver.Desktop.Binding.MultiKeyBinding",
+              "Settings": [
+                {
+                  "Property": "Keys",
+                  "Value": [
+                    "Control",
+                    "Equal"
+                  ]
+                }
+              ],
+              "Enable": true
+            },
             "ClockwiseActivationThreshold": 5.0,
-            "CounterClockwiseRotation": null,
+            "CounterClockwiseRotation": {
+              "Path": "OpenTabletDriver.Desktop.Binding.MultiKeyBinding",
+              "Settings": [
+                {
+                  "Property": "Keys",
+                  "Value": [
+                    "Control",
+                    "Minus"
+                  ]
+                }
+              ],
+              "Enable": true
+            },
             "CounterClockwiseActivationThreshold": 5.0,
             "StepSize": 5.0
           }
@@ -174,7 +364,7 @@ EOF
 
 chown -R "$REAL_USER:$REAL_USER" "$OTD_CONFIG_DIR"
 
-# 4. Ativação e Inicialização do Serviço de Segundo Plano do OpenTabletDriver
+# 5. Ativação e Inicialização do Serviço de Segundo Plano do OpenTabletDriver
 log_msg "INFO" "Ativando serviço opentabletdriver.service no ambiente do usuário..."
 if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
     sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user daemon-reload 2>/dev/null || true
@@ -186,7 +376,7 @@ else
     systemctl --user restart opentabletdriver.service 2>/dev/null || true
 fi
 
-# 5. Aplicação direta via CLI do OpenTabletDriver (otd com locale C)
+# 6. Aplicação direta via CLI do OpenTabletDriver (otd com locale C)
 log_msg "INFO" "Garantindo Modo Absoluto e Rotação 180° via CLI (otd)..."
 if command -v otd >/dev/null 2>&1; then
     LC_ALL=C otd setoutputmode "Wacom PTH-460" OpenTabletDriver.Desktop.Output.AbsoluteMode 2>/dev/null || true
@@ -195,10 +385,10 @@ if command -v otd >/dev/null 2>&1; then
     LC_ALL=C otd savedefaultsettings 2>/dev/null || true
 fi
 
-# 6. Detecção e Confiança (Trust) no Bluetooth BlueZ
+# 7. Detecção e Confiança (Trust) no Bluetooth BlueZ
 if [ -n "$WACOM_MAC" ]; then
     bluetoothctl trust "$WACOM_MAC" 2>/dev/null || true
 fi
 
 set_flag "$FLAG_NAME"
-log_msg "SUCCESS" "OpenTabletDriver (AbsoluteMode Wayland), Modo Canhoto 180° e GUI configurados com sucesso."
+log_msg "SUCCESS" "OpenTabletDriver (USB + Bluetooth), Modo Canhoto 180° e Mapeamento de Botões configurados com sucesso."
