@@ -24,6 +24,11 @@ set_user_gsetting "org.gnome.desktop.peripherals.mouse" "speed" "0.0"
 log_msg "INFO" "Identificando mouse compatível via libratbag..."
 sudo systemctl enable --now ratbagd 2>/dev/null || true
 
+# Utiliza IDs de hardware definidos no .env se disponíveis
+G502_USB_ID="${USB_ID_LOGITECH_G502X:-"046d:c547"}"
+G733_USB_ID="${USB_ID_LOGITECH_G733:-"046d:0ab5"}"
+
+log_msg "INFO" "Verificando hardware (G502 X: $G502_USB_ID, ignorando Headset: $G733_USB_ID)..."
 MOUSE_ID=$(ratbagctl list 2>/dev/null | grep -iE 'G502|G502 X|mouse' | grep -ivE 'headset|headphone|audio|webcam|keyboard' | head -n 1 | cut -d: -f1 || true)
 if [ -n "$MOUSE_ID" ]; then
     log_msg "INFO" "Mouse detectado: $MOUSE_ID. Gravando perfis e macros..."
