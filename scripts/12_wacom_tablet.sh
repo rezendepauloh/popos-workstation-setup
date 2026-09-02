@@ -52,7 +52,7 @@ cat << 'EOF' > "$OTD_CONFIG_DIR/settings.json"
     {
       "Tablet": "Wacom PTH-460",
       "OutputMode": {
-        "Path": "OpenTabletDriver.Desktop.Output.LinuxVirtualTablet",
+        "Path": "OpenTabletDriver.Desktop.Output.AbsoluteOutputMode",
         "Settings": [],
         "Enable": true
       },

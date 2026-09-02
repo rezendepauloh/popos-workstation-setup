@@ -44,13 +44,30 @@ fi
 
 # Configuração e Nomeação Amigável de Controles Bluetooth (DualSense / Gamepads)
 log_msg "INFO" "Configurando nomes amigáveis e reconexão automática para controles DualSense..."
+if [ -n "$MAC_DUALSENSE_01" ]; then
+    dev_path="/org/bluez/hci0/dev_$(echo "$MAC_DUALSENSE_01" | tr ':' '_')"
+    busctl set-property org.bluez "$dev_path" org.bluez.Device1 Alias s "DualSense 01" 2>/dev/null || true
+    bluetoothctl trust "$MAC_DUALSENSE_01" 2>/dev/null || true
+    log_msg "SUCCESS" "Controle DualSense 01 ($MAC_DUALSENSE_01) configurado e confiável."
+fi
+
+if [ -n "$MAC_DUALSENSE_02" ]; then
+    dev_path="/org/bluez/hci0/dev_$(echo "$MAC_DUALSENSE_02" | tr ':' '_')"
+    busctl set-property org.bluez "$dev_path" org.bluez.Device1 Alias s "DualSense 02" 2>/dev/null || true
+    bluetoothctl trust "$MAC_DUALSENSE_02" 2>/dev/null || true
+    log_msg "SUCCESS" "Controle DualSense 02 ($MAC_DUALSENSE_02) configurado e confiável."
+fi
+
+# Fallback para quaisquer outros controles pareados no sistema
 CONTROLLER_INDEX=1
 for mac in $(bluetoothctl devices 2>/dev/null | grep -iE 'dualsense|wireless controller' | awk '{print $2}'); do
-    dev_path="/org/bluez/hci0/dev_$(echo "$mac" | tr ':' '_')"
-    busctl set-property org.bluez "$dev_path" org.bluez.Device1 Alias s "DualSense 0$CONTROLLER_INDEX" 2>/dev/null || true
-    bluetoothctl trust "$mac" 2>/dev/null || true
-    log_msg "SUCCESS" "Controle DualSense $mac configurado como 'DualSense 0$CONTROLLER_INDEX' e confiável."
-    CONTROLLER_INDEX=$((CONTROLLER_INDEX + 1))
+    if [ "$mac" != "$MAC_DUALSENSE_01" ] && [ "$mac" != "$MAC_DUALSENSE_02" ]; then
+        dev_path="/org/bluez/hci0/dev_$(echo "$mac" | tr ':' '_')"
+        busctl set-property org.bluez "$dev_path" org.bluez.Device1 Alias s "DualSense 0$CONTROLLER_INDEX" 2>/dev/null || true
+        bluetoothctl trust "$mac" 2>/dev/null || true
+        log_msg "SUCCESS" "Controle detectado $mac configurado como 'DualSense 0$CONTROLLER_INDEX' e confiável."
+        CONTROLLER_INDEX=$((CONTROLLER_INDEX + 1))
+    fi
 done
 
 set_flag "$FLAG_NAME"
