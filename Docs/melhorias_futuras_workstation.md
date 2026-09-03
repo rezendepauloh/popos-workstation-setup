@@ -78,13 +78,15 @@ São sugestões de alto valor prático para serem avaliadas e implementadas futu
 
 ---
 
-## 📊 6. Tabela Resumo de Prioridades
+## 📊 6. Tabela Resumo de Implementação
 
-| Melhoria Proposta | Complexidade | Impacto no Dia a Dia | Prioridade Sugerida |
-| :--- | :---: | :---: | :---: |
-| **ZRAM (Compressão de Memória)** | Baixa | Alto (Evita swap lento e preserva NVMe) | ⭐⭐⭐ |
-| **Limites de Inotify / File Watchers** | Muito Baixa | Alto (Essencial para IDEs e Web Dev) | ⭐⭐⭐ |
-| **Docker Socket sob Demanda** | Baixa | Médio (Economiza RAM no boot) | ⭐⭐ |
-| **Backup Automático de Dotfiles** | Média | Alto (Segurança contra perda de dados) | ⭐⭐⭐ |
-| **UFW (Firewall com Regras Dev)** | Baixa | Médio (Segurança de rede) | ⭐⭐ |
-| **Otimização de Buffers PipeWire** | Baixa | Médio (Áudio mais limpo) | ⭐ |
+Todas as melhorias abaixo foram integradas de forma nativa e declarativa no módulo [`scripts/22_limpeza_otimizacao.sh`](file:///home/rezendepauloh/Documentos/Scripts/scripts/22_limpeza_otimizacao.sh):
+
+| Melhoria Implementada | Status | Local da Configuração |
+| :--- | :---: | :--- |
+| **ZRAM (Compressão de Memória)** | ✅ Ativo | Pacote nativo do Pop!_OS (`zstd`, 16GB em RAM) |
+| **Limites de Inotify / File Watchers** | ✅ Integrado | `/etc/sysctl.d/99-dev-limits.conf` (`524288` watches, dirty ratios) |
+| **Docker Socket sob Demanda** | ✅ Integrado | `systemctl enable docker.socket` (daemon dorme até ser chamado) |
+| **Backup Automático de Dotfiles** | ✅ Integrado | `/usr/local/bin/backup-workstation` + `backup-workstation.timer` semanal |
+| **UFW (Firewall com Regras Dev)** | ✅ Integrado | UFW com portas locais liberadas (Jellyfin, KDE Connect, Dev 3000/5173/8080) |
+| **Otimização de Buffers PipeWire** | ✅ Integrado | `~/.config/pipewire/pipewire.conf.d/99-low-latency.conf` (quantum 512) |

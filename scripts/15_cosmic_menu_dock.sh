@@ -60,15 +60,18 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
         ),
     ),
     (
-        name: "Comunicação",
+        name: "Comunicação & Internet",
         icon: "chat-symbolic",
         filter: Categories(
             categories: [
                 "Network",
                 "Chat",
                 "InstantMessaging",
+                "WebBrowser",
             ],
             include: [
+                "google-chrome",
+                "brave-browser",
                 "org.telegram.desktop",
                 "com.rtosta.zapzap",
             ],
@@ -76,14 +79,17 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
         ),
     ),
     (
-        name: "Escritório",
+        name: "Escritório & Trabalho Remoto",
         icon: "applications-office-symbolic",
         filter: Categories(
             categories: [
                 "Office",
             ],
             include: [
+                "vpn-mpms",
                 "org.onlyoffice.desktopeditors",
+                "forticlient",
+                "org.remmina.Remmina",
                 "com.dropbox.Client",
             ],
             exclude: [],
@@ -100,6 +106,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
             include: [
                 "org.jellyfin.JellyfinDesktop",
                 "org.gimp.GIMP",
+                "vlc",
                 "opentabletdriver",
             ],
             exclude: [],
@@ -113,6 +120,8 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "Utility",
             ],
             include: [
+                "org.openrgb.OpenRGB",
+                "piper",
                 "nm-connection-editor",
                 "com.github.hluk.copyq",
                 "menu.kando.Kando",
@@ -152,12 +161,13 @@ EOF
 log_msg "INFO" "Configurando aplicativos favoritos..."
 cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppList/v1/favorites"
 [
-    "firefox",
+    "google-chrome",
+    "brave-browser",
     "com.system76.CosmicFiles",
     "antigravity-ide",
     "code",
+    "org.remmina.Remmina",
     "com.system76.CosmicTerm",
-    "com.system76.CosmicStore",
     "com.system76.CosmicSettings",
 ]
 EOF

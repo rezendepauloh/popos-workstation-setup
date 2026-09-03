@@ -107,6 +107,8 @@ MODULES=(
     "20_manutencao_ssds.sh"
     "21_autostart_config.sh"
     "22_limpeza_otimizacao.sh"
+    "23_openrgb_iluminacao.sh"
+    "24_trabalho_remoto_vpn_rdp.sh"
 )
 
 TOTAL_MODULES=${#MODULES[@]}

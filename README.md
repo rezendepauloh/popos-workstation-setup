@@ -65,7 +65,7 @@ Script de automação e provisionamento idempotente para configuração completa
     *   **HD Storage 700:** `/mnt/storage_700` (ext4 com `defaults,noatime`)
 *   **Permissões Automáticas:** Concede propriedade total ao usuário (`chown -R $USER:$USER`) e permissões de leitura/escrita (`chmod -R 775`) em todos os discos.
 *   **Redirecionamento de Diretórios:** Altera o `~/.config/user-dirs.dirs` para ancorar a pasta nativa **Downloads** no HD Storage 700 (`/mnt/storage_700/Downloads`).
-*   **Manutenção de SSDs & Limpeza:** Ativação do TRIM semanal (`fstrim.timer`) para preservação dos NVMes, além de limpeza profunda do sistema com `apt autoremove/clean` e remoção de flatpaks órfãos.
+*   **Manutenção de SSDs & Otimizações Globais:** Ativação do TRIM semanal (`fstrim.timer`) para preservação dos NVMes, limites elevados de I/O e file watchers (`vm.dirty_ratio`, `inotify`), Docker socket sob demanda, quantum reduzido do PipeWire (512), firewall UFW protegido para Dev, backup semanal agendado de dotfiles/automações e limpeza profunda com `apt autoremove/clean` e remoção de flatpaks órfãos.
 
 ### 6. Sincronização de Múltiplas Nuvens (Rclone VFS)
 *   **Versão Oficial Completa do Rclone (v1.75+):** Instalação automatizada via script oficial da Rclone com suporte nativo completo a todos os backends (Google Drive, OneDrive e MEGA), prevenindo loops de falha e travamentos de I/O no boot.
@@ -122,6 +122,11 @@ Script de automação e provisionamento idempotente para configuração completa
 *   Criação prévia da pasta física `/mnt/nvme_01/Jogos` com posse e permissão `775`.
 *   Configuração do perfil de **Performance Máxima** no Pop!_OS via `system76-power profile performance` (com fallback para `powerprofilesctl`).
 
+### 10. Trabalho Remoto (MPMS) & Conexão Windows
+*   **FortiClient VPN Oficial (Fortinet):** Repositório oficial e pacote 7.4.8 para Ubuntu 24.04 LTS noble com `libayatana-appindicator3-1`.
+*   **VPN MPMS Automatizada (`vpn-mpms` & Lançador Gráfico):** Conexão via `openfortivpn` com configuração em `/etc/openfortivpn/mpms.conf`, permissão sudoer sem senha, **saída colorida no terminal com destaque verde visual imediato ao atingir `Tunnel is up and running`**, e suporte a salvar senha fixa para pedir apenas o token 2FA/OTP.
+*   **Remmina Remote Desktop (RDP):** Cliente oficial configurado com perfil automático **`MPE-80703 (Trabalho MPMS)`** salvo em `~/.local/share/remmina/mpms_mpe_80703.remmina` (servidor `MPE-80703.in.mpe.ms.gov.br`, usuário `paulogoncalves`, domínio `in.mpe.ms.gov.br`, clipboard compartilhado e áudio local).
+
 ---
 
 ## 🏗️ Arquitetura Modular V2 (`setup_popos_v2.sh` & `scripts/`)
@@ -154,7 +159,9 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 19_flatpak_permissions.sh       # Permissões de discos e barramento D-Bus para Flatpaks
 │   ├── 20_manutencao_ssds.sh           # Ativação do fstrim.timer para TRIM semanal
 │   ├── 21_autostart_config.sh          # Configuração de apps na inicialização da sessão
-│   └── 22_limpeza_otimizacao.sh        # Limpeza de caches e runtimes não utilizados
+│   ├── 22_limpeza_otimizacao.sh        # Limpeza, otimizações de kernel, Docker e backups
+│   ├── 23_openrgb_iluminacao.sh        # OpenRGB, regras udev ASUS Aura e controle ARGB
+│   └── 24_trabalho_remoto_vpn_rdp.sh   # FortiClient VPN Oficial (2FA) e Remmina RDP
 ```
 
 ### 📋 Módulos e Responsabilidades:
@@ -184,14 +191,16 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/19_flatpak_permissions.sh` | Módulo de overrides de filesystem (`/mnt/storage_*`, host para Rclone UI) e liberação de bandeja (`StatusNotifierWatcher`). |
 | `scripts/20_manutencao_ssds.sh` | Módulo de ativação do TRIM semanal (`fstrim.timer`) para os SSDs. |
 | `scripts/21_autostart_config.sh` | Módulo de provisionamento de inicialização automática no login (CopyQ, Kando, Espanso, NumLock). |
-| `scripts/22_limpeza_otimizacao.sh` | Módulo de limpeza de pacotes, autoremove e remoção de runtimes Flatpak não utilizados. |
+| `scripts/22_limpeza_otimizacao.sh` | Módulo de limpeza, otimizações de kernel/inotify, Docker sob demanda, latência PipeWire, firewall UFW e backup automatizado de dotfiles. |
+| `scripts/23_openrgb_iluminacao.sh` | Módulo de instalação do OpenRGB, regras udev para ASUS AURA LED Controller, módulos i2c e autostart na bandeja. |
+| `scripts/24_trabalho_remoto_vpn_rdp.sh` | Módulo de trabalho remoto: FortiClient VPN Oficial (autenticação 2FA/MFA) e cliente RDP Remmina com clipboard e áudio. |
 
 ---
 
 ## ⚙️ Guia de Execução
 
 ### 🚀 Modo Automatizado Completo (V2):
-Executa todos os 22 módulos em sequência, pulando automaticamente o que já estiver concluído:
+Executa todos os 24 módulos em sequência, pulando automaticamente o que já estiver concluído:
 ```bash
 sudo ./setup_popos_v2.sh
 ```
