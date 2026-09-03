@@ -88,6 +88,8 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
             include: [
                 "vpn-mpms",
                 "org.onlyoffice.desktopeditors",
+                "masterpdfeditor5",
+                "org.kde.okular",
                 "forticlient",
                 "org.remmina.Remmina",
                 "com.dropbox.Client",

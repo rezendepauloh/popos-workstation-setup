@@ -161,7 +161,8 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 21_autostart_config.sh          # Configuração de apps na inicialização da sessão
 │   ├── 22_limpeza_otimizacao.sh        # Limpeza, otimizações de kernel, Docker e backups
 │   ├── 23_openrgb_iluminacao.sh        # OpenRGB, regras udev ASUS Aura e controle ARGB
-│   └── 24_trabalho_remoto_vpn_rdp.sh   # FortiClient VPN Oficial (2FA) e Remmina RDP
+│   ├── 24_trabalho_remoto_vpn_rdp.sh   # FortiClient VPN Oficial (2FA) e Remmina RDP
+│   └── 25_pdf_editors.sh               # Master PDF Editor (Edição) e Okular (Leitura/Marcadores)
 ```
 
 ### 📋 Módulos e Responsabilidades:
@@ -194,13 +195,14 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/22_limpeza_otimizacao.sh` | Módulo de limpeza, otimizações de kernel/inotify, Docker sob demanda, latência PipeWire, firewall UFW e backup automatizado de dotfiles. |
 | `scripts/23_openrgb_iluminacao.sh` | Módulo de instalação do OpenRGB, regras udev para ASUS AURA LED Controller, módulos i2c e autostart na bandeja. |
 | `scripts/24_trabalho_remoto_vpn_rdp.sh` | Módulo de trabalho remoto: FortiClient VPN Oficial (autenticação 2FA/MFA) e cliente RDP Remmina com clipboard e áudio. |
+| `scripts/25_pdf_editors.sh` | Módulo de editores de PDF profissionais: Master PDF Editor (edição direta de textos e páginas) e Okular (leitura com marcadores e anotações). |
 
 ---
 
 ## ⚙️ Guia de Execução
 
 ### 🚀 Modo Automatizado Completo (V2):
-Executa todos os 24 módulos em sequência, pulando automaticamente o que já estiver concluído:
+Executa todos os 25 módulos em sequência, pulando automaticamente o que já estiver concluído:
 ```bash
 sudo ./setup_popos_v2.sh
 ```
