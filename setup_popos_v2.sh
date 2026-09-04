@@ -94,7 +94,7 @@ MODULES=(
     "07_powershell7.sh"
     "08_antigravity_ide.sh"
     "09_onlyoffice_padrao.sh"
-    "10_cosmic_music_applet.sh"
+    "10_cosmic_applets_custom.sh"
     "11_mouse_gaming.sh"
     "12_wacom_tablet.sh"
     "13_kando_restore.sh"

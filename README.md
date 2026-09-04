@@ -97,7 +97,9 @@ Script de automação e provisionamento idempotente para configuração completa
     *   Aplicação automática de overrides de permissão de sistema de arquivos para acesso aos discos `/mnt/storage_700`, `/mnt/storage_930`, `/mnt` e integração com a bandeja do Wayland (`StatusNotifierWatcher` para o CopyQ).
     *   Associação do **OnlyOffice** como leitor padrão para documentos (`.docx`, `.xlsx`, `.pptx`).
 *   **Jellyfin Media Server:** Instalação nativa via repositório oficial da equipe Jellyfin.
-*   **Miniaplicativo de Controle de Mídia (COSMIC):** Download e compilação do `cosmic-applet-music-player` (com exibição da capa do álbum/fotinha, título/artista, botões MPRIS e controle por scroll), posicionado no **canto inferior esquerdo da Dock**.
+*   **Miniaplicativos Customizados (COSMIC):**
+    *   **Controle de Mídia:** Compilação do `cosmic-applet-music-player` (capa de álbum, título, botões MPRIS e controle por scroll) posicionado no **canto inferior esquerdo da Dock**.
+    *   **Monitor de Sistema (Minimon):** Instalação do `cosmic-ext-applet-minimon` (da comunidade cosmic-utils), posicionado no **canto superior direito do Painel**, com menu dropdown exibindo uso e temperatura de CPU, memória RAM/Swap, discos, tráfego de rede e GPU/VRAM em tempo real.
 *   **Espanso (Wayland):** Download do pacote `.deb` oficial, bibliotecas de compatibilidade wxWidgets 3.0 para o Pop!_OS 24.04 (noble), instalação e registro de serviço nativo (`espanso service register && espanso start`).
 *   **Kando:** Download dinâmico da última versão `.deb` diretamente da API do GitHub, com wrapper automático de compatibilidade para COSMIC Desktop / Wayland (forçando o backend XWayland).
 *   **Autostart do Sistema:** Configuração de inicialização automática no login do usuário (`~/.config/autostart`) para **CopyQ**, **Kando**, **Espanso** e **NumLock**.
@@ -123,7 +125,7 @@ Script de automação e provisionamento idempotente para configuração completa
 *   Configuração do perfil de **Performance Máxima** no Pop!_OS via `system76-power profile performance` (com fallback para `powerprofilesctl`).
 
 ### 10. Trabalho Remoto (MPMS) & Conexão Windows
-*   **FortiClient VPN Oficial (Fortinet):** Repositório oficial e pacote 7.4.8 para Ubuntu 24.04 LTS noble com `libayatana-appindicator3-1`.
+*   **VPN Aberta MPMS (openfortivpn):** Conexão SSL-VPN de alta performance nativa, substituindo com sucesso o cliente oficial proprietário (que exige licença paga EMS).
 *   **VPN MPMS Automatizada (`vpn-mpms` & Lançador Gráfico):** Conexão via `openfortivpn` com configuração em `/etc/openfortivpn/mpms.conf`, permissão sudoer sem senha, **saída colorida no terminal com destaque verde visual imediato ao atingir `Tunnel is up and running`**, e suporte a salvar senha fixa para pedir apenas o token 2FA/OTP.
 *   **Remmina Remote Desktop (RDP):** Cliente oficial configurado com perfil automático **`MPE-80703 (Trabalho MPMS)`** salvo em `~/.local/share/remmina/mpms_mpe_80703.remmina` (servidor `MPE-80703.in.mpe.ms.gov.br`, usuário `paulogoncalves`, domínio `in.mpe.ms.gov.br`, clipboard compartilhado e áudio local).
 
@@ -147,7 +149,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 07_powershell7.sh               # Instalação e perfil do Microsoft PowerShell 7 (pwsh)
 │   ├── 08_antigravity_ide.sh           # Google Antigravity IDE (/opt, AppArmor, .desktop)
 │   ├── 09_onlyoffice_padrao.sh         # Associação do OnlyOffice como leitor padrão
-│   ├── 10_cosmic_music_applet.sh       # Compilação e instalação do miniaplicativo de mídia
+│   ├── 10_cosmic_applets_custom.sh      # Mídia na Dock e Minimon Monitor de Sistema no Painel
 │   ├── 11_mouse_gaming.sh              # Logitech G502 X (DPIs, 1000Hz, macros on-board)
 │   ├── 12_wacom_tablet.sh              # Suporte, drivers e pareamento da Wacom Intuos Pro
 │   ├── 13_kando_restore.sh             # Sincronização de configurações do Kando
@@ -161,7 +163,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 21_autostart_config.sh          # Configuração de apps na inicialização da sessão
 │   ├── 22_limpeza_otimizacao.sh        # Limpeza, otimizações de kernel, Docker e backups
 │   ├── 23_openrgb_iluminacao.sh        # OpenRGB, regras udev ASUS Aura e controle ARGB
-│   ├── 24_trabalho_remoto_vpn_rdp.sh   # FortiClient VPN Oficial (2FA) e Remmina RDP
+│   ├── 24_trabalho_remoto_vpn_rdp.sh   # VPN MPMS (openfortivpn 2FA) e Remmina RDP
 │   └── 25_pdf_editors.sh               # Master PDF Editor (Edição) e Okular (Leitura/Marcadores)
 ```
 
@@ -180,7 +182,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/07_powershell7.sh` | Módulo de instalação oficial do Microsoft PowerShell 7 (`pwsh`), repositórios Microsoft e perfil do usuário. |
 | `scripts/08_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
 | `scripts/09_onlyoffice_padrao.sh` | Módulo de associação do OnlyOffice como manipulador padrão de documentos office. |
-| `scripts/10_cosmic_music_applet.sh` | Módulo de compilação e instalação do miniaplicativo de controle de mídia para a Dock. |
+| `scripts/10_cosmic_applets_custom.sh` | Módulo de miniaplicativos customizados do COSMIC: controle de mídia na Dock e Minimon (monitor de CPU, RAM, Disco, Rede e GPU com dropdown) no painel. |
 | `scripts/11_mouse_gaming.sh` | Módulo de gravação de polling rate 1000Hz, DPIs e macros na memória do mouse Logitech G502 X. |
 | `scripts/12_wacom_tablet.sh` | Módulo de suporte, regras udev, OpenTabletDriver Daemon Headless (Modo Canhoto 180° e atalhos) e pareamento da Wacom Intuos Pro. |
 | `scripts/13_kando_restore.sh` | Módulo de restauração de menus e atalho `Ctrl+Shift+F10` do Kando a partir do Google Drive. |
@@ -194,7 +196,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/21_autostart_config.sh` | Módulo de provisionamento de inicialização automática no login (CopyQ, Kando, Espanso, NumLock). |
 | `scripts/22_limpeza_otimizacao.sh` | Módulo de limpeza, otimizações de kernel/inotify, Docker sob demanda, latência PipeWire, firewall UFW e backup automatizado de dotfiles. |
 | `scripts/23_openrgb_iluminacao.sh` | Módulo de instalação do OpenRGB, regras udev para ASUS AURA LED Controller, módulos i2c e autostart na bandeja. |
-| `scripts/24_trabalho_remoto_vpn_rdp.sh` | Módulo de trabalho remoto: FortiClient VPN Oficial (autenticação 2FA/MFA) e cliente RDP Remmina com clipboard e áudio. |
+| `scripts/24_trabalho_remoto_vpn_rdp.sh` | Módulo de trabalho remoto: VPN MPMS (openfortivpn 2FA) e cliente RDP Remmina com clipboard e áudio. |
 | `scripts/25_pdf_editors.sh` | Módulo de editores de PDF profissionais: Master PDF Editor (edição direta de textos e páginas) e Okular (leitura com marcadores e anotações). |
 
 ---
