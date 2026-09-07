@@ -49,7 +49,7 @@ São sugestões de alto valor prático para serem avaliadas e implementadas futu
 ### 🔹 A. Ativação do UFW (Firewall do Sistema)
 * **O que é:** Ativação do firewall nativo do Linux com regras controladas.
 * **Benefício:** Protege a máquina contra varreduras de portas em redes Wi-Fi públicas/externas sem bloquear conexões essenciais de desenvolvimento local:
-  * Permitir: Rede local privada, Jellyfin (`8096`), KDE Connect (`1714:1764`), portas de desenvolvimento (`3000`, `5173`, `8000`, `8080`).
+  * Permitir: Rede local privada, KDE Connect (`1714:1764`), portas de desenvolvimento (`3000`, `5173`, `8000`, `8080`).
   * Bloquear: Todas as demais entradas externas não solicitadas.
 
 ---

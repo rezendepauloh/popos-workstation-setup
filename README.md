@@ -96,7 +96,6 @@ Script de automação e provisionamento idempotente para configuração completa
     *   Instalação de **Dropbox**, **CopyQ**, **OnlyOffice Desktop Editors**, **Jellyfin Desktop** e **GIMP**.
     *   Aplicação automática de overrides de permissão de sistema de arquivos para acesso aos discos `/mnt/storage_700`, `/mnt/storage_930`, `/mnt` e integração com a bandeja do Wayland (`StatusNotifierWatcher` para o CopyQ).
     *   Associação do **OnlyOffice** como leitor padrão para documentos (`.docx`, `.xlsx`, `.pptx`).
-*   **Jellyfin Media Server:** Instalação nativa via repositório oficial da equipe Jellyfin.
 *   **Miniaplicativos Customizados (COSMIC):**
     *   **Controle de Mídia:** Compilação do `cosmic-applet-music-player` (capa de álbum, título, botões MPRIS e controle por scroll) posicionado no **canto inferior esquerdo da Dock**.
     *   **Monitor de Sistema (Minimon):** Instalação do `cosmic-ext-applet-minimon` (da comunidade cosmic-utils), posicionado no **canto superior direito do Painel**, com menu dropdown exibindo uso e temperatura de CPU, memória RAM/Swap, discos, tráfego de rede e GPU/VRAM em tempo real.
@@ -145,7 +144,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 03_atualizacao_sistema.sh       # Atualização de pacotes APT, Pop recovery e firmware
 │   ├── 04_pacotes_base_dev.sh          # Pacotes CLI essenciais, NVM, Rust e compilação
 │   ├── 05_rclone_storage.sh            # Montagens FUSE do Rclone (GDrive, OneDrive, MEGA)
-│   ├── 06_softwares_workflow.sh        # VS Code, Flatpaks, Jellyfin Server, Espanso e Kando
+│   ├── 06_softwares_workflow.sh        # VS Code, Flatpaks (Jellyfin Player), Espanso e Kando
 │   ├── 07_powershell7.sh               # Instalação e perfil do Microsoft PowerShell 7 (pwsh)
 │   ├── 08_antigravity_ide.sh           # Google Antigravity IDE (/opt, AppArmor, .desktop)
 │   ├── 09_onlyoffice_padrao.sh         # Associação do OnlyOffice como leitor padrão
@@ -178,7 +177,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/03_atualizacao_sistema.sh` | Módulo de atualização de pacotes APT, Pop recovery e firmware. |
 | `scripts/04_pacotes_base_dev.sh` | Módulo de utilitários base, compiladores, NVM, Cargo/Rust e dependências de desenvolvimento. |
 | `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone (GDrive, OneDrive, MEGA), Celeste (Tray), Web Dashboard, Rclone Browser e Discos no COSMIC Files. |
-| `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Telegram, ZapZap (WhatsApp), OnlyOffice, Jellyfin Server, Espanso e Kando. |
+| `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Telegram, ZapZap (WhatsApp), OnlyOffice, Jellyfin Desktop (Player), Espanso e Kando. |
 | `scripts/07_powershell7.sh` | Módulo de instalação oficial do Microsoft PowerShell 7 (`pwsh`), repositórios Microsoft e perfil do usuário. |
 | `scripts/08_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
 | `scripts/09_onlyoffice_padrao.sh` | Módulo de associação do OnlyOffice como manipulador padrão de documentos office. |

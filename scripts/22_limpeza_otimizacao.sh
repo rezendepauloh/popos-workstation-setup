@@ -85,8 +85,7 @@ if command -v ufw >/dev/null 2>&1; then
     sudo ufw default deny incoming >/dev/null 2>&1 || true
     sudo ufw default allow outgoing >/dev/null 2>&1 || true
 
-    # Regras locais: Jellyfin, KDE Connect e portas comuns de desenvolvimento
-    sudo ufw allow 8096/tcp comment 'Jellyfin Media Server' >/dev/null 2>&1 || true
+    # Regras locais: KDE Connect e portas comuns de desenvolvimento
     sudo ufw allow 1714:1764/udp comment 'KDE Connect' >/dev/null 2>&1 || true
     sudo ufw allow 1714:1764/tcp comment 'KDE Connect' >/dev/null 2>&1 || true
     sudo ufw allow 3000:3010/tcp comment 'Dev Web (React/Node)' >/dev/null 2>&1 || true

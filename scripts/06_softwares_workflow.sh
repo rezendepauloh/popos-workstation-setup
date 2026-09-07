@@ -55,14 +55,7 @@ flatpak install -y --system flathub \
     org.telegram.desktop \
     com.rtosta.zapzap
 
-# 3. Jellyfin Media Server (Repositório Oficial APT)
-log_msg "INFO" "Instalando Jellyfin Media Server nativo..."
-curl -fsSL https://repo.jellyfin.org/jellyfin_team.gpg.key | sudo gpg --dearmor --yes -o /etc/apt/keyrings/jellyfin.gpg
-echo "deb [arch=$( dpkg --print-architecture ) signed-by=/etc/apt/keyrings/jellyfin.gpg] https://repo.jellyfin.org/ubuntu noble main" | sudo tee /etc/apt/sources.list.d/jellyfin.list > /dev/null
-sudo apt update
-sudo apt install -y jellyfin
-
-# 4. Espanso (Wayland Edition) e bibliotecas wxWidgets 3.0 no Ubuntu/Pop!_OS 24.04 (noble)
+# 3. Espanso (Wayland Edition) e bibliotecas wxWidgets 3.0 no Ubuntu/Pop!_OS 24.04 (noble)
 log_msg "INFO" "Baixando e instalando Espanso (Wayland)..."
 wget -qO /tmp/espanso.deb https://github.com/espanso/espanso/releases/download/v2.2.1/espanso-debian-wayland-amd64.deb
 sudo apt install -y /tmp/espanso.deb
@@ -262,7 +255,7 @@ else
     espanso start 2>/dev/null || true
 fi
 
-# 5. Kando
+# 4. Kando (Menu Circular / Pie Menu)
 log_msg "INFO" "Baixando e instalando Kando (Pie Menu)..."
 KANDO_URL=$(curl -s https://api.github.com/repos/kando-menu/kando/releases/latest | jq -r '.assets[] | select(.name | endswith("amd64.deb")) | .browser_download_url')
 wget -qO /tmp/kando.deb "$KANDO_URL"
