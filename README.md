@@ -48,7 +48,7 @@ Script de automação e provisionamento idempotente para configuração completa
         *   **Planejamento de Migração Futura:** Assim que o COSMIC Desktop implementar nativamente essas funcionalidades, o módulo 12 será refatorado para o driver 100% nativo do kernel (`wacom.ko` + `libinput`), unificando Caneta, Touch multitoque de 1 a 4 dedos, ExpressKeys e Modo Canhoto sem necessidade de daemons adicionais.
 
 ### 3. Pacotes Base, Repositórios & Navegadores
-*   **Atualização do Sistema & Fontes:** `apt update && upgrade -y`, pré-aceite da licença EULA para fontes Microsoft TrueType (`Arial`, `Times New Roman` para OnlyOffice), fontes de código (`Fira Code`, `JetBrains Mono`), utilitários essenciais (`git`, `curl`, `jq`, `vlc`, `piper`, `ratbagd`, `numlockx`, `unzip`) e instalação binária oficial do **Rclone**.
+*   **Atualização do Sistema & Fontes:** `apt update && upgrade -y`, pré-aceite da licença EULA para fontes Microsoft TrueType (`Arial`, `Times New Roman` para OnlyOffice), fontes de código (`Fira Code`, `JetBrains Mono`), utilitários essenciais (`git`, `curl`, `jq`, `vlc`, `piper`, `ratbagd`, `numlockx`, `unzip`, `kdeconnect`, `adb` e permissões `plugdev`) e instalação binária oficial do **Rclone**.
 *   **Configuração do Git:** Configuração global automatizada (nome, email, default branch `main`, pull rebase e editor `code --wait`) através das variáveis do `.env`.
 *   **Navegadores:** Instalação nativa via repositórios oficiais APT do **Google Chrome** e **Brave Browser**.
 
@@ -93,12 +93,13 @@ Script de automação e provisionamento idempotente para configuração completa
     *   Links simbólicos no PATH do sistema: `antigravity`, `antigravity-ide` e `agy`.
     *   Instalação de ícones hicolor de alta resolução e entrada `.desktop` com categorias e mimetypes no menu de aplicativos.
 *   **Aplicativos Flatpak & Overrides:**
-    *   Instalação de **Dropbox**, **CopyQ**, **OnlyOffice Desktop Editors**, **Jellyfin Desktop** e **GIMP**.
+    *   Instalação de **Dropbox**, **CopyQ**, **OnlyOffice Desktop Editors**, **Jellyfin Desktop**, **GIMP** e **LocalSend**.
     *   Aplicação automática de overrides de permissão de sistema de arquivos para acesso aos discos `/mnt/storage_700`, `/mnt/storage_930`, `/mnt` e integração com a bandeja do Wayland (`StatusNotifierWatcher` para o CopyQ).
     *   Associação do **OnlyOffice** como leitor padrão para documentos (`.docx`, `.xlsx`, `.pptx`).
 *   **Miniaplicativos Customizados (COSMIC):**
     *   **Controle de Mídia:** Compilação do `cosmic-applet-music-player` (capa de álbum, título, botões MPRIS e controle por scroll) posicionado no **canto inferior esquerdo da Dock**.
     *   **Monitor de Sistema (Minimon):** Instalação do `cosmic-ext-applet-minimon` (da comunidade cosmic-utils), posicionado no **canto superior direito do Painel**, com menu dropdown exibindo uso e temperatura de CPU, memória RAM/Swap, discos, tráfego de rede e GPU/VRAM em tempo real.
+*   **Balena Etcher (Gravador de Imagens / Bootable USB):** Download e instalação automatizada via pacote `.deb` oficial obtido dinamicamente da API do GitHub, com exceção de janela flutuante no compositor COSMIC configurada no módulo 14.
 *   **Espanso (Wayland):** Download do pacote `.deb` oficial, bibliotecas de compatibilidade wxWidgets 3.0 para o Pop!_OS 24.04 (noble), instalação e registro de serviço nativo (`espanso service register && espanso start`).
 *   **Kando:** Download dinâmico da última versão `.deb` diretamente da API do GitHub, com wrapper automático de compatibilidade para COSMIC Desktop / Wayland (forçando o backend XWayland).
 *   **Autostart do Sistema:** Configuração de inicialização automática no login do usuário (`~/.config/autostart`) para **CopyQ**, **Kando**, **Espanso** e **NumLock**.
@@ -109,7 +110,8 @@ Script de automação e provisionamento idempotente para configuração completa
     *   Modo **auto-tiling desligado** por padrão.
     *   **NumLock ativado** por padrão no boot do compositor.
     *   Miniaplicativo de **Controle de Mídia** no canto inferior esquerdo da Dock.
-    *   Organização automática do **Menu / Biblioteca de Aplicativos** em pastas e categorias inteligentes (*Jogos, Desenvolvimento, Escritório, Mídia, Utilitários, Sistema*) e favoritos fixados.
+    *   **Dock Fiel ao Workflow Atual:** Configuração restrita aos aplicativos favoritos ativos (`Firefox`, `CosmicFiles`, `Antigravity IDE`, `VS Code`, `CosmicTerm`, `CosmicSettings`), sem injeção de navegadores redundantes ou apps indesejados.
+    *   Organização automática do **Menu / Biblioteca de Aplicativos** em pastas e categorias inteligentes (*Jogos, Desenvolvimento, Escritório, Mídia, Utilitários, Sistema*).
 *   **IDEs (VS Code & Antigravity IDE):** Restaura de forma sincronizada os arquivos `settings.json`, `keybindings.json` (atalhos customizados) e pasta de `snippets/` a partir de `~/GoogleDrive_Pessoal/Organização/VSCode_Antigravity/` para os diretórios de configuração de ambos os editores (`~/.config/Code/User/` e `~/.config/Antigravity IDE/User/`), incluindo suporte a **colar com botão direito do mouse** no terminal integrado e atalho `Ctrl+V`.
 *   **Terminal ZSH & Powerlevel10k:**
     *   Execução do instalador a partir de `~/GoogleDrive_Pessoal/Organização/Terminal ZSH Linux/install.sh`.
@@ -144,7 +146,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 03_atualizacao_sistema.sh       # Atualização de pacotes APT, Pop recovery e firmware
 │   ├── 04_pacotes_base_dev.sh          # Pacotes CLI essenciais, NVM, Rust e compilação
 │   ├── 05_rclone_storage.sh            # Montagens FUSE do Rclone (GDrive, OneDrive, MEGA)
-│   ├── 06_softwares_workflow.sh        # VS Code, Flatpaks (Jellyfin Player), Espanso e Kando
+│   ├── 06_softwares_workflow.sh        # VS Code, Flatpaks (LocalSend, Jellyfin), Espanso e Kando
 │   ├── 07_powershell7.sh               # Instalação e perfil do Microsoft PowerShell 7 (pwsh)
 │   ├── 08_antigravity_ide.sh           # Google Antigravity IDE (/opt, AppArmor, .desktop)
 │   ├── 09_onlyoffice_padrao.sh         # Associação do OnlyOffice como leitor padrão
@@ -175,9 +177,9 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/01_otimizacao_sistema.sh` | Módulo de Swappiness (`vm.swappiness=10`) e File Watchers inotify (`524288`). |
 | `scripts/02_teclado_cedilha_numlock.sh` | Módulo de layout US-Intl, resposta rápida (180ms/18ms), Cedilha (`'+c = ç`), `~/.XCompose`, immodules GTK e NumLock Systemd/Udev. |
 | `scripts/03_atualizacao_sistema.sh` | Módulo de atualização de pacotes APT, Pop recovery e firmware. |
-| `scripts/04_pacotes_base_dev.sh` | Módulo de utilitários base, compiladores, NVM, Cargo/Rust e dependências de desenvolvimento. |
+| `scripts/04_pacotes_base_dev.sh` | Módulo de utilitários base, compiladores, NVM, Cargo/Rust, KDE Connect, ADB e dependências de desenvolvimento. |
 | `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone (GDrive, OneDrive, MEGA), Celeste (Tray), Web Dashboard, Rclone Browser e Discos no COSMIC Files. |
-| `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Telegram, ZapZap (WhatsApp), OnlyOffice, Jellyfin Desktop (Player), Espanso e Kando. |
+| `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Telegram, ZapZap (WhatsApp), OnlyOffice, LocalSend, Jellyfin Desktop, Balena Etcher, Espanso e Kando. |
 | `scripts/07_powershell7.sh` | Módulo de instalação oficial do Microsoft PowerShell 7 (`pwsh`), repositórios Microsoft e perfil do usuário. |
 | `scripts/08_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
 | `scripts/09_onlyoffice_padrao.sh` | Módulo de associação do OnlyOffice como manipulador padrão de documentos office. |
@@ -230,6 +232,45 @@ sudo ./scripts/09_cosmic_music_applet.sh
 ```bash
 sudo ./setup_popos_v2.sh --force
 ```
+
+---
+
+## 🛠️ Scripts Utilitários Independentes (`util/`)
+
+Ferramentas auxiliares para manutenção e rotinas pontuais de hardware e dispositivos:
+
+### 📱 Backup de Alta Velocidade de Celular Android (`util/backup_android.sh`)
+Utilitário automatizado que utiliza o **Android Debug Bridge (ADB)** via cabo USB para extrair de forma estruturada e em alta velocidade todo o conteúdo essencial de celulares Android antes de formatações ou manutenções.
+
+*   **Destino Dinâmico e Organizado:** Cria automaticamente pastas carimbadas no tempo em um dos discos com mais espaço (`/mnt/storage_930/Backups_Android/android-backup-DD-MM-YYYY_HH-MM-SS/` ou `/mnt/storage_700`).
+*   **Pastas Extraídas:** `DCIM` (Fotos da Câmera), `Pictures`, `Download`, `Documents`, `Movies`, `Music`, `Audiobooks`, `Recordings` e mídias locais do WhatsApp (`com.whatsapp`).
+*   **Metadados & Inventário:** Gera automaticamente um `info_dispositivo.txt` com fabricante/modelo e um inventário completo de aplicativos instalados (`lista_aplicativos_instalados.txt`) para facilitar a reinstalação após o reset.
+
+#### 💡 Como utilizar (Exemplo Prático):
+1. No celular Android, ative a **Depuração USB**:
+   * `Configurações` > `Sobre o Telefone` > Toque 7 vezes em **Número da Versão**.
+   * Em `Opções do Desenvolvedor`, ative **Depuração USB**.
+2. Conecte o celular ao computador via **cabo USB** e aceite o pop-up na tela do celular (*"Sempre permitir a partir deste computador"*).
+3. Execute o script utilitário:
+   ```bash
+   ./util/backup_android.sh
+   ```
+4. O script detectará o aparelho, criará a pasta com timestamp no HD de backup e extrairá todos os dados com progresso detalhado.
+
+### 📲 Restauração Automática no Aparelho Formatado (`util/restore_android.sh`)
+Utilitário complementar que devolve de forma automatizada e via cabo USB todas as fotos, documentos, downloads e mídias previamente salvas para o celular após a formatação.
+
+*   **Seleção Interativa:** Lista todos os backups armazenados no HD secundário para você escolher qual restaurar (ou simplesmente teclar <kbd>Enter</kbd> para usar o mais recente).
+*   **Envio Estruturado via `adb push`:** Restaura as pastas diretamente para a memória do celular (`/sdcard/DCIM`, `/sdcard/Pictures`, `/sdcard/Download`, etc.) com máxima largura de banda.
+*   **Indexação Instantânea:** Dispara um broadcast do `MEDIA_SCANNER` do Android para que todas as fotos e vídeos apareçam imediatamente na Galeria do celular sem necessidade de reiniciar.
+
+#### 💡 Como utilizar:
+Após formatar e concluir a configuração inicial do celular:
+1. Ative a **Depuração USB** novamente.
+2. Conecte ao PC e execute:
+   ```bash
+   ./util/restore_android.sh
+   ```
 
 ---
 

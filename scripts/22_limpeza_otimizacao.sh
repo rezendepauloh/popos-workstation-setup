@@ -88,6 +88,8 @@ if command -v ufw >/dev/null 2>&1; then
     # Regras locais: KDE Connect e portas comuns de desenvolvimento
     sudo ufw allow 1714:1764/udp comment 'KDE Connect' >/dev/null 2>&1 || true
     sudo ufw allow 1714:1764/tcp comment 'KDE Connect' >/dev/null 2>&1 || true
+    sudo ufw allow 53317/tcp comment 'LocalSend' >/dev/null 2>&1 || true
+    sudo ufw allow 53317/udp comment 'LocalSend' >/dev/null 2>&1 || true
     sudo ufw allow 3000:3010/tcp comment 'Dev Web (React/Node)' >/dev/null 2>&1 || true
     sudo ufw allow 5173/tcp comment 'Vite Dev Server' >/dev/null 2>&1 || true
     sudo ufw allow 8000:8080/tcp comment 'APIs locais / Backend' >/dev/null 2>&1 || true

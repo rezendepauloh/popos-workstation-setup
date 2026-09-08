@@ -53,7 +53,8 @@ flatpak install -y --system flathub \
     org.jellyfin.JellyfinDesktop \
     org.gimp.GIMP \
     org.telegram.desktop \
-    com.rtosta.zapzap
+    com.rtosta.zapzap \
+    org.localsend.localsend_app
 
 # 3. Espanso (Wayland Edition) e bibliotecas wxWidgets 3.0 no Ubuntu/Pop!_OS 24.04 (noble)
 log_msg "INFO" "Baixando e instalando Espanso (Wayland)..."
@@ -275,8 +276,19 @@ if [ -f /usr/share/applications/menu.kando.Kando.desktop ]; then
     sudo update-desktop-database /usr/share/applications 2>/dev/null || true
 fi
 
+# 5. Balena Etcher (Gravador de Imagens / Pendrive Bootável)
+log_msg "INFO" "Baixando e instalando Balena Etcher..."
+ETCHER_URL=$(curl -sL https://api.github.com/repos/balena-io/etcher/releases/latest | jq -r '.assets[] | select(.name | endswith("amd64.deb")) | .browser_download_url' | head -n 1)
+if [ -n "$ETCHER_URL" ] && [ "$ETCHER_URL" != "null" ]; then
+    wget -qO /tmp/balena-etcher.deb "$ETCHER_URL"
+    sudo apt install -y /tmp/balena-etcher.deb
+    rm -f /tmp/balena-etcher.deb
+else
+    log_msg "WARN" "Não foi possível obter o link do deb do Balena Etcher via API do GitHub. Tentando repositório ou ignorando..."
+fi
+
 # Limpeza
-rm -f /tmp/espanso.deb /tmp/kando.deb
+rm -f /tmp/espanso.deb /tmp/kando.deb /tmp/balena-etcher.deb
 
 set_flag "$FLAG_NAME"
 log_msg "SUCCESS" "Softwares de workflow instalados e configurados com sucesso."

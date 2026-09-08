@@ -42,6 +42,10 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicSettings.WindowRule
 	(appid: "io.github.antimicrox.antimicrox", titles: [".*"]),
 	(appid: "com.ranfdev.Celeste", titles: [".*"]),
 	(appid: "rclone-browser", titles: [".*"]),
+	(appid: "balena-etcher", titles: [".*"]),
+	(appid: "balenaEtcher", titles: [".*"]),
+	(appid: "org.kde.kdeconnect.app", titles: [".*"]),
+	(appid: "org.kde.kdeconnect-indicator", titles: [".*"]),
 
 	// Visualizadores e Ferramentas Rápidas
 	(appid: "org.gnome.Loupe", titles: [".*"]),

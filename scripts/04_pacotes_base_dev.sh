@@ -22,8 +22,13 @@ sudo apt install -y \
     software-properties-common apt-transport-https ca-certificates gnupg lsb-release \
     htop btop neofetch p7zip-full unrar \
     vlc piper ratbagd jq tree rclone \
+    kdeconnect adb \
     zsh cargo rustc just pkg-config libssl-dev libdbus-1-dev libglib2.0-dev libasound2-dev \
     libxkbcommon-dev libwayland-dev libfontconfig1-dev libfreetype-dev libpipewire-0.3-dev libspa-0.2-dev
+
+# Garante permissões de udev para dispositivos Android (ADB sem necessidade de root)
+sudo usermod -aG plugdev "$REAL_USER" 2>/dev/null || true
+
 
 # Instalação do NVM (Node Version Manager)
 log_msg "INFO" "Instalando Node Version Manager (NVM)..."

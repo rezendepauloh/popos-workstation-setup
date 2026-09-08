@@ -74,6 +74,9 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "brave-browser",
                 "org.telegram.desktop",
                 "com.rtosta.zapzap",
+                "org.localsend.localsend_app",
+                "org.kde.kdeconnect",
+                "org.kde.kdeconnect.app",
             ],
             exclude: [],
         ),
@@ -130,6 +133,8 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "rclone-browser",
                 "rclone-webui",
                 "com.rcloneui.RcloneUI",
+                "balena-etcher",
+                "balenaEtcher",
             ],
             exclude: [
                 "com.system76.CosmicEdit",
@@ -162,12 +167,10 @@ EOF
 log_msg "INFO" "Configurando aplicativos favoritos..."
 cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppList/v1/favorites"
 [
-    "google-chrome",
-    "brave-browser",
+    "firefox",
     "com.system76.CosmicFiles",
     "antigravity-ide",
     "code",
-    "org.remmina.Remmina",
     "com.system76.CosmicTerm",
     "com.system76.CosmicSettings",
 ]
