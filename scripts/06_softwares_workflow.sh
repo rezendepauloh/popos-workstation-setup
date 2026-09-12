@@ -24,6 +24,16 @@ echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft
 sudo apt update
 sudo apt install -y code copyq
 
+# Configurações de flags do VS Code para Wayland nativo (evita crash caso o XWayland caia)
+mkdir -p "$REAL_HOME/.config"
+cat << 'EOF' > "$REAL_HOME/.config/code-flags.conf"
+--ozone-platform=wayland
+EOF
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/code-flags.conf" 2>/dev/null || true
+
+# Limpeza preventiva de locks residuais do VS Code
+rm -f "$REAL_HOME/.config/Code/code.lock" 2>/dev/null || true
+
 # Configurações do CopyQ para monitoramento contínuo da área de transferência
 COPYQ_CONFIG_DIR="$REAL_HOME/.config/copyq"
 mkdir -p "$COPYQ_CONFIG_DIR"

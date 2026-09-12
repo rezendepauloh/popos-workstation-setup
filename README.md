@@ -14,7 +14,10 @@ Script de automação e provisionamento idempotente para configuração completa
 *   **Teclado (Redragon Horus Pro):**
     *   Delay do Backspace ajustado para 180ms (resposta imediata) e taxa de repetição para 18ms (~55 caracteres/seg).
     *   **Fix Oficial do Cedilha & Aspas do Windows:** Configuração com `~/.XCompose`, correção das tabelas de Compose (`/usr/share/X11/locale/pt_BR.UTF-8/Compose` e `en_US.UTF-8/Compose`) e exportação de `XCOMPOSEFILE`. Garante `' + c = ç` nativo em terminais e apps do sistema.
-    *   **Nota Técnica sobre Chromium & Electron no Wayland (`' + c = ć`):** Devido à tabela estática interna do Chromium (`ui::CharacterComposer`), navegadores (Chrome/Brave) e IDEs Electron (Antigravity/VS Code) geram `ć` via Wayland. Nesses aplicativos, utilize o atalho universal de hardware <kbd>AltGr</kbd>+<kbd>,</kbd> (para `ç`) e <kbd>AltGr</kbd>+<kbd>Shift</kbd>+<kbd>'</kbd> (para `"`). Diagnóstico completo e issues oficiais documentadas em [`Docs/issue_chromium_electron_cedilha_wayland.md`](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_chromium_electron_cedilha_wayland.md).
+    *   **Cedilha e Acentuação nas IDEs (Wayland Nativo com `keyboard.dispatch: keyCode`):**
+        *   No VS Code e Antigravity IDE em Wayland nativo (`--ozone-platform=wayland`), o Electron por padrão mapeia teclas usando ScanCodes, o que causava `ć` ou ignorava sequências mortas.
+        *   Injetamos automaticamente `"keyboard.dispatch": "keyCode"` no `settings.json` de ambas as IDEs. Com isso, **o `' + c = ç` funciona nativamente em Wayland sem depender do XWayland** e sem gerar instabilidades de display!
+        *   Em navegadores Chromium (Chrome/Brave), as flags são gerenciadas com `--ozone-platform-hint=auto`. Atalho universal de hardware alternativo disponível: <kbd>AltGr</kbd>+<kbd>,</kbd> (para `ç`) e <kbd>AltGr</kbd>+<kbd>Shift</kbd>+<kbd>'</kbd> (para `"`). Diagnóstico completo e issues oficiais documentadas em [`Docs/issue_chromium_electron_cedilha_wayland.md`](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_chromium_electron_cedilha_wayland.md).
     *   **NumLock Permanente & Consistente (XKB + LED Sync):**
         *   Configuração nativa no motor de layout do COSMIC (`xkb_config` com `options: Some("numpad:mac")`) garantindo que o teclado numérico emita números em 100% das vezes, sem depender de modificadores instáveis.
         *   Persistência sincronizada em `/var/lib/cosmic-greeter/.config/cosmic/com.system76.CosmicComp/v1/` para ativação desde a tela de login.
@@ -90,8 +93,10 @@ Script de automação e provisionamento idempotente para configuração completa
     *   Download e extração do pacote oficial em `/opt/antigravity`.
     *   Ajuste de permissões do sandbox do Electron (`chrome-sandbox` com suid 4755).
     *   Configuração do perfil **AppArmor** (`/etc/apparmor.d/antigravity`) para permitir namespaces de usuário sem restrições no Ubuntu/Pop!_OS 24.04.
-    *   Links simbólicos no PATH do sistema: `antigravity`, `antigravity-ide` e `agy`.
-    *   Instalação de ícones hicolor de alta resolução e entrada `.desktop` com categorias e mimetypes no menu de aplicativos.
+    *   **Wrapper Inteligente de Inicialização (`/usr/local/bin/antigravity`):** Detecta sessões Wayland ativas e aplica `--ozone-platform=wayland` automaticamente sem travar caso o XWayland caia. Atualiza links simbólicos no PATH (`antigravity`, `antigravity-ide`, `agy`) e o binário interno `/opt/antigravity/bin/antigravity-ide`.
+    *   **Flags Persistentes:** Gera `~/.config/antigravity-flags.conf` e `antigravity-ide-flags.conf` para garantir estabilidade contínua.
+    *   **Proteção Contra Crashes & Locks:** Limpeza automática de `code.lock`, `GPUCache`, `DawnGraphiteCache`, `DawnWebGPUCache` e relatórios de crash pendentes.
+    *   Instalação de ícones hicolor de alta resolução e entrada `.desktop` com categorias e mimetypes no menu de aplicativos (com cópia prioritária em `~/.local/share/applications/`).
 *   **Aplicativos Flatpak & Overrides:**
     *   Instalação de **Dropbox**, **CopyQ**, **OnlyOffice Desktop Editors**, **Jellyfin Desktop**, **GIMP** e **LocalSend**.
     *   **Patch PhotoGIMP (Diolinux/PhotoGIMP):** Aplicação automatizada do patch de customização sobre o GIMP Flatpak, trazendo layout da interface e atalhos de teclado espelhados no Adobe Photoshop, splash screen customizada e ícones de alta resolução.
@@ -107,13 +112,18 @@ Script de automação e provisionamento idempotente para configuração completa
 
 ### 8. Restauração de Backups, Customizações e Dotfiles
 *   **Kando:** Restaura configurações gerais (`config.json`) e menus (`menus.json` com o atalho `Control+Shift+F10` injetado via `jq`) a partir de `~/GoogleDrive_Pessoal/Organização/Kando/Casa`.
-*   **COSMIC DE, Temas, Dock & Biblioteca de Apps:** Restaura configurações do painel COSMIC (`~/.config/cosmic`) e pontes visuais legadas (`gtk-3.0`, `gtk-4.0`, `qt5ct`, `qt6ct`) a partir de `~/GoogleDrive_Pessoal/Organização/Backup_COSMIC`, garantindo:
+*   **COSMIC DE, Temas, Dock & Biblioteca de Apps:** Restaura configurações do painel COSMIC (`~/.config/cosmic`), pontes visuais legadas (`gtk-3.0`, `gtk-4.0`, `qt5ct`, `qt6ct`) e perfil completo do **VLC Media Player** (`vlc/`) a partir de `~/GoogleDrive_Pessoal/Organização/Backup_COSMIC`, garantindo:
     *   Modo **auto-tiling desligado** por padrão.
     *   **NumLock ativado** por padrão no boot do compositor.
+    *   **Fix de Tema Escuro Universal para o VLC:** Injeção de folha de estilos Qt (`~/.config/qt5ct/qss/vlc-dark-fix.qss`) atribuindo contraste nítido, contêineres e efeito de hover a todos os botões (`QToolButton`), além de timeline personalizada e restauração automática do layout de botões customizados (`~/.config/vlc/vlc-qt-interface.conf`). Documentação completa em [`Docs/tema_escuro_botoes_vlc.md`](Docs/tema_escuro_botoes_vlc.md).
     *   Miniaplicativo de **Controle de Mídia** no canto inferior esquerdo da Dock.
     *   **Dock Fiel ao Workflow Atual:** Configuração restrita aos aplicativos favoritos ativos (`Firefox`, `CosmicFiles`, `Antigravity IDE`, `VS Code`, `CosmicTerm`, `CosmicSettings`), sem injeção de navegadores redundantes ou apps indesejados.
     *   Organização automática do **Menu / Biblioteca de Aplicativos** em pastas e categorias inteligentes (*Jogos, Desenvolvimento, Escritório, Mídia, Utilitários, Sistema*), incluindo o Sunshine na categoria de Jogos.
-*   **IDEs (VS Code & Antigravity IDE):** Restaura de forma sincronizada os arquivos `settings.json`, `keybindings.json` (atalhos customizados) e pasta de `snippets/` a partir de `~/GoogleDrive_Pessoal/Organização/VSCode_Antigravity/` para os diretórios de configuração de ambos os editores (`~/.config/Code/User/` e `~/.config/Antigravity IDE/User/`), incluindo suporte a **colar com botão direito do mouse** no terminal integrado e atalho `Ctrl+V`.
+*   **IDEs (VS Code & Antigravity IDE):** Restaura de forma sincronizada os arquivos `settings.json`, `keybindings.json` (atalhos customizados) e pasta de `snippets/` a partir de `~/GoogleDrive_Pessoal/Organização/VSCode_Antigravity/` para os diretórios de configuração de ambos os editores (`~/.config/Code/User/` e `~/.config/Antigravity IDE/User/`), incluindo:
+    *   Suporte a **colar com botão direito do mouse** no terminal integrado e atalho `Ctrl+V`.
+    *   Injeção automática de `"keyboard.dispatch": "keyCode"` garantindo o funcionamento do Cedilha (`' + c = ç`) no Wayland sem dependência do XWayland.
+    *   Criação preventiva de flags Wayland nativas (`code-flags.conf`, `antigravity-flags.conf`).
+    *   Limpeza de locks residuais (`code.lock`) e caches corrompidos de GPU que impedem a abertura do editor após um crash.
 *   **Terminal ZSH & Powerlevel10k:**
     *   Execução do instalador a partir de `~/GoogleDrive_Pessoal/Organização/Terminal ZSH Linux/install.sh`.
     *   Restauração dos dotfiles `~/.zshrc` e `~/.p10k.zsh` com suporte nativo ao **`Ctrl+V` para colar a área de transferência** (via `wl-paste` no Wayland e `xclip` no X11) e `ESC` para limpar a linha.
@@ -190,7 +200,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/11_mouse_gaming.sh` | Módulo de gravação de polling rate 1000Hz, DPIs e macros na memória do mouse Logitech G502 X. |
 | `scripts/12_wacom_tablet.sh` | Módulo de suporte, regras udev, OpenTabletDriver Daemon Headless (Modo Canhoto 180° e atalhos) e pareamento da Wacom Intuos Pro. |
 | `scripts/13_kando_restore.sh` | Módulo de restauração de menus e atalho `Ctrl+Shift+F10` do Kando a partir do Google Drive. |
-| `scripts/14_cosmic_theme_restore.sh` | Módulo de restauração de temas visuais do COSMIC, GTK e Qt a partir do Google Drive. |
+| `scripts/14_cosmic_theme_restore.sh` | Módulo de restauração de temas visuais do COSMIC, GTK, Qt, perfil/botões do VLC do Google Drive e fix de tema escuro universal (`QSS`). |
 | `scripts/15_cosmic_menu_dock.sh` | Módulo de configuração instantânea (< 1s) das categorias da App Library (*Jogos incluindo Sunshine, Dev, Comunicação, Escritório, Mídia, Utilitários, Sistema*), Favoritos e Dock. |
 | `scripts/16_ide_config_restore.sh` | Módulo de sincronização de settings, atalhos (`Ctrl+V`, colar com botão direito) e snippets para VS Code e Antigravity. |
 | `scripts/17_zsh_p10k_setup.sh` | Módulo de instalação e configuração do Zsh, Powerlevel10k, fontes MesloLGS NF, shell padrão e `Ctrl+V`. |
@@ -235,6 +245,13 @@ sudo ./scripts/09_cosmic_music_applet.sh
 ```bash
 sudo ./setup_popos_v2.sh --force
 ```
+
+### 🔧 Reparo Rápido de IDEs (Antigravity & VS Code):
+Se alguma IDE sofrer crash, fechar inesperadamente ou travar por lock residual (`code.lock` ou caches corrompidos de GPU/Wayland):
+```bash
+./setup_popos_v2.sh --repair-ides
+```
+*Executa a limpeza cirúrgica de locks/caches, reaplica as flags nativas do Wayland e restaura os atalhos/settings sem reexecutar todo o setup.*
 
 ---
 

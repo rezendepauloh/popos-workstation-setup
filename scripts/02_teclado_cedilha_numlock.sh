@@ -100,10 +100,17 @@ for compose_file in /usr/share/X11/locale/en_US.UTF-8/Compose /usr/share/X11/loc
     fi
 done
 
-# Configuração de flags para Electron / Chromium / IDEs utilizarem o motor XCompose do XWayland ('+c = ç)
-for conf in "$REAL_HOME/.config/antigravity-flags.conf" "$REAL_HOME/.config/antigravity-ide-flags.conf" "$REAL_HOME/.config/code-flags.conf" "$REAL_HOME/.config/chrome-flags.conf" "$REAL_HOME/.config/brave-flags.conf" "$REAL_HOME/.config/electron-flags.conf"; do
+# Configuração de flags para Electron / Chromium / IDEs no Pop!_OS (COSMIC Wayland)
+# Com 'keyboard.dispatch: keyCode' no settings.json, o cedilha funciona nativamente sem forçar XWayland
+for conf in "$REAL_HOME/.config/antigravity-flags.conf" "$REAL_HOME/.config/antigravity-ide-flags.conf" "$REAL_HOME/.config/code-flags.conf" "$REAL_HOME/.config/electron-flags.conf"; do
     cat << 'EOF' > "$conf"
---ozone-platform=x11
+--ozone-platform=wayland
+EOF
+done
+
+for conf in "$REAL_HOME/.config/chrome-flags.conf" "$REAL_HOME/.config/brave-flags.conf"; do
+    cat << 'EOF' > "$conf"
+--ozone-platform-hint=auto
 EOF
 done
 chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/"*-flags.conf 2>/dev/null || true

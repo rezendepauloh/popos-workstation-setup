@@ -25,8 +25,16 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
     echo "  sudo ./setup_popos_v2.sh            # Executa todo o provisionamento sequencialmente"
     echo "  sudo ./setup_popos_v2.sh --force    # Limpa checkpoints e força reexecução completa"
     echo "  ./setup_popos_v2.sh --list          # Lista todos os módulos disponíveis"
-    echo "  sudo ./setup_popos_v2.sh <modulo>   # Executa apenas um módulo específico (ex: 02 ou 12)"
+    echo "  sudo ./setup_popos_v2.sh <modulo>   # Executa apenas um módulo específico (ex: 02 ou 16)"
+    echo "  ./setup_popos_v2.sh --repair-ides   # Repara IDEs (Antigravity e VS Code), limpa locks/caches e ajusta Wayland"
     echo ""
+    exit 0
+fi
+
+if [ "$1" == "--repair-ides" ] || [ "$1" == "--fix-ides" ]; then
+    log_msg "INFO" "🔧 Executando rotina de reparo e desbloqueio de IDEs (VS Code & Antigravity IDE)..."
+    bash "$SCRIPTS_DIR/16_ide_config_restore.sh" --force
+    log_msg "SUCCESS" "🎉 Reparo de IDEs concluído com sucesso. Locks residuais, caches e flags Wayland ajustados."
     exit 0
 fi
 

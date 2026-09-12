@@ -150,6 +150,7 @@ tar -czf "$BACKUP_DEST/$ARCHIVE_NAME" \
     .config/copyq \
     .config/kando \
     .config/cosmic \
+    .config/vlc \
     .ssh \
     Documentos/Scripts \
     2>/dev/null || true

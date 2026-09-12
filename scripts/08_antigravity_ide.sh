@@ -45,14 +45,51 @@ EOF
     sudo apparmor_parser -r /etc/apparmor.d/antigravity 2>/dev/null || true
 fi
 
-# Links e wrappers no PATH com suporte nativo a XCompose e Cedilha ('+c = ç)
+# Links e wrappers no PATH com suporte dinâmico a Wayland e X11
 cat << 'EOF' | sudo tee /usr/local/bin/antigravity > /dev/null
 #!/bin/bash
-exec /opt/antigravity/antigravity-ide --ozone-platform=x11 "$@"
+# Detecta se o argumento --ozone-platform já foi fornecido
+HAS_OZONE=0
+for arg in "$@"; do
+    if [[ "$arg" == --ozone-platform* ]]; then
+        HAS_OZONE=1
+        break
+    fi
+done
+
+if [ "$HAS_OZONE" -eq 0 ]; then
+    if [ -n "$WAYLAND_DISPLAY" ] || [ "$XDG_SESSION_TYPE" = "wayland" ]; then
+        exec /opt/antigravity/antigravity-ide --ozone-platform=wayland "$@"
+    fi
+fi
+
+exec /opt/antigravity/antigravity-ide "$@"
 EOF
 sudo chmod +x /usr/local/bin/antigravity
 sudo ln -sf /usr/local/bin/antigravity /usr/local/bin/antigravity-ide
 sudo ln -sf /usr/local/bin/antigravity /usr/local/bin/agy
+
+# Atualiza também o wrapper interno em /opt/antigravity/bin
+sudo mkdir -p /opt/antigravity/bin
+sudo cp -f /usr/local/bin/antigravity /opt/antigravity/bin/antigravity-ide
+sudo chmod +x /opt/antigravity/bin/antigravity-ide
+
+# Configuração de flags de inicialização para Wayland nativo (evita crashes caso XWayland falhe)
+mkdir -p "$REAL_HOME/.config"
+cat << 'EOF' > "$REAL_HOME/.config/antigravity-flags.conf"
+--ozone-platform=wayland
+EOF
+cat << 'EOF' > "$REAL_HOME/.config/antigravity-ide-flags.conf"
+--ozone-platform=wayland
+EOF
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/antigravity"*-flags.conf 2>/dev/null || true
+
+# Limpeza preventiva de locks e caches residuais em reinstalações
+rm -f "$REAL_HOME/.config/Antigravity IDE/code.lock" 2>/dev/null || true
+rm -rf "$REAL_HOME/.config/Antigravity IDE/GPUCache" \
+       "$REAL_HOME/.config/Antigravity IDE/DawnGraphiteCache" \
+       "$REAL_HOME/.config/Antigravity IDE/DawnWebGPUCache" 2>/dev/null || true
+rm -f "$REAL_HOME/.config/Antigravity IDE/Crashpad/pending"/* 2>/dev/null || true
 
 # Ícone e Lançador .desktop no sistema
 if [ -f /opt/antigravity/resources/app/resources/linux/code.png ]; then
@@ -65,7 +102,7 @@ cat << 'EOF' | sudo tee /usr/share/applications/antigravity.desktop > /dev/null
 Name=Antigravity
 Comment=Google Antigravity IDE (Advanced Agentic Coding)
 GenericName=Text Editor
-Exec=/opt/antigravity/antigravity-ide --ozone-platform=x11 %F
+Exec=/usr/local/bin/antigravity %F
 Icon=antigravity
 Type=Application
 StartupNotify=false
@@ -74,6 +111,11 @@ Categories=Development;IDE;TextEditor;
 MimeType=text/plain;inode/directory;application/x-code-workspace;
 Keywords=vscode;development;ide;antigravity;agy;
 EOF
+
+# Garante cópia do lançador no diretório de usuário (prioridade máxima no COSMIC)
+mkdir -p "$REAL_HOME/.local/share/applications"
+cp -f /usr/share/applications/antigravity.desktop "$REAL_HOME/.local/share/applications/antigravity.desktop"
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/share/applications/antigravity.desktop" 2>/dev/null || true
 
 sudo update-desktop-database /usr/share/applications 2>/dev/null || true
 update-desktop-database "$REAL_HOME/.local/share/applications" 2>/dev/null || true
