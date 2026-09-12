@@ -70,5 +70,54 @@ for mac in $(bluetoothctl devices 2>/dev/null | grep -iE 'dualsense|wireless con
     fi
 done
 
+# ==============================================================================
+# Instalação e Configuração do Sunshine Game Streamer (Self-hosted GameStream)
+# ==============================================================================
+log_msg "INFO" "Configurando Sunshine Game Streamer..."
+if ! command -v sunshine >/dev/null 2>&1; then
+    log_msg "INFO" "Buscando release oficial mais recente do Sunshine (.deb para Ubuntu 24.04)..."
+    SUNSHINE_DEB_URL=$(curl -sL https://api.github.com/repos/LizardByte/Sunshine/releases/latest | jq -r '.assets[] | select(.name | test("ubuntu24\\.04.*amd64\\.deb$")) | .browser_download_url' | head -n 1)
+
+    if [ -n "$SUNSHINE_DEB_URL" ] && [ "$SUNSHINE_DEB_URL" != "null" ]; then
+        log_msg "INFO" "Baixando Sunshine: $SUNSHINE_DEB_URL..."
+        wget -qO /tmp/sunshine.deb "$SUNSHINE_DEB_URL"
+        sudo apt install -y /tmp/sunshine.deb
+        rm -f /tmp/sunshine.deb
+        log_msg "SUCCESS" "Sunshine instalado com sucesso via .deb oficial."
+    else
+        log_msg "WARN" "Não foi possível localizar o .deb dinamicamente via GitHub API. Tentando fallback ou repositório..."
+    fi
+else
+    log_msg "INFO" "Sunshine já está instalado no sistema ($(sunshine --version 2>/dev/null || true))."
+fi
+
+# Configuração de Permissões de Captura e Uinput (Gamepad Virtual e Entrada)
+log_msg "INFO" "Configurando regras udev e permissões para /dev/uinput (Sunshine)..."
+echo 'KERNEL=="uinput", MODE="0660", GROUP="input", OPTIONS+="static_node=uinput"' | sudo tee /etc/udev/rules.d/60-sunshine.rules > /dev/null
+sudo udevadm control --reload-rules 2>/dev/null || true
+sudo udevadm trigger 2>/dev/null || true
+
+# Garante que o usuário pertença ao grupo input
+sudo usermod -aG input "$REAL_USER" 2>/dev/null || true
+
+# Configura capability no binário caso necessário para KMS/DRM capture
+SUNSHINE_BIN=$(which sunshine || true)
+if [ -n "$SUNSHINE_BIN" ]; then
+    sudo setcap cap_sys_admin+ep "$SUNSHINE_BIN" 2>/dev/null || true
+fi
+
+# Habilita o serviço do Sunshine no systemd de usuário
+log_msg "INFO" "Habilitando serviço do Sunshine no Systemd de Usuário..."
+SUNSHINE_SVC="app-dev.lizardbyte.app.Sunshine.service"
+if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+    sudo -u "$REAL_USER" systemctl --user daemon-reload 2>/dev/null || true
+    sudo -u "$REAL_USER" systemctl --user enable "$SUNSHINE_SVC" 2>/dev/null || true
+    sudo -u "$REAL_USER" systemctl --user restart "$SUNSHINE_SVC" 2>/dev/null || true
+else
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user enable "$SUNSHINE_SVC" 2>/dev/null || true
+    systemctl --user restart "$SUNSHINE_SVC" 2>/dev/null || true
+fi
+
 set_flag "$FLAG_NAME"
-log_msg "SUCCESS" "Jogos, permissões de armazenamento, controles e perfil de performance configurados."
+log_msg "SUCCESS" "Jogos, permissões de armazenamento, controles, Sunshine e perfil de performance configurados."

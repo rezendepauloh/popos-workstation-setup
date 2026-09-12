@@ -106,10 +106,10 @@ MODULES=(
     "19_flatpak_permissions.sh"
     "20_manutencao_ssds.sh"
     "21_autostart_config.sh"
-    "22_limpeza_otimizacao.sh"
-    "23_openrgb_iluminacao.sh"
-    "24_trabalho_remoto_vpn_rdp.sh"
-    "25_pdf_editors.sh"
+    "22_openrgb_iluminacao.sh"
+    "23_trabalho_remoto_vpn_rdp.sh"
+    "24_pdf_editors.sh"
+    "25_limpeza_otimizacao.sh"
 )
 
 TOTAL_MODULES=${#MODULES[@]}

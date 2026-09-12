@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Módulo 22: Limpeza Final, Otimização de Recursos e Hardening
+# Módulo 25: Limpeza Final, Otimização de Recursos e Hardening
 # Implementa as melhorias de performance, docker sob demanda, rede e backups
 # ==============================================================================
 
@@ -15,7 +15,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "22. LIMPEZA FINAL, OTIMIZAÇÕES E HARDENING DO SISTEMA"
+log_msg "HEADER" "25. LIMPEZA FINAL, OTIMIZAÇÕES E HARDENING DO SISTEMA"
 
 # ------------------------------------------------------------------------------
 # 1. Limpeza de Pacotes e Runtimes
@@ -86,15 +86,33 @@ if command -v ufw >/dev/null 2>&1; then
     sudo ufw default allow outgoing >/dev/null 2>&1 || true
 
     # Regras locais: KDE Connect e portas comuns de desenvolvimento
+    log_msg "INFO" "Configurando firewall UFW KDE Connect..."
     sudo ufw allow 1714:1764/udp comment 'KDE Connect' >/dev/null 2>&1 || true
     sudo ufw allow 1714:1764/tcp comment 'KDE Connect' >/dev/null 2>&1 || true
+
+    log_msg "INFO" "Configurando firewall UFW LocalSend..."
     sudo ufw allow 53317/tcp comment 'LocalSend' >/dev/null 2>&1 || true
     sudo ufw allow 53317/udp comment 'LocalSend' >/dev/null 2>&1 || true
+
+    log_msg "INFO" "Configurando firewall UFW Sunshine..."
+    sudo ufw allow 47984:47990/tcp comment 'Sunshine Web/Handshake' >/dev/null 2>&1 || true
+    sudo ufw allow 48010/tcp comment 'Sunshine RTSP Handshake' >/dev/null 2>&1 || true
+    sudo ufw allow 47998:48010/udp comment 'Sunshine Video/Audio/Control' >/dev/null 2>&1 || true
+
+    log_msg "INFO" "Configurando firewall UFW Rede Local (Home/Streaming)..."
+    sudo ufw allow from 192.168.0.0/24 comment 'Rede Local Home' >/dev/null 2>&1 || true
+
+    log_msg "INFO" "Configurando firewall UFW Dev Web (React/Node)..."
     sudo ufw allow 3000:3010/tcp comment 'Dev Web (React/Node)' >/dev/null 2>&1 || true
+
+    log_msg "INFO" "Configurando firewall UFW Vite Dev Server..."
     sudo ufw allow 5173/tcp comment 'Vite Dev Server' >/dev/null 2>&1 || true
+
+    log_msg "INFO" "Configurando firewall UFW APIs locais / Backend..."
     sudo ufw allow 8000:8080/tcp comment 'APIs locais / Backend' >/dev/null 2>&1 || true
 
     # Habilita firewall de forma não interativa
+    log_msg "INFO" "Habilitando firewall UFW..."
     echo "y" | sudo ufw enable >/dev/null 2>&1 || true
 fi
 

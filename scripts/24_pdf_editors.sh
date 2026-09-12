@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Módulo 25: Editores Profissionais de PDF (Master PDF Editor & Okular)
+# Módulo 24: Editores Profissionais de PDF (Master PDF Editor & Okular)
 # Ferramentas completas de leitura com marcadores avançados e edição direta de PDF
 # ==============================================================================
 
@@ -15,7 +15,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "25. EDITORES PROFISSIONAIS DE PDF (MASTER PDF EDITOR & OKULAR)"
+log_msg "HEADER" "24. EDITORES PROFISSIONAIS DE PDF (MASTER PDF EDITOR & OKULAR)"
 
 # ------------------------------------------------------------------------------
 # 1. Instalação do Okular (Leitura, Marcadores Avançados & Anotações)

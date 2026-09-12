@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Módulo 24: Trabalho Remoto - VPN MPMS (openfortivpn 2FA) & RDP (Remmina)
+# Módulo 23: Trabalho Remoto - VPN MPMS (openfortivpn 2FA) & RDP (Remmina)
 # Instala e configura ferramentas de trabalho remoto, removendo o FortiClient oficial
 # ==============================================================================
 
@@ -15,7 +15,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "24. TRABALHO REMOTO: VPN MPMS (OPENFORTIVPN 2FA) & RDP (REMMINA)"
+log_msg "HEADER" "23. TRABALHO REMOTO: VPN MPMS (OPENFORTIVPN 2FA) & RDP (REMMINA)"
 
 # ------------------------------------------------------------------------------
 # 1. Remoção e Purga do FortiClient Oficial (Bloqueado sem Licença EMS)

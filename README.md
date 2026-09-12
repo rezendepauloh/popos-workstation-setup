@@ -94,6 +94,7 @@ Script de automação e provisionamento idempotente para configuração completa
     *   Instalação de ícones hicolor de alta resolução e entrada `.desktop` com categorias e mimetypes no menu de aplicativos.
 *   **Aplicativos Flatpak & Overrides:**
     *   Instalação de **Dropbox**, **CopyQ**, **OnlyOffice Desktop Editors**, **Jellyfin Desktop**, **GIMP** e **LocalSend**.
+    *   **Patch PhotoGIMP (Diolinux/PhotoGIMP):** Aplicação automatizada do patch de customização sobre o GIMP Flatpak, trazendo layout da interface e atalhos de teclado espelhados no Adobe Photoshop, splash screen customizada e ícones de alta resolução.
     *   Aplicação automática de overrides de permissão de sistema de arquivos para acesso aos discos `/mnt/storage_700`, `/mnt/storage_930`, `/mnt` e integração com a bandeja do Wayland (`StatusNotifierWatcher` para o CopyQ).
     *   Associação do **OnlyOffice** como leitor padrão para documentos (`.docx`, `.xlsx`, `.pptx`).
 *   **Miniaplicativos Customizados (COSMIC):**
@@ -111,7 +112,7 @@ Script de automação e provisionamento idempotente para configuração completa
     *   **NumLock ativado** por padrão no boot do compositor.
     *   Miniaplicativo de **Controle de Mídia** no canto inferior esquerdo da Dock.
     *   **Dock Fiel ao Workflow Atual:** Configuração restrita aos aplicativos favoritos ativos (`Firefox`, `CosmicFiles`, `Antigravity IDE`, `VS Code`, `CosmicTerm`, `CosmicSettings`), sem injeção de navegadores redundantes ou apps indesejados.
-    *   Organização automática do **Menu / Biblioteca de Aplicativos** em pastas e categorias inteligentes (*Jogos, Desenvolvimento, Escritório, Mídia, Utilitários, Sistema*).
+    *   Organização automática do **Menu / Biblioteca de Aplicativos** em pastas e categorias inteligentes (*Jogos, Desenvolvimento, Escritório, Mídia, Utilitários, Sistema*), incluindo o Sunshine na categoria de Jogos.
 *   **IDEs (VS Code & Antigravity IDE):** Restaura de forma sincronizada os arquivos `settings.json`, `keybindings.json` (atalhos customizados) e pasta de `snippets/` a partir de `~/GoogleDrive_Pessoal/Organização/VSCode_Antigravity/` para os diretórios de configuração de ambos os editores (`~/.config/Code/User/` e `~/.config/Antigravity IDE/User/`), incluindo suporte a **colar com botão direito do mouse** no terminal integrado e atalho `Ctrl+V`.
 *   **Terminal ZSH & Powerlevel10k:**
     *   Execução do instalador a partir de `~/GoogleDrive_Pessoal/Organização/Terminal ZSH Linux/install.sh`.
@@ -122,6 +123,8 @@ Script de automação e provisionamento idempotente para configuração completa
 ### 9. Jogos & Performance
 *   Instalação da **Steam** (pacote nativo APT), **Gamemode** (escalonador de prioridade de kernel) e **MangoHud**.
 *   Instalação do **Heroic Games Launcher** (Flatpak) com override de permissão para o SSD de jogos (`/mnt/nvme_01`).
+*   **Sunshine Game Streamer (Self-hosted GameStream):** Instalação automatizada do `.deb` oficial (Ubuntu 24.04), configuração de regras udev para gamepads e entrada virtual via `/dev/uinput`, serviço systemd de usuário habilitado (`systemctl --user enable sunshine`), autostart na sessão gráfica e regras de firewall UFW configuradas (`47984:47990/tcp`, `48010/tcp` RTSP e `47998:48010/udp` com liberação de rede local `192.168.0.0/24`).
+*   **Streaming para Smart TV Samsung & Projetor The Freestyle:** Alternância dinâmica de resolução via `cosmic-randr` para monitores Ultrawide (3440x1440 21:9/32:9 alternando para 1920x1080 16:9 durante o jogo e restaurando ao desconectar). Guia passo a passo completo documentado em [`Docs/como-parear-sunshine-moonlight-samsung-tv.md`](Docs/como-parear-sunshine-moonlight-samsung-tv.md) para instalação do [Moonlight Tizen](https://github.com/brightcraft/moonlight-tizen) via Apps2Samsung.
 *   Criação prévia da pasta física `/mnt/nvme_01/Jogos` com posse e permissão `775`.
 *   Configuração do perfil de **Performance Máxima** no Pop!_OS via `system76-power profile performance` (com fallback para `powerprofilesctl`).
 
@@ -162,10 +165,10 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 19_flatpak_permissions.sh       # Permissões de discos e barramento D-Bus para Flatpaks
 │   ├── 20_manutencao_ssds.sh           # Ativação do fstrim.timer para TRIM semanal
 │   ├── 21_autostart_config.sh          # Configuração de apps na inicialização da sessão
-│   ├── 22_limpeza_otimizacao.sh        # Limpeza, otimizações de kernel, Docker e backups
-│   ├── 23_openrgb_iluminacao.sh        # OpenRGB, regras udev ASUS Aura e controle ARGB
-│   ├── 24_trabalho_remoto_vpn_rdp.sh   # VPN MPMS (openfortivpn 2FA) e Remmina RDP
-│   └── 25_pdf_editors.sh               # Master PDF Editor (Edição) e Okular (Leitura/Marcadores)
+│   ├── 22_openrgb_iluminacao.sh        # OpenRGB, regras udev ASUS Aura e controle ARGB
+│   ├── 23_trabalho_remoto_vpn_rdp.sh   # VPN MPMS (openfortivpn 2FA) e Remmina RDP
+│   ├── 24_pdf_editors.sh               # Master PDF Editor (Edição) e Okular (Leitura/Marcadores)
+│   └── 25_limpeza_otimizacao.sh        # Limpeza final, otimizações de kernel, Docker e backups
 ```
 
 ### 📋 Módulos e Responsabilidades:
@@ -179,7 +182,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/03_atualizacao_sistema.sh` | Módulo de atualização de pacotes APT, Pop recovery e firmware. |
 | `scripts/04_pacotes_base_dev.sh` | Módulo de utilitários base, compiladores, NVM, Cargo/Rust, KDE Connect, ADB e dependências de desenvolvimento. |
 | `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone (GDrive, OneDrive, MEGA), Celeste (Tray), Web Dashboard, Rclone Browser e Discos no COSMIC Files. |
-| `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Telegram, ZapZap (WhatsApp), OnlyOffice, LocalSend, Jellyfin Desktop, Balena Etcher, Espanso e Kando. |
+| `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Telegram, ZapZap (WhatsApp), OnlyOffice, LocalSend, Jellyfin Desktop, GIMP com patch PhotoGIMP, Apps2Samsung, Balena Etcher, Espanso e Kando. |
 | `scripts/07_powershell7.sh` | Módulo de instalação oficial do Microsoft PowerShell 7 (`pwsh`), repositórios Microsoft e perfil do usuário. |
 | `scripts/08_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
 | `scripts/09_onlyoffice_padrao.sh` | Módulo de associação do OnlyOffice como manipulador padrão de documentos office. |
@@ -188,17 +191,17 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/12_wacom_tablet.sh` | Módulo de suporte, regras udev, OpenTabletDriver Daemon Headless (Modo Canhoto 180° e atalhos) e pareamento da Wacom Intuos Pro. |
 | `scripts/13_kando_restore.sh` | Módulo de restauração de menus e atalho `Ctrl+Shift+F10` do Kando a partir do Google Drive. |
 | `scripts/14_cosmic_theme_restore.sh` | Módulo de restauração de temas visuais do COSMIC, GTK e Qt a partir do Google Drive. |
-| `scripts/15_cosmic_menu_dock.sh` | Módulo de configuração instantânea (< 1s) das categorias da App Library (*Jogos, Dev, Comunicação, Escritório, Mídia, Utilitários, Sistema*), Favoritos e Dock. |
+| `scripts/15_cosmic_menu_dock.sh` | Módulo de configuração instantânea (< 1s) das categorias da App Library (*Jogos incluindo Sunshine, Dev, Comunicação, Escritório, Mídia, Utilitários, Sistema*), Favoritos e Dock. |
 | `scripts/16_ide_config_restore.sh` | Módulo de sincronização de settings, atalhos (`Ctrl+V`, colar com botão direito) e snippets para VS Code e Antigravity. |
 | `scripts/17_zsh_p10k_setup.sh` | Módulo de instalação e configuração do Zsh, Powerlevel10k, fontes MesloLGS NF, shell padrão e `Ctrl+V`. |
-| `scripts/18_jogos_performance.sh` | Módulo de Steam, Gamemode, MangoHud, Heroic, jstest-gtk, AntiMicroX e perfil de Performance Máxima. |
+| `scripts/18_jogos_performance.sh` | Módulo de Steam, Gamemode, MangoHud, Heroic, jstest-gtk, AntiMicroX, Sunshine Game Streamer (uinput/udev/systemd) e perfil de Performance Máxima. |
 | `scripts/19_flatpak_permissions.sh` | Módulo de overrides de filesystem (`/mnt/storage_*`, host para Rclone UI) e liberação de bandeja (`StatusNotifierWatcher`). |
 | `scripts/20_manutencao_ssds.sh` | Módulo de ativação do TRIM semanal (`fstrim.timer`) para os SSDs. |
-| `scripts/21_autostart_config.sh` | Módulo de provisionamento de inicialização automática no login (CopyQ, Kando, Espanso, NumLock). |
-| `scripts/22_limpeza_otimizacao.sh` | Módulo de limpeza, otimizações de kernel/inotify, Docker sob demanda, latência PipeWire, firewall UFW e backup automatizado de dotfiles. |
-| `scripts/23_openrgb_iluminacao.sh` | Módulo de instalação do OpenRGB, regras udev para ASUS AURA LED Controller, módulos i2c e autostart na bandeja. |
-| `scripts/24_trabalho_remoto_vpn_rdp.sh` | Módulo de trabalho remoto: VPN MPMS (openfortivpn 2FA) e cliente RDP Remmina com clipboard e áudio. |
-| `scripts/25_pdf_editors.sh` | Módulo de editores de PDF profissionais: Master PDF Editor (edição direta de textos e páginas) e Okular (leitura com marcadores e anotações). |
+| `scripts/21_autostart_config.sh` | Módulo de provisionamento de inicialização automática no login (CopyQ, Kando, Espanso, Sunshine, NumLock). |
+| `scripts/22_openrgb_iluminacao.sh` | Módulo de instalação do OpenRGB, regras udev para ASUS AURA LED Controller, módulos i2c e autostart na bandeja. |
+| `scripts/23_trabalho_remoto_vpn_rdp.sh` | Módulo de trabalho remoto: VPN MPMS (openfortivpn 2FA) e cliente RDP Remmina com clipboard e áudio. |
+| `scripts/24_pdf_editors.sh` | Módulo de editores de PDF profissionais: Master PDF Editor (edição direta de textos e páginas) e Okular (leitura com marcadores e anotações). |
+| `scripts/25_limpeza_otimizacao.sh` | Módulo de limpeza final, remoção de pacotes órfãos/unused Flatpaks, otimizações de kernel/inotify, Docker sob demanda, latência PipeWire, firewall UFW (KDE Connect, LocalSend, Sunshine) e backup automatizado de dotfiles. |
 
 ---
 
@@ -311,9 +314,12 @@ bash /workspace/setup_popos.sh
 
 O repositório conta com relatórios técnicos aprofundados sobre comportamentos específicos do hardware, desktop COSMIC e roadmap de melhorias:
 
-1. 📄 [**NumLock Permanente & LED Físico no COSMIC**](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_cosmic_numlock_boot.md): Diagnóstico completo do motor XKB e sincronização do LED via udev.
-2. 📄 [**Mesa Wacom Intuos Pro no Wayland**](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_opentabletdriver_wacom_bluetooth.md): Mapeamento de ExpressKeys, pareamento Bluetooth e modo canhoto 180°.
-3. 📄 [**Cedilha no Chromium & Electron (`'+c = ć`)**](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_chromium_electron_cedilha_wayland.md): Causa raiz no código C++ do Chromium e atalhos de hardware.
-4. 📄 [**Engasgos no COSMIC Files & Otimização FUSE**](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_cosmic_files_fuse_freeze.md): Otimizações de I/O e cache de atributos do Rclone.
-5. 🚀 [**Roadmap de Melhorias Futuras**](file:///home/rezendepauloh/Documentos/Scripts/Docs/melhorias_futuras_workstation.md): Sugestões de alto valor para ZRAM, limites de inotify, Docker sob demanda, PipeWire e backup automático.
+1. 📄 [**NumLock Permanente & LED Físico no COSMIC**](Docs/issue_cosmic_numlock_boot.md): Diagnóstico completo do motor XKB e sincronização do LED via udev.
+2. 📄 [**Mesa Wacom Intuos Pro no Wayland**](Docs/issue_opentabletdriver_wacom_bluetooth.md): Mapeamento de ExpressKeys, pareamento Bluetooth e modo canhoto 180°.
+3. 📄 [**Cedilha no Chromium & Electron (`'+c = ć`)**](Docs/issue_chromium_electron_cedilha_wayland.md): Causa raiz no código C++ do Chromium e atalhos de hardware.
+4. 📄 [**Engasgos no COSMIC Files & Otimização FUSE**](Docs/issue_cosmic_files_fuse_freeze.md): Otimizações de I/O e cache de atributos do Rclone.
+5. 📱 [**Backup & Restauração Completa de Celular Android**](Docs/como-fazer-backup-android.md): Guia prático com ADB de alta velocidade, inventário de apps e restauração com indexação da galeria.
+6. 🎮 [**Pareamento Sunshine & Moonlight na Smart TV Samsung**](Docs/como-parear-sunshine-moonlight-samsung-tv.md): Guia completo com Developer Mode no Tizen OS, instalação do Moonlight Tizen e pareamento por PIN com o Sunshine.
+7. 🚀 [**Roadmap de Melhorias Futuras**](Docs/melhorias_futuras_workstation.md): Sugestões de alto valor para ZRAM, limites de inotify, Docker sob demanda, PipeWire e backup automático.
+
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Módulo 18: Configuração de Autostart no Boot (CopyQ, Kando, Espanso, NumLock)
+# Módulo 18: Configuração de Autostart no Boot (CopyQ, Kando, Espanso, NumLock, Sunshine)
 # ==============================================================================
 
 set -e
@@ -60,6 +60,20 @@ Hidden=false
 NoDisplay=true
 X-GNOME-Autostart-enabled=true
 X-GNOME-Autostart-Delay=1
+EOF
+
+# 4. Sunshine Game Streamer
+cat << 'EOF' > "$AUTOSTART_DIR/dev.lizardbyte.app.Sunshine.desktop"
+[Desktop Entry]
+Type=Application
+Name=Sunshine
+Comment=Self-hosted game stream host for Moonlight
+Exec=/usr/bin/env systemctl start --user app-dev.lizardbyte.app.Sunshine.service
+Icon=dev.lizardbyte.app.Sunshine
+Terminal=false
+Categories=Game;Network;
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=5
 EOF
 
 # Remove entradas duplicadas, legadas ou obsoletas (Espanso roda via systemd user service)

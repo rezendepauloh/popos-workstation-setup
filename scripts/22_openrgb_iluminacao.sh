@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Módulo 23: OpenRGB - Controle de Iluminação ARGB/RGB de Placa-Mãe e Fans
+# Módulo 22: OpenRGB - Controle de Iluminação ARGB/RGB de Placa-Mãe e Fans
 # Suporta ASUS TUF GAMING B760M-PLUS (AURA LED Controller) e periféricos
 # ==============================================================================
 
@@ -15,7 +15,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "23. CONFIGURAÇÃO DO OPENRGB (ILUMINAÇÃO ARGB / RGB)"
+log_msg "HEADER" "22. CONFIGURAÇÃO DO OPENRGB (ILUMINAÇÃO ARGB / RGB)"
 
 # ------------------------------------------------------------------------------
 # 1. Instalação do OpenRGB via Flatpak

@@ -39,6 +39,8 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "com.heroicgameslauncher.hgl",
                 "jstest-gtk",
                 "io.github.antimicrox.antimicrox",
+                "sunshine",
+                "dev.lizardbyte.app.Sunshine",
             ],
             exclude: [],
         ),

@@ -56,6 +56,67 @@ flatpak install -y --system flathub \
     com.rtosta.zapzap \
     org.localsend.localsend_app
 
+# 2.1 Customização PhotoGIMP (Diolinux/PhotoGIMP) para GIMP Flatpak
+log_msg "INFO" "Configurando patch do PhotoGIMP para interface e atalhos estilo Photoshop..."
+GIMP_FLATPAK_CONFIG="$REAL_HOME/.var/app/org.gimp.GIMP/config/GIMP"
+mkdir -p "$GIMP_FLATPAK_CONFIG"
+
+PHOTOGIMP_TMP="/tmp/photogimp_download"
+rm -rf "$PHOTOGIMP_TMP"
+mkdir -p "$PHOTOGIMP_TMP"
+
+log_msg "INFO" "Baixando arquivos do PhotoGIMP..."
+if wget -qO "$PHOTOGIMP_TMP/photogimp.zip" "https://github.com/Diolinux/PhotoGIMP/archive/refs/heads/master.zip"; then
+    unzip -qo "$PHOTOGIMP_TMP/photogimp.zip" -d "$PHOTOGIMP_TMP"
+    EXTRACTED_DIR="$PHOTOGIMP_TMP/PhotoGIMP-master"
+
+    # Copia configurações para 3.2, 3.0 e 2.10 tanto em ~/.config/GIMP quanto na sandbox ~/.var/app/...
+    GIMP_CONFIG_TARGETS=(
+        "$REAL_HOME/.config/GIMP"
+        "$GIMP_FLATPAK_CONFIG"
+    )
+
+    if [ -d "$EXTRACTED_DIR/.config/GIMP/3.0" ]; then
+        for target_base in "${GIMP_CONFIG_TARGETS[@]}"; do
+            for v in "3.2" "3.0" "2.10"; do
+                mkdir -p "$target_base/$v"
+                cp -rf "$EXTRACTED_DIR/.config/GIMP/3.0/"* "$target_base/$v/" 2>/dev/null || true
+                if [ -f "$target_base/$v/gimprc" ]; then
+                    grep -q "toolbox-groups" "$target_base/$v/gimprc" || echo '(toolbox-groups no)' >> "$target_base/$v/gimprc"
+                    grep -q "icon-theme" "$target_base/$v/gimprc" || echo '(icon-theme "Default")' >> "$target_base/$v/gimprc"
+                fi
+            done
+        done
+    fi
+
+    # Ícones e lançador customizado (.desktop)
+    if [ -d "$EXTRACTED_DIR/.local/share" ]; then
+        mkdir -p "$REAL_HOME/.local/share"
+        cp -rn "$EXTRACTED_DIR/.local/share/"* "$REAL_HOME/.local/share/" 2>/dev/null || true
+    fi
+
+    chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/GIMP" "$GIMP_FLATPAK_CONFIG" "$REAL_HOME/.local/share" 2>/dev/null || true
+    log_msg "SUCCESS" "PhotoGIMP aplicado com sucesso no perfil do GIMP."
+else
+    log_msg "WARN" "Falha ao baixar o patch PhotoGIMP. Mantendo instalação padrão do GIMP."
+fi
+rm -rf "$PHOTOGIMP_TMP"
+
+# 2.2 Apps2Samsung (Instalador Tizen para Samsung Smart TV)
+log_msg "INFO" "Configurando Apps2Samsung para gerenciamento de apps na TV Samsung..."
+if ! command -v apps2samsung >/dev/null 2>&1 && [ ! -f /usr/local/bin/apps2samsung ] && [ ! -f /usr/bin/apps2samsung ]; then
+    APPS2SAMS_URL=$(curl -sL https://api.github.com/repos/Apps2Samsung/Apps2Samsung/releases/latest | jq -r '.assets[] | select(.name | endswith("linux-x64.deb")) | .browser_download_url' | head -n 1)
+    if [ -n "$APPS2SAMS_URL" ] && [ "$APPS2SAMS_URL" != "null" ]; then
+        log_msg "INFO" "Baixando Apps2Samsung: $APPS2SAMS_URL..."
+        wget -qO /tmp/apps2samsung.deb "$APPS2SAMS_URL"
+        sudo apt install -y /tmp/apps2samsung.deb || sudo dpkg -i /tmp/apps2samsung.deb || true
+        rm -f /tmp/apps2samsung.deb
+        log_msg "SUCCESS" "Apps2Samsung instalado com sucesso."
+    else
+        log_msg "WARN" "Não foi possível obter o release do Apps2Samsung via GitHub API."
+    fi
+fi
+
 # 3. Espanso (Wayland Edition) e bibliotecas wxWidgets 3.0 no Ubuntu/Pop!_OS 24.04 (noble)
 log_msg "INFO" "Baixando e instalando Espanso (Wayland)..."
 wget -qO /tmp/espanso.deb https://github.com/espanso/espanso/releases/download/v2.2.1/espanso-debian-wayland-amd64.deb
