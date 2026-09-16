@@ -141,6 +141,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
             exclude: [
                 "com.system76.CosmicEdit",
                 "com.system76.CosmicFiles",
+                "org.gnome.Nautilus",
             ],
         ),
     ),
@@ -170,7 +171,7 @@ log_msg "INFO" "Configurando aplicativos favoritos..."
 cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppList/v1/favorites"
 [
     "firefox",
-    "com.system76.CosmicFiles",
+    "org.gnome.Nautilus",
     "antigravity-ide",
     "code",
     "com.system76.CosmicTerm",

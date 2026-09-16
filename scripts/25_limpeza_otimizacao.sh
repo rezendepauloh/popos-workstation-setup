@@ -111,10 +111,25 @@ if command -v ufw >/dev/null 2>&1; then
     log_msg "INFO" "Configurando firewall UFW APIs locais / Backend..."
     sudo ufw allow 8000:8080/tcp comment 'APIs locais / Backend' >/dev/null 2>&1 || true
 
+    log_msg "INFO" "Configurando firewall UFW DNS Umbrel..."
+    sudo ufw allow out to 192.168.0.0/24 port 53 proto udp comment 'DNS Umbrel' >/dev/null 2>&1 || true
+    sudo ufw allow in from 192.168.0.0/24 port 53 proto udp comment 'DNS Umbrel' >/dev/null 2>&1 || true
+
     # Habilita firewall de forma não interativa
     log_msg "INFO" "Habilitando firewall UFW..."
     echo "y" | sudo ufw enable >/dev/null 2>&1 || true
 fi
+
+# ------------------------------------------------------------------------------
+# Configuração de Roteamento de Domínios Locais do Homelab (*.pk.local)
+# ------------------------------------------------------------------------------
+log_msg "INFO" "Configurando resolvedor do sistema para domínios locais (*.pk.local)..."
+DEFAULT_IFACE=$(ip route show default 2>/dev/null | awk '{print $5}' | head -n1)
+if [[ -n "$DEFAULT_IFACE" ]]; then
+    sudo resolvectl domain "$DEFAULT_IFACE" "~." >/dev/null 2>&1 || true
+    sudo resolvectl default-route "$DEFAULT_IFACE" yes >/dev/null 2>&1 || true
+fi
+
 
 # ------------------------------------------------------------------------------
 # 6. Script e Timer de Backup Semanal Automatizado (Dotfiles & Configs)

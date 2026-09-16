@@ -26,6 +26,8 @@ mkdir -p "$REAL_HOME/.config/cosmic/com.system76.CosmicSettings.WindowRules/v1"
 cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicSettings.WindowRules/v1/tiling_exception_custom"
 [
 	// Gerenciador de Arquivos
+	(appid: "org.gnome.Nautilus", titles: [".*"]),
+	(appid: "org.gnome.NautilusDialog", titles: [".*"]),
 	(appid: "com.system76.CosmicFiles", titles: [".*"]),
 	(appid: "com.system76.CosmicFilesDialog", titles: [".*"]),
 

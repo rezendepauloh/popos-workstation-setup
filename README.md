@@ -116,8 +116,9 @@ Script de automação e provisionamento idempotente para configuração completa
     *   Modo **auto-tiling desligado** por padrão.
     *   **NumLock ativado** por padrão no boot do compositor.
     *   **Fix de Tema Escuro Universal para o VLC:** Injeção de folha de estilos Qt (`~/.config/qt5ct/qss/vlc-dark-fix.qss`) atribuindo contraste nítido, contêineres e efeito de hover a todos os botões (`QToolButton`), além de timeline personalizada e restauração automática do layout de botões customizados (`~/.config/vlc/vlc-qt-interface.conf`). Documentação completa em [`Docs/tema_escuro_botoes_vlc.md`](Docs/tema_escuro_botoes_vlc.md).
+    *   **Nautilus (GNOME Files) como Gerenciador Padrão:** Substituição do `COSMIC Files` pelo Nautilus com `gvfs-backends`, fixação na Dock, associação do MIME `inode/directory` e regras de janela flutuante (`tiling_exception_custom`). Documentação completa em [`Docs/nautilus_gerenciador_arquivos_padrao.md`](Docs/nautilus_gerenciador_arquivos_padrao.md).
     *   Miniaplicativo de **Controle de Mídia** no canto inferior esquerdo da Dock.
-    *   **Dock Fiel ao Workflow Atual:** Configuração restrita aos aplicativos favoritos ativos (`Firefox`, `CosmicFiles`, `Antigravity IDE`, `VS Code`, `CosmicTerm`, `CosmicSettings`), sem injeção de navegadores redundantes ou apps indesejados.
+    *   **Dock Fiel ao Workflow Atual:** Configuração restrita aos aplicativos favoritos ativos (`Firefox`, `Nautilus`, `Antigravity IDE`, `VS Code`, `CosmicTerm`, `CosmicSettings`), sem injeção de navegadores redundantes ou apps indesejados.
     *   Organização automática do **Menu / Biblioteca de Aplicativos** em pastas e categorias inteligentes (*Jogos, Desenvolvimento, Escritório, Mídia, Utilitários, Sistema*), incluindo o Sunshine na categoria de Jogos.
 *   **IDEs (VS Code & Antigravity IDE):** Restaura de forma sincronizada os arquivos `settings.json`, `keybindings.json` (atalhos customizados) e pasta de `snippets/` a partir de `~/GoogleDrive_Pessoal/Organização/VSCode_Antigravity/` para os diretórios de configuração de ambos os editores (`~/.config/Code/User/` e `~/.config/Antigravity IDE/User/`), incluindo:
     *   Suporte a **colar com botão direito do mouse** no terminal integrado e atalho `Ctrl+V`.
@@ -190,18 +191,18 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/01_otimizacao_sistema.sh` | Módulo de Swappiness (`vm.swappiness=10`) e File Watchers inotify (`524288`). |
 | `scripts/02_teclado_cedilha_numlock.sh` | Módulo de layout US-Intl, resposta rápida (180ms/18ms), Cedilha (`'+c = ç`), `~/.XCompose`, immodules GTK e NumLock Systemd/Udev. |
 | `scripts/03_atualizacao_sistema.sh` | Módulo de atualização de pacotes APT, Pop recovery e firmware. |
-| `scripts/04_pacotes_base_dev.sh` | Módulo de utilitários base, compiladores, NVM, Cargo/Rust, KDE Connect, ADB e dependências de desenvolvimento. |
+| `scripts/04_pacotes_base_dev.sh` | Módulo de utilitários base, compiladores, Nautilus (`gvfs-backends`), NVM, Cargo/Rust, KDE Connect, ADB e dependências de desenvolvimento. |
 | `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone (GDrive, OneDrive, MEGA), Celeste (Tray), Web Dashboard, Rclone Browser e Discos no COSMIC Files. |
 | `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Telegram, ZapZap (WhatsApp), OnlyOffice, LocalSend, Jellyfin Desktop, GIMP com patch PhotoGIMP, Apps2Samsung, Balena Etcher, Espanso e Kando. |
 | `scripts/07_powershell7.sh` | Módulo de instalação oficial do Microsoft PowerShell 7 (`pwsh`), repositórios Microsoft e perfil do usuário. |
 | `scripts/08_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
-| `scripts/09_onlyoffice_padrao.sh` | Módulo de associação do OnlyOffice como manipulador padrão de documentos office. |
+| `scripts/09_onlyoffice_padrao.sh` | Módulo de associação padrão: OnlyOffice para documentos office e Nautilus (`inode/directory`) como gerenciador de pastas padrão. |
 | `scripts/10_cosmic_applets_custom.sh` | Módulo de miniaplicativos customizados do COSMIC: controle de mídia na Dock e Minimon (monitor de CPU, RAM, Disco, Rede e GPU com dropdown) no painel. |
 | `scripts/11_mouse_gaming.sh` | Módulo de gravação de polling rate 1000Hz, DPIs e macros na memória do mouse Logitech G502 X. |
 | `scripts/12_wacom_tablet.sh` | Módulo de suporte, regras udev, OpenTabletDriver Daemon Headless (Modo Canhoto 180° e atalhos) e pareamento da Wacom Intuos Pro. |
 | `scripts/13_kando_restore.sh` | Módulo de restauração de menus e atalho `Ctrl+Shift+F10` do Kando a partir do Google Drive. |
-| `scripts/14_cosmic_theme_restore.sh` | Módulo de restauração de temas visuais do COSMIC, GTK, Qt, perfil/botões do VLC do Google Drive e fix de tema escuro universal (`QSS`). |
-| `scripts/15_cosmic_menu_dock.sh` | Módulo de configuração instantânea (< 1s) das categorias da App Library (*Jogos incluindo Sunshine, Dev, Comunicação, Escritório, Mídia, Utilitários, Sistema*), Favoritos e Dock. |
+| `scripts/14_cosmic_theme_restore.sh` | Módulo de restauração de temas visuais do COSMIC, GTK, Qt, exceções de janelas flutuantes (Nautilus, Remmina, etc.), perfil/botões do VLC do Google Drive e fix de tema escuro universal (`QSS`). |
+| `scripts/15_cosmic_menu_dock.sh` | Módulo de configuração instantânea (< 1s) das categorias da App Library (*Jogos incluindo Sunshine, Dev, Comunicação, Escritório, Mídia, Utilitários, Sistema*), Favoritos (com Nautilus fixado) e Dock. |
 | `scripts/16_ide_config_restore.sh` | Módulo de sincronização de settings, atalhos (`Ctrl+V`, colar com botão direito) e snippets para VS Code e Antigravity. |
 | `scripts/17_zsh_p10k_setup.sh` | Módulo de instalação e configuração do Zsh, Powerlevel10k, fontes MesloLGS NF, shell padrão e `Ctrl+V`. |
 | `scripts/18_jogos_performance.sh` | Módulo de Steam, Gamemode, MangoHud, Heroic, jstest-gtk, AntiMicroX, Sunshine Game Streamer (uinput/udev/systemd) e perfil de Performance Máxima. |
