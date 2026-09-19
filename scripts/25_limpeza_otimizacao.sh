@@ -115,6 +115,9 @@ if command -v ufw >/dev/null 2>&1; then
     sudo ufw allow out to 192.168.0.0/24 port 53 proto udp comment 'DNS Umbrel' >/dev/null 2>&1 || true
     sudo ufw allow in from 192.168.0.0/24 port 53 proto udp comment 'DNS Umbrel' >/dev/null 2>&1 || true
 
+    log_msg "INFO" "Configurando firewall UFW Dozzle Agent Homelab..."
+    sudo ufw allow from 192.168.0.0/24 to any port 7007 proto tcp comment 'Dozzle Agent Homelab' >/dev/null 2>&1 || true
+
     # Habilita firewall de forma não interativa
     log_msg "INFO" "Habilitando firewall UFW..."
     echo "y" | sudo ufw enable >/dev/null 2>&1 || true
