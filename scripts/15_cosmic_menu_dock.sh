@@ -179,12 +179,44 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppList/v1/favorite
 ]
 EOF
 
-# 3. Garante o Miniaplicativo de Controle de Mídia no canto inferior esquerdo da Dock
-log_msg "INFO" "Configurando miniplayer de mídia na Dock..."
+# 3. Garante os Miniaplicativos no Painel Superior e na Dock
+log_msg "INFO" "Configurando miniaplicativos do Painel Superior e da Dock..."
+mkdir -p "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Panel/v1"
 mkdir -p "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Dock/v1"
+
+# Painel Superior - Centro: Relógio e Clima (weather-applet)
+cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center"
+Some([
+    "com.system76.CosmicAppletTime",
+    "io.github.cosmic_utils.weather-applet",
+])
+EOF
+
+# Painel Superior - Wings: Workspaces/AppButton na esquerda e indicadores/utilitários na direita (YapCap, Minimon, Drives, etc.)
+cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
+Some(([
+    "com.system76.CosmicPanelWorkspacesButton",
+    "com.system76.CosmicPanelAppButton",
+], [
+    "io.github.TopiCsarno.YapCap",
+    "io.github.cosmic_utils.minimon-applet",
+    "com.system76.CosmicAppletInputSources",
+    "com.system76.CosmicAppletStatusArea",
+    "com.system76.CosmicAppletA11y",
+    "com.system76.CosmicAppletTiling",
+    "com.system76.CosmicAppletAudio",
+    "com.system76.CosmicAppletBluetooth",
+    "com.system76.CosmicAppletNetwork",
+    "com.system76.CosmicAppletNotifications",
+    "dev.cappsy.CosmicExtAppletDrives",
+    "com.system76.CosmicAppletPower",
+]))
+EOF
+
+# Dock: Controle de Mídia Now Playing no canto inferior esquerdo
 cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Dock/v1/plugins_wings"
 Some(([
-    "com.github.MusicPlayer",
+    "com.github.DiegoMMR.CosmicExtAppletNowPlaying",
 ], [
     "com.system76.CosmicAppletTiling",
     "com.system76.CosmicAppletTime",

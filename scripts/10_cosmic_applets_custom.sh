@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==============================================================================
 # Módulo 10: Miniaplicativos Customizados do COSMIC (Mídia na Dock & Minimon no Painel)
-# Instala o cosmic-applet-music-player (Dock) e o Minimon System Monitor (Painel)
+# Instala o Now Playing (Dock - Flatpak) e o Minimon System Monitor (Painel)
 # ==============================================================================
 
 set -e
@@ -18,41 +18,24 @@ fi
 log_msg "HEADER" "10. MINIAPLICATIVOS DO COSMIC (CONTROLE DE MÍDIA & MONITOR DO SISTEMA)"
 
 # ------------------------------------------------------------------------------
-# 1. Miniaplicativo de Mídia (Dock - Canto Inferior Esquerdo)
+# 1. Miniaplicativo de Mídia (Dock - Now Playing / com.github.DiegoMMR.CosmicExtAppletNowPlaying)
 # ------------------------------------------------------------------------------
-log_msg "INFO" "Verificando miniaplicativo de controle de mídia..."
+log_msg "INFO" "Verificando miniaplicativo de controle de mídia Now Playing..."
 
-if ! command -v cosmic-ext-applet-music-player >/dev/null 2>&1; then
-    log_msg "INFO" "Garantindo dependências de compilação..."
-    sudo apt update
-    sudo apt install -y cargo rustc just pkg-config libssl-dev libdbus-1-dev git libglib2.0-dev libasound2-dev libxkbcommon-dev libwayland-dev libfontconfig1-dev libfreetype-dev libpipewire-0.3-dev libspa-0.2-dev
+APPLET_ID="com.github.DiegoMMR.CosmicExtAppletNowPlaying"
 
-    BUILD_DIR="/tmp/cosmic-applet-music-player-build"
-    if [ ! -d "$BUILD_DIR" ]; then
-        log_msg "INFO" "Clonando repositório do cosmic-applet-music-player..."
-        git clone --depth 1 https://github.com/Ebbo/cosmic-applet-music-player.git "$BUILD_DIR"
-    fi
-    cd "$BUILD_DIR"
+# Adiciona o repositório cosmic flatpak para o usuário caso ainda não exista
+if ! sudo -u "$REAL_USER" flatpak remotes --user | grep -q "^cosmic"; then
+    log_msg "INFO" "Adicionando repositório de applets COSMIC no Flatpak do usuário..."
+    sudo -u "$REAL_USER" flatpak remote-add --user --if-not-exists cosmic https://apt.pop-os.org/cosmic/
+fi
 
-    if [ ! -f "target/release/cosmic-ext-applet-music-player" ]; then
-        log_msg "INFO" "Compilando applet de música em modo release..."
-        cargo build --release --manifest-path music-player/Cargo.toml
-    fi
-
-    log_msg "INFO" "Instalando binário e metadados do applet de música no sistema..."
-    sudo install -Dm755 target/release/cosmic-ext-applet-music-player /usr/bin/cosmic-ext-applet-music-player
-    if [ -f res/com.github.MusicPlayer.desktop ]; then
-        sudo install -Dm644 res/com.github.MusicPlayer.desktop /usr/share/applications/com.github.MusicPlayer.desktop
-    fi
-    if [ -f res/com.github.MusicPlayer.metainfo.xml ]; then
-        sudo install -Dm644 res/com.github.MusicPlayer.metainfo.xml /usr/share/metainfo/com.github.MusicPlayer.metainfo.xml
-    fi
-    if [ -d res/icons ]; then
-        sudo cp -r res/icons/* /usr/share/icons/ 2>/dev/null || true
-    fi
-    log_msg "SUCCESS" "Miniaplicativo de música instalado com sucesso."
+if ! sudo -u "$REAL_USER" flatpak list --user | grep -q "$APPLET_ID"; then
+    log_msg "INFO" "Instalando applet Now Playing ($APPLET_ID) via Flatpak..."
+    sudo -u "$REAL_USER" flatpak install -y --user cosmic "$APPLET_ID"
+    log_msg "SUCCESS" "Miniaplicativo Now Playing instalado com sucesso."
 else
-    log_msg "INFO" "Miniaplicativo de música já instalado."
+    log_msg "INFO" "Miniaplicativo Now Playing já instalado no Flatpak."
 fi
 
 # ------------------------------------------------------------------------------
@@ -78,20 +61,45 @@ else
     log_msg "INFO" "Minimon Applet já instalado."
 fi
 
+# Garante os applets adicionais do COSMIC via Flatpak (Weather, YapCap, Drives)
+EXTRA_APPLETS=(
+    "io.github.cosmic_utils.weather-applet"
+    "io.github.TopiCsarno.YapCap"
+    "dev.cappsy.CosmicExtAppletDrives"
+)
+
+for applet in "${EXTRA_APPLETS[@]}"; do
+    if ! sudo -u "$REAL_USER" flatpak list --user | grep -q "$applet"; then
+        log_msg "INFO" "Instalando applet $applet via Flatpak (cosmic)..."
+        sudo -u "$REAL_USER" flatpak install -y --user cosmic "$applet" || log_msg "WARN" "Não foi possível instalar $applet automaticamente."
+    else
+        log_msg "INFO" "Applet $applet já instalado no Flatpak."
+    fi
+done
+
 # ------------------------------------------------------------------------------
 # 3. Registro dos Applets no Painel Superior e na Dock do COSMIC
 # ------------------------------------------------------------------------------
-log_msg "INFO" "Posicionando Minimon no Painel Superior e Mídia na Dock..."
+log_msg "INFO" "Posicionando applets no Painel Superior (Wings e Centro) e na Dock..."
 
 mkdir -p "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Panel/v1"
 mkdir -p "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Dock/v1"
 
-# Painel Superior: Minimon no canto superior direito
+# Painel Superior - Centro: Relógio e Clima
+cat << 'INNER_EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center"
+Some([
+    "com.system76.CosmicAppletTime",
+    "io.github.cosmic_utils.weather-applet",
+])
+INNER_EOF
+
+# Painel Superior - Wings: Workspaces/AppButton na esquerda e indicadores/utilitários na direita
 cat << 'INNER_EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
 Some(([
     "com.system76.CosmicPanelWorkspacesButton",
     "com.system76.CosmicPanelAppButton",
 ], [
+    "io.github.TopiCsarno.YapCap",
     "io.github.cosmic_utils.minimon-applet",
     "com.system76.CosmicAppletInputSources",
     "com.system76.CosmicAppletStatusArea",
@@ -101,14 +109,15 @@ Some(([
     "com.system76.CosmicAppletBluetooth",
     "com.system76.CosmicAppletNetwork",
     "com.system76.CosmicAppletNotifications",
+    "dev.cappsy.CosmicExtAppletDrives",
     "com.system76.CosmicAppletPower",
 ]))
 INNER_EOF
 
-# Dock: Controle de Mídia no canto inferior esquerdo
+# Dock: Controle de Mídia Now Playing no canto inferior esquerdo
 cat << 'INNER_EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicPanel.Dock/v1/plugins_wings"
 Some(([
-    "com.github.MusicPlayer",
+    "com.github.DiegoMMR.CosmicExtAppletNowPlaying",
 ], [
     "com.system76.CosmicAppletTiling",
     "com.system76.CosmicAppletTime",

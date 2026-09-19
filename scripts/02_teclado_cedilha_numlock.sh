@@ -100,17 +100,11 @@ for compose_file in /usr/share/X11/locale/en_US.UTF-8/Compose /usr/share/X11/loc
     fi
 done
 
-# Configuração de flags para Electron / Chromium / IDEs no Pop!_OS (COSMIC Wayland)
-# Com 'keyboard.dispatch: keyCode' no settings.json, o cedilha funciona nativamente sem forçar XWayland
-for conf in "$REAL_HOME/.config/antigravity-flags.conf" "$REAL_HOME/.config/antigravity-ide-flags.conf" "$REAL_HOME/.config/code-flags.conf" "$REAL_HOME/.config/electron-flags.conf"; do
+# Configuração de flags para Electron / Chromium / IDEs no Pop!_OS (COSMIC Wayland puro)
+# Com o patch de CharacterComposer, Wayland nativo funciona perfeitamente com '+c = ç
+for conf in "$REAL_HOME/.config/antigravity-flags.conf" "$REAL_HOME/.config/antigravity-ide-flags.conf" "$REAL_HOME/.config/code-flags.conf" "$REAL_HOME/.config/electron-flags.conf" "$REAL_HOME/.config/chrome-flags.conf" "$REAL_HOME/.config/brave-flags.conf"; do
     cat << 'EOF' > "$conf"
 --ozone-platform=wayland
-EOF
-done
-
-for conf in "$REAL_HOME/.config/chrome-flags.conf" "$REAL_HOME/.config/brave-flags.conf"; do
-    cat << 'EOF' > "$conf"
---ozone-platform-hint=auto
 EOF
 done
 chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/"*-flags.conf 2>/dev/null || true
@@ -134,7 +128,21 @@ for p in [
                 f.writelines(lines)
 " 2>/dev/null || true
 
-# 6. Ativação física e persistente do NumLock no Boot (Systemd e Udev)
+# 6. Instalação do utilitário global patch-cedilla-electron e Hook do APT
+log_msg "INFO" "Instalando utilitário global patch-cedilla-electron e Hook de persistência do APT..."
+sudo cp -f "$SCRIPT_DIR/patch_cedilla_electron.py" /usr/local/bin/patch-cedilla-electron
+sudo chmod +x /usr/local/bin/patch-cedilla-electron
+
+# Criação do Hook APT para reaplicar o patch após qualquer atualização de pacotes (Chrome, Code, etc.)
+cat << 'EOF' | sudo tee /etc/apt/apt.conf.d/99-patch-cedilla-electron > /dev/null
+DPkg::Post-Invoke { "if [ -x /usr/local/bin/patch-cedilla-electron ]; then /usr/local/bin/patch-cedilla-electron >/dev/null 2>&1 || true; fi"; };
+EOF
+
+# Aplicação imediata do patch nos binários instalados
+log_msg "INFO" "Aplicando patch de cedilha nos binários Chromium/Electron existentes..."
+sudo /usr/local/bin/patch-cedilla-electron || true
+
+# 7. Ativação física e persistente do NumLock no Boot (Systemd e Udev)
 log_msg "INFO" "Criando serviço Systemd e regras Udev para o NumLock..."
 cat << 'EOF' | sudo tee /etc/systemd/system/numlock.service > /dev/null
 [Unit]
@@ -162,7 +170,7 @@ EOF
 sudo udevadm control --reload-rules 2>/dev/null || true
 sudo udevadm trigger --subsystem-match=leds 2>/dev/null || true
 
-# 7. Configuração do NumLock no COSMIC Greeter (Tela de Login) e Perfil do Usuário
+# 8. Configuração do NumLock no COSMIC Greeter (Tela de Login) e Perfil do Usuário
 log_msg "INFO" "Configurando persistência do NumLock no COSMIC Greeter e Sessão do Usuário..."
 USER_COSMIC_DIR="$REAL_HOME/.config/cosmic/com.system76.CosmicComp/v1"
 mkdir -p "$USER_COSMIC_DIR"

@@ -74,6 +74,15 @@ sudo mkdir -p /opt/antigravity/bin
 sudo cp -f /usr/local/bin/antigravity /opt/antigravity/bin/antigravity-ide
 sudo chmod +x /opt/antigravity/bin/antigravity-ide
 
+# Aplica patch definitivo do cedilha (' + c = ç) na tabela CharacterComposer do Electron
+if [ -x /usr/local/bin/patch-cedilla-electron ]; then
+    log_msg "INFO" "Aplicando patch de cedilha ('+c = ç) no Antigravity IDE..."
+    sudo /usr/local/bin/patch-cedilla-electron /opt/antigravity/antigravity-ide 2>/dev/null || true
+elif [ -f "$SCRIPT_DIR/patch_cedilla_electron.py" ]; then
+    log_msg "INFO" "Aplicando patch de cedilha ('+c = ç) no Antigravity IDE via script local..."
+    sudo python3 "$SCRIPT_DIR/patch_cedilla_electron.py" /opt/antigravity/antigravity-ide 2>/dev/null || true
+fi
+
 # Configuração de flags de inicialização para Wayland nativo (evita crashes caso XWayland falhe)
 mkdir -p "$REAL_HOME/.config"
 cat << 'EOF' > "$REAL_HOME/.config/antigravity-flags.conf"

@@ -14,10 +14,11 @@ Script de automação e provisionamento idempotente para configuração completa
 *   **Teclado (Redragon Horus Pro):**
     *   Delay do Backspace ajustado para 180ms (resposta imediata) e taxa de repetição para 18ms (~55 caracteres/seg).
     *   **Fix Oficial do Cedilha & Aspas do Windows:** Configuração com `~/.XCompose`, correção das tabelas de Compose (`/usr/share/X11/locale/pt_BR.UTF-8/Compose` e `en_US.UTF-8/Compose`) e exportação de `XCOMPOSEFILE`. Garante `' + c = ç` nativo em terminais e apps do sistema.
-    *   **Cedilha e Acentuação nas IDEs (Wayland Nativo com `keyboard.dispatch: keyCode`):**
-        *   No VS Code e Antigravity IDE em Wayland nativo (`--ozone-platform=wayland`), o Electron por padrão mapeia teclas usando ScanCodes, o que causava `ć` ou ignorava sequências mortas.
-        *   Injetamos automaticamente `"keyboard.dispatch": "keyCode"` no `settings.json` de ambas as IDEs. Com isso, **o `' + c = ç` funciona nativamente em Wayland sem depender do XWayland** e sem gerar instabilidades de display!
-        *   Em navegadores Chromium (Chrome/Brave), as flags são gerenciadas com `--ozone-platform-hint=auto`. Atalho universal de hardware alternativo disponível: <kbd>AltGr</kbd>+<kbd>,</kbd> (para `ç`) e <kbd>AltGr</kbd>+<kbd>Shift</kbd>+<kbd>'</kbd> (para `"`). Diagnóstico completo e issues oficiais documentadas em [`Docs/issue_chromium_electron_cedilha_wayland.md`](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_chromium_electron_cedilha_wayland.md).
+    *   **Cedilha Definitivo nas IDEs e Navegadores (Wayland Nativo + Patch de CharacterComposer):**
+        *   Em Wayland nativo (`--ozone-platform=wayland`), o motor do Chromium/Electron ignora o XCompose e utiliza sua própria tabela estática interna (`ui::CharacterComposer`), onde `' + c` resultava em `ć` (U+0107).
+        *   Implementado o utilitário `/usr/local/bin/patch-cedilla-electron` (`scripts/patch_cedilla_electron.py`), que aplica um patch seguro e cirúrgico por padrão de bytes diretamente na tabela de composição dos binários (**Google Antigravity IDE**, **VS Code**, **Google Chrome** e **Brave**).
+        *   Configurado **Post-Invoke Hook no APT** (`/etc/apt/apt.conf.d/99-patch-cedilla-electron`), garantindo que qualquer atualização de pacotes reaplique o patch automaticamente e de forma transparente.
+        *   Todas as aplicações rodam em Wayland nativo puro (`--ozone-platform=wayland`), com máxima fluidez e aceleração gráfica, e `' + c` produzindo **`ç`** perfeitamente. Documentação detalhada em [`Docs/contexto_proxima_conversa_cedilha_teclado_us.md`](Docs/contexto_proxima_conversa_cedilha_teclado_us.md).
     *   **NumLock Permanente & Consistente (XKB + LED Sync):**
         *   Configuração nativa no motor de layout do COSMIC (`xkb_config` com `options: Some("numpad:mac")`) garantindo que o teclado numérico emita números em 100% das vezes, sem depender de modificadores instáveis.
         *   Persistência sincronizada em `/var/lib/cosmic-greeter/.config/cosmic/com.system76.CosmicComp/v1/` para ativação desde a tela de login.
@@ -103,8 +104,11 @@ Script de automação e provisionamento idempotente para configuração completa
     *   Aplicação automática de overrides de permissão de sistema de arquivos para acesso aos discos `/mnt/storage_700`, `/mnt/storage_930`, `/mnt` e integração com a bandeja do Wayland (`StatusNotifierWatcher` para o CopyQ).
     *   Associação do **OnlyOffice** como leitor padrão para documentos (`.docx`, `.xlsx`, `.pptx`).
 *   **Miniaplicativos Customizados (COSMIC):**
-    *   **Controle de Mídia:** Compilação do `cosmic-applet-music-player` (capa de álbum, título, botões MPRIS e controle por scroll) posicionado no **canto inferior esquerdo da Dock**.
+    *   **Controle de Mídia (Now Playing):** Instalação do applet oficial **Now Playing** (`com.github.DiegoMMR.CosmicExtAppletNowPlaying`) via repositório Flatpak do COSMIC, posicionado no **canto inferior esquerdo da Dock** com controles MPRIS, títulos e capas de álbuns.
     *   **Monitor de Sistema (Minimon):** Instalação do `cosmic-ext-applet-minimon` (da comunidade cosmic-utils), posicionado no **canto superior direito do Painel**, com menu dropdown exibindo uso e temperatura de CPU, memória RAM/Swap, discos, tráfego de rede e GPU/VRAM em tempo real.
+    *   **Clima & Meteorologia (Weather Applet):** `io.github.cosmic_utils.weather-applet` posicionado no **centro do Painel Superior**, ao lado do relógio do sistema.
+    *   **Consumo de IA & Tokens (YapCap):** `io.github.TopiCsarno.YapCap` integrado no painel superior para monitorar cotas e limites de API (Gemini / Claude / Antigravity).
+    *   **Montagem de Discos & Partições (Drives Applet):** `dev.cappsy.CosmicExtAppletDrives` para ejeção rápida e status de discos externos e internos na barra superior.
 *   **Balena Etcher (Gravador de Imagens / Bootable USB):** Download e instalação automatizada via pacote `.deb` oficial obtido dinamicamente da API do GitHub, com exceção de janela flutuante no compositor COSMIC configurada no módulo 14.
 *   **Espanso (Wayland):** Download do pacote `.deb` oficial, bibliotecas de compatibilidade wxWidgets 3.0 para o Pop!_OS 24.04 (noble), instalação e registro de serviço nativo (`espanso service register && espanso start`).
 *   **Kando:** Download dinâmico da última versão `.deb` diretamente da API do GitHub, com wrapper automático de compatibilidade para COSMIC Desktop / Wayland (forçando o backend XWayland).
@@ -197,7 +201,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/07_powershell7.sh` | Módulo de instalação oficial do Microsoft PowerShell 7 (`pwsh`), repositórios Microsoft e perfil do usuário. |
 | `scripts/08_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
 | `scripts/09_onlyoffice_padrao.sh` | Módulo de associação padrão: OnlyOffice para documentos office e Nautilus (`inode/directory`) como gerenciador de pastas padrão. |
-| `scripts/10_cosmic_applets_custom.sh` | Módulo de miniaplicativos customizados do COSMIC: controle de mídia na Dock e Minimon (monitor de CPU, RAM, Disco, Rede e GPU com dropdown) no painel. |
+| `scripts/10_cosmic_applets_custom.sh` | Módulo de miniaplicativos customizados do COSMIC: controle de mídia Now Playing (Flatpak) na Dock e Minimon (monitor de CPU, RAM, Disco, Rede e GPU com dropdown) no painel. |
 | `scripts/11_mouse_gaming.sh` | Módulo de gravação de polling rate 1000Hz, DPIs e macros na memória do mouse Logitech G502 X. |
 | `scripts/12_wacom_tablet.sh` | Módulo de suporte, regras udev, OpenTabletDriver Daemon Headless (Modo Canhoto 180° e atalhos) e pareamento da Wacom Intuos Pro. |
 | `scripts/13_kando_restore.sh` | Módulo de restauração de menus e atalho `Ctrl+Shift+F10` do Kando a partir do Google Drive. |
