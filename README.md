@@ -9,6 +9,7 @@ Script de automação e provisionamento idempotente para configuração completa
 ### 1. Otimizações de Sistema & Kernel
 *   **Swappiness (`vm.swappiness=10`):** Reduz a frequência de uso do swap em disco, aproveitando os 32 GB de RAM para máxima performance.
 *   **File Watchers (`fs.inotify.max_user_watches=524288`):** Eleva o teto de monitoramento de arquivos em tempo real para o VS Code, Antigravity IDE, Git e monorepos pesados.
+*   **DNS Local Permanente & Domínio de Roteamento (`~pk.local`):** Configuração persistente via drop-in do `systemd-resolved` (`/etc/systemd/resolved.conf.d/99-local-dns.conf`) e perfil do NetworkManager, definindo o DNS primário local (`192.168.0.8`), secundário de fallback (`1.1.1.1`) e o routing domain (`~pk.local`) para resolução imediata de hosts e aplicações web locais na rede sem conflito com mDNS.
 
 ### 2. Configurações de Periféricos, Teclado & Usabilidade
 *   **Teclado (Redragon Horus Pro):**
