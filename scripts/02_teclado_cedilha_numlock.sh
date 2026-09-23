@@ -213,5 +213,22 @@ for led in /sys/class/leds/*::numlock/brightness; do
     if [ -w "$led" ]; then echo 1 > "$led" 2>/dev/null || true; fi
 done
 
+# 9. Configuração do Daemon Alt Codes (Estilo Windows para Teclado Numérico sob Wayland)
+log_msg "INFO" "Instalando Daemon de Alt Codes do Windows e serviço de usuário..."
+mkdir -p "$REAL_HOME/.local/bin" "$REAL_HOME/.config/systemd/user"
+
+cp -f "$SCRIPT_DIR/alt-numpad-daemon.py" "$REAL_HOME/.local/bin/alt-numpad-daemon.py"
+chmod +x "$REAL_HOME/.local/bin/alt-numpad-daemon.py"
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/alt-numpad-daemon.py"
+
+cp -f "$BASE_DIR/config/systemd/user/alt-numpad.service" "$REAL_HOME/.config/systemd/user/alt-numpad.service"
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/systemd/user"
+
+# Habilita e inicia o serviço no escopo do usuário logado se o systemd user bus estiver disponível
+if [ -n "$REAL_UID" ]; then
+    sudo -u "$REAL_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user daemon-reload 2>/dev/null || true
+    sudo -u "$REAL_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user enable --now alt-numpad.service 2>/dev/null || true
+fi
+
 set_flag "$FLAG_NAME"
-log_msg "SUCCESS" "Teclado US-Intl, Cedilha e NumLock (Boot, Login Greeter, LED e Sessão) configurados com sucesso."
+log_msg "SUCCESS" "Teclado US-Intl, Cedilha, NumLock e Alt Codes (Numpad Windows) configurados com sucesso."

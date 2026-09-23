@@ -38,3 +38,8 @@ Thumbs.db
 .vscode/*.log
 
 /temp/
+
+# Python Cache
+.cache
+__pycache__
+**/__pycache__

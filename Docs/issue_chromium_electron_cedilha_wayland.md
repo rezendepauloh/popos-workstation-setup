@@ -76,8 +76,20 @@ Links oficiais nos repositórios do Chromium, Electron, VS Code e COSMIC para ac
 
 ---
 
-## 🗺️ 5. Roadmap de Atualização dos Scripts
+## ✅ 5. Solução Definitiva Implementada (Status: Resolvido)
 
-Assim que o **COSMIC Desktop (`cosmic-comp`)** e o **Chromium** finalizarem o suporte bidirecional ao protocolo `zwp_text_input_v3` com carregamento automático de Compose:
-1. O módulo [`scripts/02_teclado_cedilha_numlock.sh`](file:///home/rezendepauloh/Documentos/Scripts/scripts/02_teclado_cedilha_numlock.sh) será atualizado para expor a tabela Compose nativa via Wayland Input Method.
-2. A suíte continuará fornecendo o arquivo `~/.XCompose` e a sincronização do `XCOMPOSEFILE` para manter paridade absoluta entre aplicações nativas, terminais e editores.
+Em setembro de 2026, implementamos a solução definitiva e permanente no repositório através do utilitário [`scripts/patch_cedilla_electron.py`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/patch_cedilla_electron.py):
+
+1. **Patch Cirúrgico por Padrão de Bytes nos Binários:**
+   - O utilitário localiza os bytes estáveis compilados no `CharacterComposer` e substitui diretamente:
+     - `c (0x0063) -> ć (0x0107)` [`63 00 07 01`] ➔ [`63 00 e7 00`] (`ç`, `U+00E7`)
+     - `C (0x0043) -> Ć (0x0106)` [`43 00 06 01`] ➔ [`43 00 c7 00`] (`Ç`, `U+00C7`)
+     - `combining diaeresis (0x0308)` [`08 03 a8 00`] ➔ [`08 03 22 00`] (`"`, `U+0022` - aspas duplas, eliminando o trema `¨`)
+     - `combining acute (' 2x)` [`27 00 b4 00 2c 00 1a 20`] ➔ [`27 00 27 00 2c 00 1a 20`] (`'`, `U+0027` - aspas simples, eliminando o acento agudo isolado `´`)
+   - Cria backup imutável `.orig` de segurança e é 100% idempotente.
+   - Aplica-se a: **Google Antigravity IDE**, **VS Code**, **Google Chrome** e **Brave Browser**.
+
+2. **Persistência Total via Hook APT:**
+   - Registrado em `/etc/apt/apt.conf.d/99-patch-cedilla-electron`. Qualquer atualização futura via `apt upgrade` reaplica o patch automaticamente nos navegadores e editores.
+   - Integrado de ponta a ponta no provisionamento automatizado ([`scripts/02_teclado_cedilha_numlock.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/02_teclado_cedilha_numlock.sh) e [`scripts/08_antigravity_ide.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/08_antigravity_ide.sh)).
+

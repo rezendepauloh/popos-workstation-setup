@@ -15,15 +15,32 @@ Script de automação e provisionamento idempotente para configuração completa
 *   **Teclado (Redragon Horus Pro):**
     *   Delay do Backspace ajustado para 180ms (resposta imediata) e taxa de repetição para 18ms (~55 caracteres/seg).
     *   **Fix Oficial do Cedilha & Aspas do Windows:** Configuração com `~/.XCompose`, correção das tabelas de Compose (`/usr/share/X11/locale/pt_BR.UTF-8/Compose` e `en_US.UTF-8/Compose`) e exportação de `XCOMPOSEFILE`. Garante `' + c = ç` nativo em terminais e apps do sistema.
-    *   **Cedilha Definitivo nas IDEs e Navegadores (Wayland Nativo + Patch de CharacterComposer):**
-        *   Em Wayland nativo (`--ozone-platform=wayland`), o motor do Chromium/Electron ignora o XCompose e utiliza sua própria tabela estática interna (`ui::CharacterComposer`), onde `' + c` resultava em `ć` (U+0107).
-        *   Implementado o utilitário `/usr/local/bin/patch-cedilla-electron` (`scripts/patch_cedilla_electron.py`), que aplica um patch seguro e cirúrgico por padrão de bytes diretamente na tabela de composição dos binários (**Google Antigravity IDE**, **VS Code**, **Google Chrome** e **Brave**).
+    *   **Cedilha e Aspas do Windows Definitivos nas IDEs e Navegadores (Wayland Nativo + Patch de CharacterComposer):**
+        *   Em Wayland nativo (`--ozone-platform=wayland`), o motor do Chromium/Electron ignora o XCompose e utiliza sua própria tabela estática interna (`ui::CharacterComposer`), onde `' + c` resultava em `ć` (U+0107) e pressionar <kbd>"</kbd> (<kbd>Shift</kbd>+<kbd>'</kbd>) duas vezes resultava no trema `¨` (U+00A8).
+        *   Implementado o utilitário `/usr/local/bin/patch-cedilla-electron` (`scripts/patch_cedilla_electron.py`), que aplica um patch seguro e cirúrgico por padrão de bytes diretamente na tabela de composição dos binários (**Google Antigravity IDE**, **VS Code**, **Google Chrome** e **Brave**), garantindo:
+            *   <kbd>'</kbd> + <kbd>c</kbd> = **`ç`** e <kbd>'</kbd> + <kbd>C</kbd> = **`Ç`**
+            *   <kbd>"</kbd> 2x (<kbd>Shift</kbd>+<kbd>'</kbd> 2x) = **`"`** (em vez do trema `¨`)
+            *   <kbd>'</kbd> 2x = **`'`** (em vez do acento agudo isolado `´`)
         *   Configurado **Post-Invoke Hook no APT** (`/etc/apt/apt.conf.d/99-patch-cedilla-electron`), garantindo que qualquer atualização de pacotes reaplique o patch automaticamente e de forma transparente.
-        *   Todas as aplicações rodam em Wayland nativo puro (`--ozone-platform=wayland`), com máxima fluidez e aceleração gráfica, e `' + c` produzindo **`ç`** perfeitamente. Documentação detalhada em [`Docs/contexto_proxima_conversa_cedilha_teclado_us.md`](Docs/contexto_proxima_conversa_cedilha_teclado_us.md).
+        *   Todas as aplicações rodam em Wayland nativo puro (`--ozone-platform=wayland`), com máxima fluidez e aceleração gráfica. Documentação detalhada em [`Docs/issue_chromium_electron_cedilha_wayland.md`](Docs/issue_chromium_electron_cedilha_wayland.md).
     *   **NumLock Permanente & Consistente (XKB + LED Sync):**
         *   Configuração nativa no motor de layout do COSMIC (`xkb_config` com `options: Some("numpad:mac")`) garantindo que o teclado numérico emita números em 100% das vezes, sem depender de modificadores instáveis.
         *   Persistência sincronizada em `/var/lib/cosmic-greeter/.config/cosmic/com.system76.CosmicComp/v1/` para ativação desde a tela de login.
         *   Utilitário nativo `/usr/local/bin/numlock-on` (Python/evdev/uinput) e serviço no autostart para acender imediatamente o LED físico do teclado no login. Documentação em [`Docs/issue_cosmic_numlock_boot.md`](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_cosmic_numlock_boot.md).
+    *   **Alt Codes do Windows no Teclado Numérico (Daemon evdev + uinput em Wayland):**
+        *   Implementado o daemon de usuário [`scripts/alt-numpad-daemon.py`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/alt-numpad-daemon.py) gerenciado pelo systemd (`alt-numpad.service`), que traz para o Pop!_OS e COSMIC Desktop (Wayland) o comportamento clássico do Windows:
+            *   <kbd>Alt</kbd> + <kbd>1</kbd><kbd>6</kbd><kbd>7</kbd> = **`º`** *(Ordinal masculino)*
+            *   <kbd>Alt</kbd> + <kbd>1</kbd><kbd>6</kbd><kbd>6</kbd> = **`ª`** *(Ordinal feminino)*
+            *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>6</kbd><kbd>7</kbd> = **`§`** *(Parágrafo / Seção)*
+            *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>7</kbd><kbd>6</kbd> = **`°`** *(Grau)*
+            *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>5</kbd><kbd>3</kbd> = **`™`** *(Trademark)*
+            *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>6</kbd><kbd>9</kbd> = **`©`** *(Copyright)*
+            *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>7</kbd><kbd>4</kbd> = **`®`** *(Marca Registrada)*
+            *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>5</kbd><kbd>1</kbd> = **`—`** *(Travessão / Em-dash)*
+            *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>4</kbd><kbd>9</kbd> = **`•`** *(Bullet Point)*
+            *   <kbd>Alt</kbd> + <kbd>8</kbd><kbd>8</kbd> = **`⭡`** | <kbd>Alt</kbd> + <kbd>6</kbd><kbd>6</kbd> = **`⭢`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>2</kbd> = **`⭣`** | <kbd>Alt</kbd> + <kbd>4</kbd><kbd>4</kbd> = **`⭠`** *(Setas Triangulares)*
+            *   <kbd>Alt</kbd> + <kbd>2</kbd><kbd>4</kbd> = **`↑`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>6</kbd> = **`→`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>5</kbd> = **`↓`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>7</kbd> = **`←`** *(Setas Clássicas)*
+        *   Opera via interceptação limpa de hardware (`evdev`) no teclado físico, sem repassar dígitos soltos enquanto <kbd>Alt</kbd> estiver pressionado, e injeta o caractere atômico correspondente ao soltar a tecla. Atalhos normais como <kbd>Alt</kbd>+<kbd>Tab</kbd> e <kbd>Alt</kbd>+<kbd>F4</kbd> permanecem 100% preservados. Documentação em [`Docs/issue_alt_codes_numpad_wayland.md`](Docs/issue_alt_codes_numpad_wayland.md).
 *   **Janelas (Estilo Windows):** Ativa botões de Minimizar, Maximizar e Fechar na barra de título e minimização com clique do botão do meio.
 *   **Mouse (Logitech G502 X):**
     *   Desativa a aceleração dinâmica de ponteiro (perfil plano linear `flat` 1:1).

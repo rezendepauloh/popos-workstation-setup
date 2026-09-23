@@ -15,8 +15,14 @@ DEFAULT_TARGETS = [
 ]
 
 PATCHES = [
+    # Cedilha: ' + c -> ç e ' + C -> Ç
     ("c -> ç", b"\x63\x00\x07\x01", b"\x63\x00\xe7\x00"),
     ("C -> Ç", b"\x43\x00\x06\x01", b"\x43\x00\xc7\x00"),
+    # Aspas duplas (" 2x ou Shift+' isolado): converte U+00A8 (¨) em U+0022 (")
+    ("¨ -> \" (subtable)", b"\x22\x00\xa8\x00\x27\x00\x44\x03", b"\x22\x00\x22\x00\x27\x00\x44\x03"),
+    ("¨ -> \" (standalone)", b"\x08\x03\xa8\x00", b"\x08\x03\x22\x00"),
+    # Aspas simples (' 2x ou ' isolado): converte U+00B4 (´) em U+0027 (')
+    ("'' -> '", b"\x27\x00\xb4\x00\x2c\x00\x1a\x20", b"\x27\x00\x27\x00\x2c\x00\x1a\x20"),
 ]
 
 def patch_binary(path):
@@ -30,18 +36,18 @@ def patch_binary(path):
         print(f"[erro] Não foi possível ler {path}: {e}", file=sys.stderr)
         return False
 
-    total_old = sum(data.count(old) for _, old, _ in PATCHES)
-    if total_old == 0:
-        patched_new = sum(data.count(new) for _, _, new in PATCHES)
-        if patched_new > 0:
-            print(f"[ok] {path} já está com o patch do cedilha aplicado.")
+    pending_patches = [(desc, old, new) for desc, old, new in PATCHES if old in data]
+    if not pending_patches:
+        already_applied = all(new in data for _, _, new in PATCHES)
+        if already_applied:
+            print(f"[ok] {path} já está com todos os patches (cedilha e aspas) aplicados.")
             return True
-        print(f"[aviso] Padrão não encontrado em {path} (versão incompatível ou já tratada).", file=sys.stderr)
+        print(f"[aviso] Padrões não encontrados em {path} (versão incompatível ou já tratada).", file=sys.stderr)
         return False
 
     new_data = data
     report = []
-    for desc, old, new in PATCHES:
+    for desc, old, new in pending_patches:
         n = new_data.count(old)
         new_data = new_data.replace(old, new)
         report.append(f"{desc}: {n}")
