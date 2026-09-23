@@ -13,7 +13,7 @@ Script de automação e provisionamento idempotente para configuração completa
 
 ### 2. Configurações de Periféricos, Teclado & Usabilidade
 *   **Teclado (Redragon Horus Pro):**
-    *   Delay do Backspace ajustado para 180ms (resposta imediata) e taxa de repetição para 18ms (~55 caracteres/seg).
+    *   Delay de repetição ajustado para 300ms (ergonomia equilibrada para teclado mecânico sem repetições fantasmas) e taxa de repetição para 30ms (~33 caracteres/seg para apagar/navegar rápido).
     *   **Fix Oficial do Cedilha & Aspas do Windows:** Configuração com `~/.XCompose`, correção das tabelas de Compose (`/usr/share/X11/locale/pt_BR.UTF-8/Compose` e `en_US.UTF-8/Compose`) e exportação de `XCOMPOSEFILE`. Garante `' + c = ç` nativo em terminais e apps do sistema.
     *   **Cedilha e Aspas do Windows Definitivos nas IDEs e Navegadores (Wayland Nativo + Patch de CharacterComposer):**
         *   Em Wayland nativo (`--ozone-platform=wayland`), o motor do Chromium/Electron ignora o XCompose e utiliza sua própria tabela estática interna (`ui::CharacterComposer`), onde `' + c` resultava em `ć` (U+0107) e pressionar <kbd>"</kbd> (<kbd>Shift</kbd>+<kbd>'</kbd>) duas vezes resultava no trema `¨` (U+00A8).
@@ -87,6 +87,10 @@ Script de automação e provisionamento idempotente para configuração completa
     *   **HD Storage 700:** `/mnt/storage_700` (ext4 com `defaults,noatime`)
 *   **Permissões Automáticas:** Concede propriedade total ao usuário (`chown -R $USER:$USER`) e permissões de leitura/escrita (`chmod -R 775`) em todos os discos.
 *   **Redirecionamento de Diretórios:** Altera o `~/.config/user-dirs.dirs` para ancorar a pasta nativa **Downloads** no HD Storage 700 (`/mnt/storage_700/Downloads`).
+*   **Compartilhamento de Rede Local Samba (`/mnt/storage_700/samba`):**
+    *   Servidor Samba instalado e configurado nativamente (`25_samba_storage.sh`) compartilhando o diretório `/mnt/storage_700/samba` na rede local (`192.168.0.0/24`) com o share `[Storage700]`.
+    *   Compatibilidade total e idêntica com o padrão do Homelab/UmbrelOS (`force user = rezendepauloh`, permissões `0775` para criação de pastas e arquivos, escrita e navegação liberadas).
+    *   Portas NetBIOS e SMB (`137,138/udp` e `139,445/tcp`) liberadas no firewall UFW para a subnet local.
 *   **Manutenção de SSDs & Otimizações Globais:** Ativação do TRIM semanal (`fstrim.timer`) para preservação dos NVMes, limites elevados de I/O e file watchers (`vm.dirty_ratio`, `inotify`), Docker socket sob demanda, quantum reduzido do PipeWire (512), firewall UFW protegido para Dev, backup semanal agendado de dotfiles/automações e limpeza profunda com `apt autoremove/clean` e remoção de flatpaks órfãos.
 
 ### 6. Sincronização de Múltiplas Nuvens (Rclone VFS)

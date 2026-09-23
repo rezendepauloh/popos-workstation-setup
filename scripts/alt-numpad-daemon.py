@@ -311,11 +311,13 @@ class AltNumpadManager:
                     # Envia o Alt que estava represado para a aplicação receber o atalho normalmente
                     self.emit_key(ecodes.KEY_LEFTALT, 1)
                 # Repassa a tecla atual
-                self.emit_key(keycode, value)
+                self.uinput.write(ecodes.EV_KEY, keycode, value)
+                self.uinput.syn()
                 return
 
         # 3. Demais teclas com Alt solto: Repasse transparente 1:1
-        self.emit_key(keycode, value)
+        self.uinput.write(ecodes.EV_KEY, keycode, value)
+        self.uinput.syn()
 
     def run(self):
         logger.info("Daemon Alt-Numpad iniciado e em execução.")

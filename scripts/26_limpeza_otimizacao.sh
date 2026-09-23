@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Módulo 25: Limpeza Final, Otimização de Recursos e Hardening
+# Módulo 26: Limpeza Final, Otimização de Recursos e Hardening
 # Implementa as melhorias de performance, docker sob demanda, rede e backups
 # ==============================================================================
 
@@ -15,7 +15,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "25. LIMPEZA FINAL, OTIMIZAÇÕES E HARDENING DO SISTEMA"
+log_msg "HEADER" "26. LIMPEZA FINAL, OTIMIZAÇÕES E HARDENING DO SISTEMA"
 
 # ------------------------------------------------------------------------------
 # 1. Limpeza de Pacotes e Runtimes
@@ -117,6 +117,10 @@ if command -v ufw >/dev/null 2>&1; then
 
     log_msg "INFO" "Configurando firewall UFW Dozzle Agent Homelab..."
     sudo ufw allow from 192.168.0.0/24 to any port 7007 proto tcp comment 'Dozzle Agent Homelab' >/dev/null 2>&1 || true
+
+    log_msg "INFO" "Configurando firewall UFW Servidor Samba..."
+    sudo ufw allow from 192.168.0.0/24 to any port 137,138 proto udp comment 'Samba NetBIOS UDP' >/dev/null 2>&1 || true
+    sudo ufw allow from 192.168.0.0/24 to any port 139,445 proto tcp comment 'Samba SMB TCP' >/dev/null 2>&1 || true
 
     # Habilita firewall de forma não interativa
     log_msg "INFO" "Habilitando firewall UFW..."
