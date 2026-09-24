@@ -105,18 +105,26 @@ FOLDERS_TO_BACKUP=(
     "/sdcard/Movies"                             # Vídeos e gravações de tela
     "/sdcard/Music"                              # Músicas e áudios
     "/sdcard/Audiobooks"                         # Áudios
+    "/sdcard/Podcasts"                           # Podcasts baixados
     "/sdcard/Recordings"                         # Gravador de voz nativo
+    "/sdcard/VoiceRecorder"                      # Gravador de voz alternativo (Samsung/LG)
+    "/sdcard/Sounds"                             # Sons e gravações
     "/sdcard/Notifications"                      # Sons e toques recebidos
     "/sdcard/Ringtones"                          # Toques de chamada
+    "/sdcard/Alarms"                             # Sons de alarme personalizados
     "/sdcard/com.xiaomi.bluetooth"               # Arquivos recebidos via Bluetooth
     "/sdcard/MIUI/backup"                        # Backups locais de apps/sistema Xiaomi
-    "/sdcard/Android/media/com.whatsapp"         # Mídias e bancos locais do WhatsApp
+    "/sdcard/WhatsApp"                           # WhatsApp legado (Databases/msgstore e Backups)
+    "/sdcard/Telegram"                           # Mídias salvas do Telegram
+    "/sdcard/Android/media/com.whatsapp"         # Mídias do WhatsApp moderno
+    "/sdcard/Android/media/com.whatsapp.w4b"     # WhatsApp Business
+    "/sdcard/Android/media/org.telegram.messenger" # Telegram oficial
 )
 
 TOTAL_STEPS=${#FOLDERS_TO_BACKUP[@]}
 CURRENT_STEP=0
 
-echo -e "${C_CYAN}🚀 Iniciando cópia em lote dos diretórios...${C_RESET}"
+echo -e "${C_CYAN}🚀 Iniciando cópia em lote dos diretórios de mídia e arquivos...${C_RESET}"
 
 for SRC in "${FOLDERS_TO_BACKUP[@]}"; do
     CURRENT_STEP=$((CURRENT_STEP + 1))
@@ -130,25 +138,60 @@ for SRC in "${FOLDERS_TO_BACKUP[@]}"; do
     if [ "$CHECK_EXISTS" = "SIM" ]; then
         DEST_SUBDIR="$TARGET_DIR"
         
-        # Se for a pasta do WhatsApp dentro de Android/media, preserva o caminho
-        if [[ "$SRC" == *"com.whatsapp"* ]]; then
+        # Mapeamentos organizados para pastas especiais
+        if [[ "$SRC" == *"com.whatsapp.w4b"* ]]; then
+            DEST_SUBDIR="$TARGET_DIR/WhatsApp_Business_Media"
+            mkdir -p "$DEST_SUBDIR"
+            adb pull "$SRC" "$DEST_SUBDIR/" 2>&1 | tr '\r' '\n' | tail -n 5 || true
+        elif [[ "$SRC" == *"com.whatsapp"* ]]; then
             DEST_SUBDIR="$TARGET_DIR/WhatsApp_Media"
+            mkdir -p "$DEST_SUBDIR"
+            adb pull "$SRC" "$DEST_SUBDIR/" 2>&1 | tr '\r' '\n' | tail -n 5 || true
+        elif [[ "$SRC" == *"org.telegram.messenger"* ]]; then
+            DEST_SUBDIR="$TARGET_DIR/Telegram_Android_Media"
             mkdir -p "$DEST_SUBDIR"
             adb pull "$SRC" "$DEST_SUBDIR/" 2>&1 | tr '\r' '\n' | tail -n 5 || true
         else
             adb pull "$SRC" "$DEST_SUBDIR/" 2>&1 | tr '\r' '\n' | tail -n 5 || true
         fi
         
-        echo -e "${C_GREEN}[✓] Concluído: $FOLDER_NAME salvo em $TARGET_DIR/${C_RESET}"
+        echo -e "${C_GREEN}[✓] Concluído: $FOLDER_NAME salvo em $DEST_SUBDIR/${C_RESET}"
     else
         echo -e "${C_YELLOW}[-] Diretório não encontrado no aparelho (ignorado): $SRC${C_RESET}"
     fi
 done
 
-# 6. Lista de aplicativos instalados (APK Packages)
-echo -e "\n${C_BOLD}[Extra] Gerando lista de aplicativos instalados (Play Store)...${C_RESET}"
-adb shell pm list packages -3 2>/dev/null | sed 's/^package://' | sort > "$TARGET_DIR/lista_aplicativos_instalados.txt" || true
-echo -e "${C_GREEN}[✓] Lista salva em: $TARGET_DIR/lista_aplicativos_instalados.txt${C_RESET}"
+# 6. Lista de aplicativos e Extração de APKs
+echo -e "\n${C_BOLD}[Extra] Gerando lista de aplicativos instalados (Play Store / Terceiros)...${C_RESET}"
+PACKAGES=$(adb shell pm list packages -3 2>/dev/null | sed 's/^package://' | tr -d '\r' | sort || true)
+echo "$PACKAGES" > "$TARGET_DIR/lista_aplicativos_instalados.txt"
+TOTAL_APPS=$(echo "$PACKAGES" | grep -c . || true)
+echo -e "${C_GREEN}[✓] Lista com $TOTAL_APPS aplicativos salva em: $TARGET_DIR/lista_aplicativos_instalados.txt${C_RESET}"
+
+# Extração dos instaladores reais (.apk) dos aplicativos de usuário
+echo ""
+read -r -p "Deseja também extrair e salvar os instaladores APK de todos esses apps para reinstalação automática offline? (S/n): " EXTRACT_APKS
+EXTRACT_APKS=${EXTRACT_APKS:-S}
+
+if [[ "$EXTRACT_APKS" =~ ^[sS]$ ]]; then
+    APK_DIR="$TARGET_DIR/APKs"
+    mkdir -p "$APK_DIR"
+    echo -e "${C_CYAN}📦 Extraindo APKs para $APK_DIR...${C_RESET}"
+    
+    IDX=0
+    while IFS= read -r pkg; do
+        [ -z "$pkg" ] && continue
+        IDX=$((IDX + 1))
+        echo -ne "  [${IDX}/${TOTAL_APPS}] Extraindo $pkg... \r"
+        
+        # Obtém o caminho do base.apk
+        APK_PATH=$(adb shell pm path "$pkg" 2>/dev/null | head -n 1 | sed 's/^package://' | tr -d '\r')
+        if [ -n "$APK_PATH" ]; then
+            adb pull "$APK_PATH" "$APK_DIR/${pkg}.apk" >/dev/null 2>&1 || true
+        fi
+    done <<< "$PACKAGES"
+    echo -e "\n${C_GREEN}[✓] Extração de APKs concluída com sucesso em: $APK_DIR${C_RESET}"
+fi
 
 # 7. Resumo e Estatísticas
 BACKUP_SIZE=$(du -sh "$TARGET_DIR" 2>/dev/null | awk '{print $1}')
@@ -159,10 +202,12 @@ echo -e "${C_GREEN}${C_BOLD}               🎉 BACKUP DO ANDROID CONCLUÍDO COM
 echo -e "${C_GREEN}${C_BOLD}==============================================================================${C_RESET}"
 echo -e "  📂 ${C_BOLD}Pasta Salva:${C_RESET} $TARGET_DIR"
 echo -e "  💾 ${C_BOLD}Espaço Total Ocupado:${C_RESET} $BACKUP_SIZE"
-echo -e "  📋 ${C_BOLD}Itens Arquivados:${C_RESET} DCIM, Pictures, Download, Documents, Movies, Músicas, WhatsApp Media e Lista de Apps."
+echo -e "  📋 ${C_BOLD}Itens Arquivados:${C_RESET} DCIM, Pictures, Download, Documents, Movies, Músicas, Mensageiros e Lista/APKs de Apps."
 echo ""
 echo -e "${C_YELLOW}${C_BOLD}⚠️  LEMBRETE ANTES DE RESETAR O CELULAR AOS PADRÕES DE FÁBRICA:${C_RESET}"
 echo -e "  1. Faça o backup das conversas no ${C_BOLD}Google Drive do WhatsApp${C_RESET} pelo próprio app."
 echo -e "  2. Acesse ${C_BOLD}Configurações > Contas${C_RESET} e ${C_BOLD}REMOVA a Conta Google${C_RESET} do aparelho (para evitar bloqueio FRP)."
+echo -e "  3. Para senhas e logins em apps: verifique se estão sincronizados no ${C_BOLD}Gerenciador de Senhas do Google / Bitwarden${C_RESET}."
 echo -e "${C_GREEN}${C_BOLD}==============================================================================${C_RESET}"
 echo ""
+

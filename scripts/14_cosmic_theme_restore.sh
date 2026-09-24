@@ -87,7 +87,31 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 3. Otimização de Tema Escuro e Contraste para o VLC Media Player (Qt5 / QSS)
+# 3. Atalhos Customizados de Teclado do COSMIC (ex: Super+Shift+S para Captura de Tela)
+# ------------------------------------------------------------------------------
+log_msg "INFO" "Configurando atalhos de teclado customizados do COSMIC..."
+SHORTCUTS_DIR="$REAL_HOME/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1"
+mkdir -p "$SHORTCUTS_DIR"
+
+cat << 'EOF' > "$SHORTCUTS_DIR/custom"
+{
+    (
+        modifiers: [
+            Super,
+        ],
+    ): System(Launcher),
+    (
+        modifiers: [
+            Super,
+            Shift,
+        ],
+        key: "s",
+    ): System(Screenshot),
+}
+EOF
+
+# ------------------------------------------------------------------------------
+# 4. Otimização de Tema Escuro e Contraste para o VLC Media Player (Qt5 / QSS)
 # ------------------------------------------------------------------------------
 log_msg "INFO" "Configurando folha de estilos (QSS) de alto contraste para o VLC Media Player..."
 

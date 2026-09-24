@@ -33,5 +33,27 @@ if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
     sudo flatpak override --filesystem=host --talk-name=org.freedesktop.Flatpak com.rcloneui.RcloneUI 2>/dev/null || true
 fi
 
+log_msg "INFO" "Configurando permissões e integração de bandeja para o Nextcloud Desktop Client..."
+NC_APP_ID="com.nextcloud.desktopclient.nextcloud"
+flatpak override --user \
+    --talk-name=org.kde.StatusNotifierWatcher \
+    --talk-name=org.freedesktop.StatusNotifierWatcher \
+    --talk-name='org.kde.StatusNotifierItem-*' \
+    --filesystem=home \
+    --filesystem=/mnt/storage_700 \
+    --filesystem=/mnt/storage_930 \
+    "$NC_APP_ID" 2>/dev/null || true
+
+if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
+    sudo flatpak override \
+        --talk-name=org.kde.StatusNotifierWatcher \
+        --talk-name=org.freedesktop.StatusNotifierWatcher \
+        --talk-name='org.kde.StatusNotifierItem-*' \
+        --filesystem=home \
+        --filesystem=/mnt/storage_700 \
+        --filesystem=/mnt/storage_930 \
+        "$NC_APP_ID" 2>/dev/null || true
+fi
+
 set_flag "$FLAG_NAME"
 log_msg "SUCCESS" "Overrides de Flatpak aplicados com sucesso."

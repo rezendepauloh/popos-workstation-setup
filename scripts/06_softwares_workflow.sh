@@ -64,7 +64,18 @@ flatpak install -y --system flathub \
     org.gimp.GIMP \
     org.telegram.desktop \
     com.rtosta.zapzap \
-    org.localsend.localsend_app
+    org.localsend.localsend_app \
+    com.nextcloud.desktopclient.nextcloud
+
+# 2.0 Pré-estruturação do diretório de dados do Nextcloud
+NC_SYNC_FOLDER="${NEXTCLOUD_SYNC_DIR:-$REAL_HOME/Nextcloud}"
+log_msg "INFO" "Garantindo diretório local de sincronização do Nextcloud em: $NC_SYNC_FOLDER..."
+mkdir -p "$NC_SYNC_FOLDER"
+chown -R "$REAL_USER:$REAL_USER" "$NC_SYNC_FOLDER" 2>/dev/null || true
+
+NC_FLATPAK_CONFIG_DIR="$REAL_HOME/.var/app/com.nextcloud.desktopclient.nextcloud/config/Nextcloud"
+mkdir -p "$NC_FLATPAK_CONFIG_DIR"
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.var/app/com.nextcloud.desktopclient.nextcloud" 2>/dev/null || true
 
 # 2.1 Customização PhotoGIMP (Diolinux/PhotoGIMP) para GIMP Flatpak
 log_msg "INFO" "Configurando patch do PhotoGIMP para interface e atalhos estilo Photoshop..."

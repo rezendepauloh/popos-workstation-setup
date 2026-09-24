@@ -76,10 +76,25 @@ X-GNOME-Autostart-enabled=true
 X-GNOME-Autostart-Delay=5
 EOF
 
+# 5. Nextcloud Desktop Client (Background Sync)
+cat << 'EOF' > "$AUTOSTART_DIR/com.nextcloud.desktopclient.nextcloud.desktop"
+[Desktop Entry]
+Type=Application
+Name=Nextcloud
+GenericName=File Synchronizer
+Comment=Nextcloud desktop synchronization client
+Exec=flatpak run com.nextcloud.desktopclient.nextcloud --background
+Icon=com.nextcloud.desktopclient.nextcloud
+Terminal=false
+Categories=Network;Utility;
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=3
+EOF
+
 # Remove entradas duplicadas, legadas ou obsoletas (Espanso roda via systemd user service)
 rm -f "$AUTOSTART_DIR/numlock.desktop" "$AUTOSTART_DIR/espanso.desktop" 2>/dev/null || true
 
 chown -R "$REAL_USER:$REAL_USER" "$AUTOSTART_DIR"
 
 set_flag "$FLAG_NAME"
-log_msg "SUCCESS" "Entradas de autostart otimizadas para CopyQ, Kando, NumLock LED e OpenTabletDriver."
+log_msg "SUCCESS" "Entradas de autostart otimizadas para CopyQ, Kando, NumLock LED, Sunshine e Nextcloud."

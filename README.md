@@ -121,9 +121,9 @@ Script de automação e provisionamento idempotente para configuração completa
     *   **Proteção Contra Crashes & Locks:** Limpeza automática de `code.lock`, `GPUCache`, `DawnGraphiteCache`, `DawnWebGPUCache` e relatórios de crash pendentes.
     *   Instalação de ícones hicolor de alta resolução e entrada `.desktop` com categorias e mimetypes no menu de aplicativos (com cópia prioritária em `~/.local/share/applications/`).
 *   **Aplicativos Flatpak & Overrides:**
-    *   Instalação de **Dropbox**, **CopyQ**, **OnlyOffice Desktop Editors**, **Jellyfin Desktop**, **GIMP** e **LocalSend**.
+    *   Instalação de **Nextcloud Desktop Client** (`com.nextcloud.desktopclient.nextcloud`), **Dropbox**, **CopyQ**, **OnlyOffice Desktop Editors**, **Jellyfin Desktop**, **GIMP** e **LocalSend**.
     *   **Patch PhotoGIMP (Diolinux/PhotoGIMP):** Aplicação automatizada do patch de customização sobre o GIMP Flatpak, trazendo layout da interface e atalhos de teclado espelhados no Adobe Photoshop, splash screen customizada e ícones de alta resolução.
-    *   Aplicação automática de overrides de permissão de sistema de arquivos para acesso aos discos `/mnt/storage_700`, `/mnt/storage_930`, `/mnt` e integração com a bandeja do Wayland (`StatusNotifierWatcher` para o CopyQ).
+    *   Aplicação automática de overrides de permissão de sistema de arquivos para acesso aos discos `/mnt/storage_700`, `/mnt/storage_930`, `/mnt` e integração com a bandeja do Wayland (`StatusNotifierWatcher` para o CopyQ e Nextcloud Desktop Client).
     *   Associação do **OnlyOffice** como leitor padrão para documentos (`.docx`, `.xlsx`, `.pptx`).
 *   **Miniaplicativos Customizados (COSMIC):**
     *   **Controle de Mídia (Now Playing):** Instalação do applet oficial **Now Playing** (`com.github.DiegoMMR.CosmicExtAppletNowPlaying`) via repositório Flatpak do COSMIC, posicionado no **canto inferior esquerdo da Dock** com controles MPRIS, títulos e capas de álbuns.
@@ -134,13 +134,14 @@ Script de automação e provisionamento idempotente para configuração completa
 *   **Balena Etcher (Gravador de Imagens / Bootable USB):** Download e instalação automatizada via pacote `.deb` oficial obtido dinamicamente da API do GitHub, com exceção de janela flutuante no compositor COSMIC configurada no módulo 14.
 *   **Espanso (Wayland):** Download do pacote `.deb` oficial, bibliotecas de compatibilidade wxWidgets 3.0 para o Pop!_OS 24.04 (noble), instalação e registro de serviço nativo (`espanso service register && espanso start`).
 *   **Kando:** Download dinâmico da última versão `.deb` diretamente da API do GitHub, com wrapper automático de compatibilidade para COSMIC Desktop / Wayland (forçando o backend XWayland).
-*   **Autostart do Sistema:** Configuração de inicialização automática no login do usuário (`~/.config/autostart`) para **CopyQ**, **Kando**, **Espanso** e **NumLock**.
+*   **Autostart do Sistema:** Configuração de inicialização automática no login do usuário (`~/.config/autostart`) para **CopyQ**, **Kando**, **Espanso**, **NumLock**, **Sunshine** e **Nextcloud** (iniciado com `--background`).
 
 ### 8. Restauração de Backups, Customizações e Dotfiles
 *   **Kando:** Restaura configurações gerais (`config.json`) e menus (`menus.json` com o atalho `Control+Shift+F10` injetado via `jq`) a partir de `~/GoogleDrive_Pessoal/Organização/Kando/Casa`.
 *   **COSMIC DE, Temas, Dock & Biblioteca de Apps:** Restaura configurações do painel COSMIC (`~/.config/cosmic`), pontes visuais legadas (`gtk-3.0`, `gtk-4.0`, `qt5ct`, `qt6ct`) e perfil completo do **VLC Media Player** (`vlc/`) a partir de `~/GoogleDrive_Pessoal/Organização/Backup_COSMIC`, garantindo:
     *   Modo **auto-tiling desligado** por padrão.
     *   **NumLock ativado** por padrão no boot do compositor.
+    *   **Atalhos Customizados do COSMIC (Padrão Windows):** Mapeamento do atalho <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> para acionamento imediato da ferramenta interativa de captura de tela (`cosmic-screenshot`), integrado em `~/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1/custom` e sincronizado com o backup em nuvem.
     *   **Fix de Tema Escuro Universal para o VLC:** Injeção de folha de estilos Qt (`~/.config/qt5ct/qss/vlc-dark-fix.qss`) atribuindo contraste nítido, contêineres e efeito de hover a todos os botões (`QToolButton`), além de timeline personalizada e restauração automática do layout de botões customizados (`~/.config/vlc/vlc-qt-interface.conf`). Documentação completa em [`Docs/tema_escuro_botoes_vlc.md`](Docs/tema_escuro_botoes_vlc.md).
     *   **Nautilus (GNOME Files) como Gerenciador Padrão:** Substituição do `COSMIC Files` pelo Nautilus com `gvfs-backends`, fixação na Dock, associação do MIME `inode/directory` e regras de janela flutuante (`tiling_exception_custom`). Documentação completa em [`Docs/nautilus_gerenciador_arquivos_padrao.md`](Docs/nautilus_gerenciador_arquivos_padrao.md).
     *   Miniaplicativo de **Controle de Mídia** no canto inferior esquerdo da Dock.

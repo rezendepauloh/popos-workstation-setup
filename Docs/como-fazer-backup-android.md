@@ -20,7 +20,13 @@
    ```bash
    ./util/backup_android.sh
    ```
-4. O script identificará o aparelho e puxará automaticamente todos os arquivos para uma pasta nova com data e hora (por padrão em `/mnt/storage_930/Backups_Android/android-backup-...`).
+4. O script identificará o aparelho e puxará automaticamente:
+   * **Mídias e Arquivos:** `DCIM` (Câmera/Prints), `Pictures`, `Download`, `Documents`, `Movies`, `Music`, `Audiobooks`, `Podcasts`.
+   * **Áudios do Sistema e Gravador:** `Recordings`, `VoiceRecorder`, `Sounds`, `Notifications`, `Ringtones`, `Alarms`.
+   * **Mensageiros:** `WhatsApp` (legado e moderno `Android/media/com.whatsapp`), `WhatsApp Business` e `Telegram`.
+   * **Backups Xiaomi / Bluetooth:** `MIUI/backup` e `com.xiaomi.bluetooth`.
+   * **Aplicativos:** Gera a lista de pacotes instalados (`lista_aplicativos_instalados.txt`) e pergunta se deseja extrair os instaladores reais (`.apk`) de todos os apps para a pasta `APKs/`.
+   * Destino padrão: `/mnt/storage_930/Backups_Android/android-backup-DD-MM-YYYY_HH-MM-SS/` (com fallback automático para `/mnt/storage_700` ou `~/Backups_Android`).
 
 #### Etapa 4: Cuidado Crucial Antes de Resetar o Celular (Evitar Bloqueio FRP)
 Antes de ir em *"Restaurar para os padrões de fábrica"*:
@@ -40,5 +46,9 @@ Após iniciar o celular formatado, passar pela tela inicial de boas-vindas do An
    ```bash
    ./util/restore_android.sh
    ```
-3. O script listará os backups salvos, você escolhe qual deseja (ou aperta ENTER para o mais recente) e ele enviará de volta fotos, vídeos, músicas, downloads e documentos para a memória do celular!
-4. Ao abrir o WhatsApp no celular pela primeira vez, faça login com o número de telefone e selecione **"Restaurar do Google Drive"**. Todas as conversas e mídias voltarão automaticamente.
+3. O script listará os backups salvos. Você escolhe qual deseja (ou aperta ENTER para o mais recente) e ele:
+   * Envia de volta todas as pastas de mídia, fotos, vídeos, músicas, toques e documentos para `/sdcard/`.
+   * Restaura as mídias do WhatsApp, WhatsApp Business e Telegram nas pastas de sandbox do Android.
+   * Se houver a pasta `APKs/`, pergunta se deseja **reinstalar todos os aplicativos em lote automaticamente** via ADB.
+   * Dispara a reindexação automática do `MediaScanner` do Android para que todas as fotos e músicas apareçam instantaneamente na Galeria sem precisar reiniciar o aparelho!
+4. Ao abrir o WhatsApp no celular pela primeira vez, faça login com o número de telefone e selecione **"Restaurar do Google Drive"** (ou restauração local caso o backup do Google Drive não esteja configurado). Todas as conversas e mídias voltarão perfeitamente.
