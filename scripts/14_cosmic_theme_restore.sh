@@ -36,6 +36,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicSettings.WindowRule
 
 	// Utilitários do Sistema e Hardware
 	(appid: "org.gnome.Calculator", titles: [".*"]),
+	(appid: "com.github.tchx84.Flatseal", titles: [".*"]),
 	(appid: "com.github.hluk.copyq", titles: [".*"]),
 	(appid: "menu.kando.Kando", titles: [".*"]),
 	(appid: "org.openrgb.OpenRGB", titles: [".*"]),
@@ -50,6 +51,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicSettings.WindowRule
 	(appid: "org.kde.kdeconnect-indicator", titles: [".*"]),
 
 	// Visualizadores e Ferramentas Rápidas
+	(appid: "io.github.cosmic_utils.camera", titles: [".*"]),
 	(appid: "org.gnome.Loupe", titles: [".*"]),
 	(appid: "org.gnome.eog", titles: [".*"]),
 	(appid: "org.gnome.Evince", titles: [".*"]),
@@ -107,6 +109,13 @@ cat << 'EOF' > "$SHORTCUTS_DIR/custom"
         ],
         key: "s",
     ): System(Screenshot),
+    (
+        modifiers: [
+            Super,
+            Shift,
+        ],
+        key: "g",
+    ): ToggleSticky,
 }
 EOF
 

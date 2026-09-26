@@ -12,16 +12,28 @@ Nas sessões anteriores, resolvemos de forma definitiva e estruturada:
    - Overrides de Flatpak configurados no [`scripts/19_flatpak_permissions.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/19_flatpak_permissions.sh) concedendo acesso a `home`, `/mnt/storage_700`, `/mnt/storage_930` e barramentos de bandeja D-Bus (`org.kde.StatusNotifierWatcher` e `org.freedesktop.StatusNotifierWatcher`).
    - Autostart em segundo plano configurado no [`scripts/21_autostart_config.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/21_autostart_config.sh) (`flatpak run com.nextcloud.desktopclient.nextcloud --background`).
    - Variáveis de ambiente `NEXTCLOUD_SERVER_URL` e `NEXTCLOUD_SYNC_DIR` documentadas no [`.env.example`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/.env.example).
-7. **Atalhos do COSMIC (Padrão Windows):** Mapeamento persistente do atalho <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> para captura de tela interativa (`cosmic-screenshot`) integrado no [`scripts/14_cosmic_theme_restore.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/14_cosmic_theme_restore.sh) e sincronizado com o backup da nuvem (`~/GoogleDrive_Pessoal/Organização/Backup_COSMIC`).
+7. **Atalhos do COSMIC (Padrão Windows & Produtividade):** Mapeamento persistente dos atalhos <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> (captura de tela interativa `cosmic-screenshot`) e <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>G</kbd> (fixar janelas no topo `ToggleSticky` / Always on Top / PiP) integrado no [`scripts/14_cosmic_theme_restore.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/14_cosmic_theme_restore.sh) e sincronizado com o backup da nuvem (`~/GoogleDrive_Pessoal/Organização/Backup_COSMIC`).
 8. **Backup e Restauração de Dispositivos Android via ADB ([`util/backup_android.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/util/backup_android.sh) e [`util/restore_android.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/util/restore_android.sh)):**
    - Cobertura expandida de diretórios: `Podcasts`, `VoiceRecorder`, `Sounds`, `Alarms`, `WhatsApp` legado, `WhatsApp Business`, `Telegram` (`/sdcard/Telegram` e `/sdcard/Android/media/org.telegram.messenger`).
    - Extração automática de instaladores `.apk` de todos os aplicativos instalados e reinstalação automatizada em lote no restore.
    - Reindexação profunda do `MediaScanner` pós-restauração para fotos, vídeos e músicas.
-9. Documentação técnica atualizada em [`Docs/issue_chromium_electron_cedilha_wayland.md`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/Docs/issue_chromium_electron_cedilha_wayland.md), [`Docs/issue_alt_codes_numpad_wayland.md`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/Docs/issue_alt_codes_numpad_wayland.md) e no [`README.md`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/README.md).
+9. **Padronização de Aplicativos da Loja (Flatpaks Oficiais):**
+   - **Calculadora GNOME** (`org.gnome.Calculator`) e **Flatseal** (`com.github.tchx84.Flatseal` - gerenciador gráfico de permissões) integrados nos scripts [`scripts/06_softwares_workflow.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/06_softwares_workflow.sh), [`scripts/14_cosmic_theme_restore.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/14_cosmic_theme_restore.sh) (janela flutuante) e [`scripts/15_cosmic_menu_dock.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/15_cosmic_menu_dock.sh) (categoria Utilitários).
+   - **Câmera Oficial do COSMIC** (`io.github.cosmic_utils.camera`) instalada e posicionada na categoria Mídia com regra de janela flutuante nativa.
+10. **Web Apps do Microsoft 365 (Portal, Word, Excel, PowerPoint, Outlook):**
+    - Configurados no [`scripts/23_trabalho_remoto_vpn_rdp.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/23_trabalho_remoto_vpn_rdp.sh) como PWAs/janelas de aplicativo independentes via Chromium/Chrome.
+    - Ícones oficiais SVG baixados da CDN da Microsoft e organizados na categoria **"Escritório & Trabalho Remoto"** do COSMIC App Library ([`scripts/15_cosmic_menu_dock.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/15_cosmic_menu_dock.sh)), mantendo o OnlyOffice como editor local padrão.
+11. Documentação técnica atualizada em [`Docs/issue_chromium_electron_cedilha_wayland.md`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/Docs/issue_chromium_electron_cedilha_wayland.md), [`Docs/issue_alt_codes_numpad_wayland.md`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/Docs/issue_alt_codes_numpad_wayland.md) e no [`README.md`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/README.md).
 
 ---
 
-## 🎯 2. Próximo Objetivo: Manutenção Contínua e Novos Recursos da Workstation
+## 🎯 2. Próximos Objetivos & Issues Mapeadas
 
-Com os subsistemas de rede local, armazenamento (Samba / Nextcloud), produtividade (Alt Codes, Cedilha, Aspas Duplas, IDEs) e desktop integrados, estamos prontos para novos fluxos ou tarefas de validação e rotinas de backup.
+1. **OneDrive Corporativo (MPMS / Microsoft 365 Business):**
+   - *Status / Desafio:* Bloqueio por políticas internas de segurança do órgão (MFA / Acesso Condicional / Intune / restrição a apps de terceiros não homologados como Rclone no Azure AD).
+   - *Testes Futuros Planejados:*
+     - Testar cliente oficial nativo de sincronização `abraunegg/onedrive` com token de autorização específico via console/device code.
+     - Avaliar sincronização via WebDAV corporativo ou acesso web via PWA do OneDrive.
+2. **Manutenção Contínua e Novos Recursos da Workstation:**
+   - Com os subsistemas de rede local, armazenamento (Samba / Nextcloud), produtividade (Alt Codes, Cedilha, Aspas Duplas, IDEs) e desktop integrados, estamos prontos para novos fluxos ou tarefas de validação e rotinas de backup.
 

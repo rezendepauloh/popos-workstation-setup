@@ -179,7 +179,59 @@ chmod +x "$REAL_HOME/.local/share/applications/vpn-mpms.desktop"
 rm -f "$REAL_HOME/.local/share/applications/forticlient.desktop"
 
 # ------------------------------------------------------------------------------
-# 7. Ajuste de Permissões e Lançadores no COSMIC Desktop
+# 7. Microsoft 365 Web Apps (Portal, Word, Excel, PowerPoint, Outlook)
+# ------------------------------------------------------------------------------
+log_msg "INFO" "Configurando Web Apps dedicados do Microsoft 365..."
+
+ICONS_DIR="$REAL_HOME/.local/share/icons/hicolor/scalable/apps"
+mkdir -p "$ICONS_DIR"
+
+# Baixa ícones vetoriais oficiais SVG da Microsoft (Office Fabric CDN)
+curl -sL "https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/assets/brand-icons/product/svg/office_48x1.svg" -o "$ICONS_DIR/ms365.svg" 2>/dev/null || true
+curl -sL "https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/assets/brand-icons/product/svg/word_48x1.svg" -o "$ICONS_DIR/ms-word.svg" 2>/dev/null || true
+curl -sL "https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/assets/brand-icons/product/svg/excel_48x1.svg" -o "$ICONS_DIR/ms-excel.svg" 2>/dev/null || true
+curl -sL "https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/assets/brand-icons/product/svg/powerpoint_48x1.svg" -o "$ICONS_DIR/ms-powerpoint.svg" 2>/dev/null || true
+curl -sL "https://res-1.cdn.office.net/files/fabric-cdn-prod_20230815.002/assets/brand-icons/product/svg/outlook_48x1.svg" -o "$ICONS_DIR/ms-outlook.svg" 2>/dev/null || true
+
+# Detecta navegador para execução em modo janela de aplicativo (--app)
+BROWSER_CMD="google-chrome"
+if ! command -v google-chrome >/dev/null 2>&1; then
+    if command -v brave-browser >/dev/null 2>&1; then
+        BROWSER_CMD="brave-browser"
+    elif command -v chromium >/dev/null 2>&1; then
+        BROWSER_CMD="chromium"
+    fi
+fi
+
+# Cria lançadores dedicados para cada ferramenta do Microsoft 365
+declare -A MS_APPS=(
+    ["ms365"]="Microsoft 365|Suíte de Produtividade em Nuvem da Microsoft|https://www.office.com/?auth=2|ms365"
+    ["ms-word"]="Microsoft Word|Processador de texto da Microsoft|https://www.office.com/launch/word?auth=2|ms-word"
+    ["ms-excel"]="Microsoft Excel|Planilhas eletrônicas da Microsoft|https://www.office.com/launch/excel?auth=2|ms-excel"
+    ["ms-powerpoint"]="Microsoft PowerPoint|Apresentações de slides da Microsoft|https://www.office.com/launch/powerpoint?auth=2|ms-powerpoint"
+    ["ms-outlook"]="Microsoft Outlook|Email e calendário institucional|https://outlook.office.com/mail/|ms-outlook"
+)
+
+for app_id in "${!MS_APPS[@]}"; do
+    IFS="|" read -r name comment url icon <<< "${MS_APPS[$app_id]}"
+    cat << EOF > "$REAL_HOME/.local/share/applications/${app_id}.desktop"
+[Desktop Entry]
+Name=$name
+Comment=$comment
+Exec=$BROWSER_CMD --app=$url
+Icon=$icon
+Terminal=false
+Type=Application
+Categories=Office;Network;
+StartupWMClass=crx_${app_id}
+EOF
+    chmod +x "$REAL_HOME/.local/share/applications/${app_id}.desktop"
+done
+
+chown -R "$REAL_USER:$REAL_USER" "$ICONS_DIR" "$REAL_HOME/.local/share/applications"
+
+# ------------------------------------------------------------------------------
+# 8. Ajuste de Permissões e Lançadores no COSMIC Desktop
 # ------------------------------------------------------------------------------
 log_msg "INFO" "Garantindo integração dos lançadores .desktop no sistema..."
 sudo update-desktop-database /usr/share/applications 2>/dev/null || true

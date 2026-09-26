@@ -65,7 +65,10 @@ flatpak install -y --system flathub \
     org.telegram.desktop \
     com.rtosta.zapzap \
     org.localsend.localsend_app \
-    com.nextcloud.desktopclient.nextcloud
+    com.nextcloud.desktopclient.nextcloud \
+    com.github.tchx84.Flatseal \
+    org.gnome.Calculator \
+    io.github.cosmic_utils.camera
 
 # 2.0 Pré-estruturação do diretório de dados do Nextcloud
 NC_SYNC_FOLDER="${NEXTCLOUD_SYNC_DIR:-$REAL_HOME/Nextcloud}"

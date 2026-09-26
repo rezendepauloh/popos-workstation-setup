@@ -98,6 +98,11 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "org.remmina.Remmina",
                 "com.dropbox.Client",
                 "com.nextcloud.desktopclient.nextcloud",
+                "ms365",
+                "ms-word",
+                "ms-excel",
+                "ms-powerpoint",
+                "ms-outlook",
             ],
             exclude: [],
         ),
@@ -111,6 +116,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "Graphics",
             ],
             include: [
+                "io.github.cosmic_utils.camera",
                 "org.jellyfin.JellyfinDesktop",
                 "org.gimp.GIMP",
                 "vlc",
@@ -127,6 +133,8 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "Utility",
             ],
             include: [
+                "org.gnome.Calculator",
+                "com.github.tchx84.Flatseal",
                 "org.openrgb.OpenRGB",
                 "piper",
                 "nm-connection-editor",
