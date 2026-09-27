@@ -27,7 +27,50 @@ if ! command -v adb >/dev/null 2>&1; then
     exit 1
 fi
 
-# 2. Localização dos backups
+# 2. Localização dos backups e Logs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+LOGS_DIR="$PROJECT_ROOT/Logs"
+mkdir -p "$LOGS_DIR"
+
+TIMESTAMP=$(date +"%d-%m-%Y_%H-%M-%S")
+RESTORE_LOG_FILE="$LOGS_DIR/restore_android_$TIMESTAMP.log"
+
+# Grava execução completa também no arquivo de log do sistema
+exec > >(tee -a "$RESTORE_LOG_FILE") 2>&1
+
+# Funções auxiliares para formatação de dados em grandezas humanas (GB, MB, KB, bytes)
+format_human_size() {
+    local raw="$1"
+    python3 -c "
+import sys, re
+s = '''$raw'''.strip()
+m = re.match(r'^([\d,\.]+)\s*([KMGTkmgt])(?:[iI]?[bB])?$', s)
+if m:
+    print(f'{m.group(1)} {m.group(2).upper()}B')
+else:
+    print(s)
+" 2>/dev/null || echo "$raw"
+}
+
+format_adb_output() {
+    local text="$1"
+    python3 -c "
+import sys, re
+line = '''$text'''
+def repl_bytes(m):
+    b = float(m.group(1))
+    sec = m.group(2)
+    for u in ['bytes', 'KB', 'MB', 'GB', 'TB']:
+        if b < 1024.0 or u == 'TB':
+            if u == 'bytes':
+                return f'({int(b)} bytes in {sec}s)'
+            return f'({b:.1f} {u} in {sec}s)'
+        b /= 1024.0
+print(re.sub(r'\((\d+)\s+bytes\s+in\s+([\d\.]+)s\)', repl_bytes, line))
+" 2>/dev/null || echo "$text"
+}
+
 BACKUP_BASE_DIR=""
 if [ -d "/mnt/storage_930/Backups_Android" ]; then
     BACKUP_BASE_DIR="/mnt/storage_930/Backups_Android"
@@ -44,6 +87,9 @@ if [ ! -d "$BACKUP_BASE_DIR" ]; then
     exit 1
 fi
 
+echo -e "${C_CYAN}📝 Arquivo de Log:${C_RESET} ${C_BOLD}$RESTORE_LOG_FILE${C_RESET}"
+echo ""
+
 # Lista backups disponíveis
 mapfile -t BACKUPS < <(ls -td "$BACKUP_BASE_DIR"/android-backup-* 2>/dev/null || true)
 
@@ -55,7 +101,8 @@ fi
 echo -e "${C_BOLD}Selecione o backup que deseja restaurar:${C_RESET}"
 for i in "${!BACKUPS[@]}"; do
     FOLDER_NAME=$(basename "${BACKUPS[$i]}")
-    FOLDER_SIZE=$(du -sh "${BACKUPS[$i]}" 2>/dev/null | awk '{print $1}')
+    RAW_FOLDER_SIZE=$(du -sh "${BACKUPS[$i]}" 2>/dev/null | awk '{print $1}')
+    FOLDER_SIZE=$(format_human_size "$RAW_FOLDER_SIZE")
     echo -e "  [$((i + 1))] $FOLDER_NAME ($FOLDER_SIZE)"
 done
 
@@ -101,13 +148,72 @@ FOLDERS_TO_RESTORE=(
     "MIUI"
 )
 
+# Função de monitoramento de envio (push) em tempo real
+run_push_with_progress_monitor() {
+    local src_folder="$1"
+    local dest_target="$2"
+    local log_file
+    log_file=$(mktemp /tmp/adb_push_XXXXXX.log)
+
+    local raw_folder_size
+    raw_folder_size=$(du -sh "$src_folder" 2>/dev/null | awk '{print $1}' || echo "N/A")
+    local folder_size
+    folder_size=$(format_human_size "$raw_folder_size")
+
+    # Pré-cria a árvore de subdiretórios no Android para evitar que o daemon MTP/FUSE
+    # do Android falhe ao tentar criar arquivos dentro de pastas inexistentes
+    find "$src_folder" -mindepth 1 -type d 2>/dev/null | while read -r local_sub; do
+        rel_sub="${local_sub#$src_folder/}"
+        adb shell mkdir -p "$dest_target/$rel_sub" >/dev/null 2>&1 || true
+    done
+
+    # Executa o comando adb push em segundo plano gravando saída em log
+    adb push "$src_folder/." "$dest_target/" > "$log_file" 2>&1 &
+    local adb_pid=$!
+
+    local spin=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local spin_idx=0
+    local start_sec=$SECONDS
+
+    # Loop de feedback visual enquanto o processo ADB estiver ativo
+    while kill -0 "$adb_pid" 2>/dev/null; do
+        local elapsed=$(( SECONDS - start_sec ))
+        local mins=$(( elapsed / 60 ))
+        local secs=$(( elapsed % 60 ))
+        local time_formatted
+        printf -v time_formatted "%02d:%02d" "$mins" "$secs"
+
+        echo -ne "\r  ${C_CYAN}${spin[$spin_idx]}${C_RESET} ${C_BOLD}Enviando para o celular...${C_RESET} [⏱️ Tempo: ${time_formatted} | 📦 Tamanho do lote: ${folder_size}]    "
+        spin_idx=$(( (spin_idx + 1) % 10 ))
+        sleep 1
+    done
+
+    wait "$adb_pid" || true
+    echo -ne "\r\033[K" # Limpa a linha do spinner
+
+    # Exibe as linhas relevantes do log com grandezas de dados formatadas
+    if [ -f "$log_file" ]; then
+        while IFS= read -r line; do
+            # Ignora erros conhecidos de cache transitório (.thumbnails/.nomedia) caso ocorram
+            if [[ "$line" == *".thumbnails"* ]] && [[ "$line" == *"failed to copy"* ]]; then
+                continue
+            fi
+            if [[ "$line" == *"failed to read copy response"* ]]; then
+                continue
+            fi
+            [ -n "$line" ] && format_adb_output "$line"
+        done < <(tail -n 6 "$log_file")
+        rm -f "$log_file"
+    fi
+}
+
 echo -e "${C_CYAN}🚀 Restaurando arquivos e mídias do usuário...${C_RESET}"
 for FOLDER in "${FOLDERS_TO_RESTORE[@]}"; do
     SRC_PATH="$SELECTED_BACKUP/$FOLDER"
     if [ -d "$SRC_PATH" ] && [ "$(ls -A "$SRC_PATH" 2>/dev/null)" ]; then
-        echo -e "${C_BOLD}Enviando $FOLDER para /sdcard/$FOLDER/...${C_RESET}"
+        echo -e "${C_BOLD}Restaurando $FOLDER para /sdcard/$FOLDER/...${C_RESET}"
         adb shell mkdir -p "/sdcard/$FOLDER"
-        adb push "$SRC_PATH/." "/sdcard/$FOLDER/" 2>&1 | tr '\r' '\n' | tail -n 3 || true
+        run_push_with_progress_monitor "$SRC_PATH" "/sdcard/$FOLDER"
         echo -e "${C_GREEN}[✓] $FOLDER restaurado com sucesso!${C_RESET}\n"
     fi
 done
@@ -118,9 +224,9 @@ if [ -d "$SELECTED_BACKUP/WhatsApp_Media/com.whatsapp" ]; then
     read -r -p "Deseja restaurar as mídias do WhatsApp agora? (S/n): " RESTORE_WA
     RESTORE_WA=${RESTORE_WA:-S}
     if [[ "$RESTORE_WA" =~ ^[sS]$ ]]; then
-        echo -e "${C_BOLD}Enviando para /sdcard/Android/media/com.whatsapp/...${C_RESET}"
+        echo -e "${C_BOLD}Restaurando mídia para /sdcard/Android/media/com.whatsapp/...${C_RESET}"
         adb shell mkdir -p /sdcard/Android/media/com.whatsapp
-        adb push "$SELECTED_BACKUP/WhatsApp_Media/com.whatsapp/." "/sdcard/Android/media/com.whatsapp/" 2>&1 | tr '\r' '\n' | tail -n 3 || true
+        run_push_with_progress_monitor "$SELECTED_BACKUP/WhatsApp_Media/com.whatsapp" "/sdcard/Android/media/com.whatsapp"
         echo -e "${C_GREEN}[✓] Mídia do WhatsApp restaurada!${C_RESET}\n"
     fi
 fi
@@ -130,9 +236,9 @@ if [ -d "$SELECTED_BACKUP/WhatsApp_Business_Media/com.whatsapp.w4b" ]; then
     read -r -p "Deseja restaurar as mídias do WhatsApp Business agora? (S/n): " RESTORE_WAB
     RESTORE_WAB=${RESTORE_WAB:-S}
     if [[ "$RESTORE_WAB" =~ ^[sS]$ ]]; then
-        echo -e "${C_BOLD}Enviando para /sdcard/Android/media/com.whatsapp.w4b/...${C_RESET}"
+        echo -e "${C_BOLD}Restaurando mídia para /sdcard/Android/media/com.whatsapp.w4b/...${C_RESET}"
         adb shell mkdir -p /sdcard/Android/media/com.whatsapp.w4b
-        adb push "$SELECTED_BACKUP/WhatsApp_Business_Media/com.whatsapp.w4b/." "/sdcard/Android/media/com.whatsapp.w4b/" 2>&1 | tr '\r' '\n' | tail -n 3 || true
+        run_push_with_progress_monitor "$SELECTED_BACKUP/WhatsApp_Business_Media/com.whatsapp.w4b" "/sdcard/Android/media/com.whatsapp.w4b"
         echo -e "${C_GREEN}[✓] Mídia do WhatsApp Business restaurada!${C_RESET}\n"
     fi
 fi
@@ -142,9 +248,9 @@ if [ -d "$SELECTED_BACKUP/Telegram_Android_Media/org.telegram.messenger" ]; then
     read -r -p "Deseja restaurar as mídias do Telegram agora? (S/n): " RESTORE_TG
     RESTORE_TG=${RESTORE_TG:-S}
     if [[ "$RESTORE_TG" =~ ^[sS]$ ]]; then
-        echo -e "${C_BOLD}Enviando para /sdcard/Android/media/org.telegram.messenger/...${C_RESET}"
+        echo -e "${C_BOLD}Restaurando mídia para /sdcard/Android/media/org.telegram.messenger/...${C_RESET}"
         adb shell mkdir -p /sdcard/Android/media/org.telegram.messenger
-        adb push "$SELECTED_BACKUP/Telegram_Android_Media/org.telegram.messenger/." "/sdcard/Android/media/org.telegram.messenger/" 2>&1 | tr '\r' '\n' | tail -n 3 || true
+        run_push_with_progress_monitor "$SELECTED_BACKUP/Telegram_Android_Media/org.telegram.messenger" "/sdcard/Android/media/org.telegram.messenger"
         echo -e "${C_GREEN}[✓] Mídia do Telegram restaurada!${C_RESET}\n"
     fi
 fi

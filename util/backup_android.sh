@@ -31,7 +31,12 @@ if ! command -v adb >/dev/null 2>&1; then
     sudo apt update && sudo apt install -y adb
 fi
 
-# 2. Definição da Unidade de Armazenamento para o Backup
+# 2. Definição dos Diretórios de Armazenamento e Logs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+LOGS_DIR="$PROJECT_ROOT/Logs"
+mkdir -p "$LOGS_DIR"
+
 BACKUP_BASE_DIR=""
 if [ -d "/mnt/storage_930" ] && [ -w "/mnt/storage_930" ]; then
     BACKUP_BASE_DIR="/mnt/storage_930/Backups_Android"
@@ -45,8 +50,45 @@ fi
 
 TIMESTAMP=$(date +"%d-%m-%Y_%H-%M-%S")
 TARGET_DIR="$BACKUP_BASE_DIR/android-backup-$TIMESTAMP"
+BACKUP_LOG_FILE="$LOGS_DIR/backup_android_$TIMESTAMP.log"
+
+# Grava execução completa também no arquivo de log do sistema
+exec > >(tee -a "$BACKUP_LOG_FILE") 2>&1
+
+# Funções auxiliares para formatação de dados em grandezas humanas (GB, MB, KB, bytes)
+format_human_size() {
+    local raw="$1"
+    python3 -c "
+import sys, re
+s = '''$raw'''.strip()
+m = re.match(r'^([\d,\.]+)\s*([KMGTkmgt])(?:[iI]?[bB])?$', s)
+if m:
+    print(f'{m.group(1)} {m.group(2).upper()}B')
+else:
+    print(s)
+" 2>/dev/null || echo "$raw"
+}
+
+format_adb_output() {
+    local text="$1"
+    python3 -c "
+import sys, re
+line = '''$text'''
+def repl_bytes(m):
+    b = float(m.group(1))
+    sec = m.group(2)
+    for u in ['bytes', 'KB', 'MB', 'GB', 'TB']:
+        if b < 1024.0 or u == 'TB':
+            if u == 'bytes':
+                return f'({int(b)} bytes in {sec}s)'
+            return f'({b:.1f} {u} in {sec}s)'
+        b /= 1024.0
+print(re.sub(r'\((\d+)\s+bytes\s+in\s+([\d\.]+)s\)', repl_bytes, line))
+" 2>/dev/null || echo "$text"
+}
 
 echo -e "${C_CYAN}📁 Destino do Backup:${C_RESET} ${C_BOLD}$TARGET_DIR${C_RESET}"
+echo -e "${C_CYAN}📝 Arquivo de Log:${C_RESET} ${C_BOLD}$BACKUP_LOG_FILE${C_RESET}"
 echo ""
 
 # 3. Inicia servidor ADB e aguarda dispositivo
@@ -126,6 +168,51 @@ CURRENT_STEP=0
 
 echo -e "${C_CYAN}🚀 Iniciando cópia em lote dos diretórios de mídia e arquivos...${C_RESET}"
 
+# Função de monitoramento de cópia em tempo real
+run_with_progress_monitor() {
+    local cmd=("$@")
+    local watch_dir="${cmd[-1]}" # O destino é sempre o último argumento
+    local log_file
+    log_file=$(mktemp /tmp/adb_transfer_XXXXXX.log)
+
+    # Executa o comando adb em segundo plano gravando saída em log
+    "${cmd[@]}" > "$log_file" 2>&1 &
+    local adb_pid=$!
+
+    local spin=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+    local spin_idx=0
+    local start_sec=$SECONDS
+
+    # Loop de feedback visual enquanto o processo ADB estiver ativo
+    while kill -0 "$adb_pid" 2>/dev/null; do
+        local elapsed=$(( SECONDS - start_sec ))
+        local mins=$(( elapsed / 60 ))
+        local secs=$(( elapsed % 60 ))
+        local time_formatted
+        printf -v time_formatted "%02d:%02d" "$mins" "$secs"
+
+        local current_size="0B"
+        if [ -d "$watch_dir" ]; then
+            current_size=$(du -sh "$watch_dir" 2>/dev/null | awk '{print $1}' || echo "0B")
+        fi
+
+        echo -ne "\r  ${C_CYAN}${spin[$spin_idx]}${C_RESET} ${C_BOLD}Transferindo...${C_RESET} [⏱️ Tempo: ${time_formatted} | 💾 No destino: ${current_size}]    "
+        spin_idx=$(( (spin_idx + 1) % 10 ))
+        sleep 1
+    done
+
+    wait "$adb_pid" || true
+    echo -ne "\r\033[K" # Limpa a linha do spinner
+
+    # Exibe as últimas linhas do log do ADB com grandezas de dados formatadas
+    if [ -f "$log_file" ]; then
+        while IFS= read -r line; do
+            [ -n "$line" ] && format_adb_output "$line"
+        done < <(tail -n 5 "$log_file")
+        rm -f "$log_file"
+    fi
+}
+
 for SRC in "${FOLDERS_TO_BACKUP[@]}"; do
     CURRENT_STEP=$((CURRENT_STEP + 1))
     FOLDER_NAME=$(basename "$SRC")
@@ -142,20 +229,23 @@ for SRC in "${FOLDERS_TO_BACKUP[@]}"; do
         if [[ "$SRC" == *"com.whatsapp.w4b"* ]]; then
             DEST_SUBDIR="$TARGET_DIR/WhatsApp_Business_Media"
             mkdir -p "$DEST_SUBDIR"
-            adb pull "$SRC" "$DEST_SUBDIR/" 2>&1 | tr '\r' '\n' | tail -n 5 || true
+            run_with_progress_monitor adb pull "$SRC" "$DEST_SUBDIR/"
         elif [[ "$SRC" == *"com.whatsapp"* ]]; then
             DEST_SUBDIR="$TARGET_DIR/WhatsApp_Media"
             mkdir -p "$DEST_SUBDIR"
-            adb pull "$SRC" "$DEST_SUBDIR/" 2>&1 | tr '\r' '\n' | tail -n 5 || true
+            run_with_progress_monitor adb pull "$SRC" "$DEST_SUBDIR/"
         elif [[ "$SRC" == *"org.telegram.messenger"* ]]; then
             DEST_SUBDIR="$TARGET_DIR/Telegram_Android_Media"
             mkdir -p "$DEST_SUBDIR"
-            adb pull "$SRC" "$DEST_SUBDIR/" 2>&1 | tr '\r' '\n' | tail -n 5 || true
+            run_with_progress_monitor adb pull "$SRC" "$DEST_SUBDIR/"
         else
-            adb pull "$SRC" "$DEST_SUBDIR/" 2>&1 | tr '\r' '\n' | tail -n 5 || true
+            run_with_progress_monitor adb pull "$SRC" "$DEST_SUBDIR/"
         fi
         
-        echo -e "${C_GREEN}[✓] Concluído: $FOLDER_NAME salvo em $DEST_SUBDIR/${C_RESET}"
+        RAW_SIZE=$(du -sh "$DEST_SUBDIR/$FOLDER_NAME" 2>/dev/null | awk '{print $1}' || echo "")
+        FINAL_SIZE=$(format_human_size "$RAW_SIZE")
+        [ -n "$FINAL_SIZE" ] && FINAL_SIZE=" ($FINAL_SIZE)"
+        echo -e "${C_GREEN}[✓] Concluído: $FOLDER_NAME salvo em $DEST_SUBDIR/${FINAL_SIZE}${C_RESET}"
     else
         echo -e "${C_YELLOW}[-] Diretório não encontrado no aparelho (ignorado): $SRC${C_RESET}"
     fi
@@ -194,7 +284,8 @@ if [[ "$EXTRACT_APKS" =~ ^[sS]$ ]]; then
 fi
 
 # 7. Resumo e Estatísticas
-BACKUP_SIZE=$(du -sh "$TARGET_DIR" 2>/dev/null | awk '{print $1}')
+BACKUP_RAW_SIZE=$(du -sh "$TARGET_DIR" 2>/dev/null | awk '{print $1}')
+BACKUP_SIZE=$(format_human_size "$BACKUP_RAW_SIZE")
 
 echo ""
 echo -e "${C_GREEN}${C_BOLD}==============================================================================${C_RESET}"
