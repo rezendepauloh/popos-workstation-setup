@@ -118,7 +118,12 @@ if command -v ufw >/dev/null 2>&1; then
     log_msg "INFO" "Configurando firewall UFW Dozzle Agent Homelab..."
     sudo ufw allow from 192.168.0.0/24 to any port 7007 proto tcp comment 'Dozzle Agent Homelab' >/dev/null 2>&1 || true
 
-    log_msg "INFO" "Configurando firewall UFW Servidor Samba..."
+    log_msg "INFO" "Configurando firewall UFW Syncthing..."
+    sudo ufw allow 22000/tcp comment 'Syncthing Transferencia TCP' >/dev/null 2>&1 || true
+    sudo ufw allow 22000/udp comment 'Syncthing Transferencia UDP' >/dev/null 2>&1 || true
+    sudo ufw allow 21027/udp comment 'Syncthing Descoberta Local UDP' >/dev/null 2>&1 || true
+
+    log_msg "INFO" "Configurando firewall UFW Servidor Samba...
     sudo ufw allow from 192.168.0.0/24 to any port 137,138 proto udp comment 'Samba NetBIOS UDP' >/dev/null 2>&1 || true
     sudo ufw allow from 192.168.0.0/24 to any port 139,445 proto tcp comment 'Samba SMB TCP' >/dev/null 2>&1 || true
 
