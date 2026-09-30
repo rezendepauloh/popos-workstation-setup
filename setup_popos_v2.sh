@@ -118,7 +118,8 @@ MODULES=(
     "23_trabalho_remoto_vpn_rdp.sh"
     "24_pdf_editors.sh"
     "25_samba_storage.sh"
-    "26_limpeza_otimizacao.sh"
+    "26_winapps_office.sh"
+    "27_limpeza_otimizacao.sh"
 )
 
 TOTAL_MODULES=${#MODULES[@]}
