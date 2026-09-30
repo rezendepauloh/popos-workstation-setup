@@ -120,7 +120,7 @@ services:
     volumes:
       - ./data:/storage
       - $REAL_HOME/Compartilhado_VM:/shared
-    restart: on-failure
+    restart: unless-stopped
     stop_grace_period: 2m
 EOF
 

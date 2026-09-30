@@ -52,12 +52,9 @@ fi
 # 3. Docker sob Demanda (Socket Activation) e Limpeza
 # ------------------------------------------------------------------------------
 if command -v docker >/dev/null 2>&1; then
-    log_msg "INFO" "Configurando inicialização do Docker sob demanda (docker.socket)..."
-    # Habilita o socket para que o daemon suba apenas ao rodar o comando docker
-    sudo systemctl stop docker.service 2>/dev/null || true
-    sudo systemctl disable docker.service 2>/dev/null || true
-    sudo systemctl enable docker.socket 2>/dev/null || true
-    sudo systemctl start docker.socket 2>/dev/null || true
+    log_msg "INFO" "Habilitando inicialização automática do Docker no boot do sistema..."
+    sudo systemctl enable docker.service 2>/dev/null || true
+    sudo systemctl start docker.service 2>/dev/null || true
 
     log_msg "INFO" "Executando limpeza de recursos órfãos do Docker..."
     docker system prune -f 2>/dev/null || true
