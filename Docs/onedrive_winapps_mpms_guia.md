@@ -147,3 +147,19 @@ Você pode salvar qualquer arquivo nessa pasta e ele estará acessível em ambos
 | `winapps-vm web` | Abre a interface de visualização da VM no navegador (`http://127.0.0.1:8006`). |
 | `winapps-vm logs` | Exibe os logs do container Windows em tempo real. |
 | `winapps-vm setup-apps` | Roda a detecção do WinApps e atualiza os atalhos no COSMIC. |
+
+---
+
+## ⚠️ 7. Issues Mapeadas & Próximos Passos (Acompanhamento)
+
+### 📌 Issue: Comportamento Anômalo / Congelamento da Janela ao Clicar nos WinApps
+* **Sintoma:** Ao disparar o Word ou Excel pelo atalho `(WinApp)` no COSMIC Launcher, surge a tela inicial (Splash Screen) ou uma moldura que congela/trava na área de trabalho, interferindo na sessão.
+* **Causas Prováveis Investigadas:**
+  1. **Compositor Wayland vs FreeRDP 3 (RAIL / RemoteApp):**
+     - O FreeRDP 3 com flags `/app` (RemoteApp) sob Wayland nativo às vezes tenta criar superfícies `xf_UnmapWindowForSurface` e repassar eventos de foco antes do handshake completo da janela principal do Office.
+  2. **Interação com Pop Shell / COSMIC Window Management:**
+     - Falta de regra de exceção para janelas flutuantes (`Floating window exception`) no COSMIC para classes de janela do FreeRDP (`StartupWMClass=Microsoft Word`, `Microsoft Excel`, etc.), fazendo o compositor tentar ladrilhar (tile) uma janela remota sem suporte a redimensionamento dinâmico.
+  3. **Flags de RDP a Testar na Próxima Sessão:**
+     - Testar uso do backend Wayland nativo do FreeRDP (`wlfreerdp3`) vs cliente XWayland (`xfreerdp3` com `/gdi:hw` ou `/gfx:avc420`).
+     - Avaliar adição de `/network:auto` e desativação temporária de redirecionamento de áudio/clipboard (`/clipboard` ou `/sound`) para isolar se é contenção de canal virtual.
+* **Status:** Mapeado para depuração e refinamento na próxima sessão.

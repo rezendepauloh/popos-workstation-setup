@@ -31,12 +31,15 @@ Nas sessões anteriores, resolvemos de forma definitiva e estruturada:
 
 ---
 
-## 🎯 2. Próximos Objetivos & Validações
+## 🎯 2. Próximos Objetivos & Issues Mapeadas
 
-1. **Validação do Windows e Office 365 via WinApps:**
-   - Subir o container Windows pela primeira vez com `winapps-vm start` e acompanhar em `http://127.0.0.1:8006`.
-   - Efetuar login institucional no Portal Office / OneDrive MPMS com ativação de "Arquivos sob Demanda".
-   - Executar o instalador do WinApps (`winapps-vm setup-apps`) para gerar os atalhos nativos no COSMIC Launcher.
-2. **Mapeamento do Compartilhamento SMB do OneDrive no Nautilus:**
-   - Conectar o marcador `OneDrive (MPMS)` apontando para `smb://127.0.0.1/OneDrive-MPMS` no Nautilus.
+1. **Compartilhamento SMB do OneDrive no Nautilus (Status: Validado e Ativo):**
+   - Roteamento nativo das portas SMB (139 e 445) para a VM Windows ajustado no helper `winapps-vm`.
+   - Conexão testada e funcionando no Nautilus via `smb://172.20.0.2/OneDrive-MPMS` com credenciais do `.env`.
+2. **Depuração do Congelamento de Janela dos WinApps (Word / Excel / Office):**
+   - *Issue mapeada:* Ao clicar no aplicativo, a janela de splash screen/início congela sob o compositor Wayland/COSMIC.
+   - *Plano para a próxima conversa:*
+     - Adicionar exceções de janelas flutuantes no COSMIC (`14_cosmic_theme_restore.sh`) para as classes `Microsoft Word`, `Microsoft Excel`, etc.
+     - Testar backend nativo Wayland do FreeRDP 3 (`wlfreerdp3`) ou flags de aceleração gráfica (`/gdi:hw`, `/gfx:avc420`) e `/network:auto`.
+     - Garantir que telas modais de boas-vindas/licença do Office sejam suprimidas via registro do Windows (`SuppressFirstRunDialogs`).
 
