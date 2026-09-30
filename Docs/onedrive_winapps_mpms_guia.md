@@ -126,7 +126,7 @@ Você pode salvar qualquer arquivo nessa pasta e ele estará acessível em ambos
    - Na barra lateral, clique em **"Outros Locais"**.
    - No campo "Conectar ao Servidor", digite:
      ```text
-     smb://127.0.0.1/OneDrive-MPMS
+     smb://172.20.0.2/OneDrive-MPMS
      ```
    - Informe o usuário `winapps` e a senha definida.
    - Marque a opção "Lembrar para sempre".

@@ -147,6 +147,8 @@ case "$1" in
     start)
         echo "🚀 Iniciando VM/Container Windows..."
         docker compose -f "$COMPOSE_DIR/docker-compose.yml" up -d
+        # Aguarda container subir e roteia portas de compartilhamento de arquivos SMB para o Windows
+        (sleep 5 && docker exec winapps-windows iptables -t nat -D QEMU_DNAT 3 2>/dev/null && docker exec winapps-windows iptables -t nat -D QEMU_DNAT 3 2>/dev/null || true) &
         echo "Acesse http://127.0.0.1:8006 no navegador para acompanhar o progresso de inicialização."
         ;;
     stop)
