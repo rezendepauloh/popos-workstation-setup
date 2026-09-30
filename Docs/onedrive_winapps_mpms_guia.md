@@ -75,11 +75,25 @@ Quando o Windows inicializar no desktop padrão, o usuário e senha serão os de
 
 ## ⚡ 4. Exportar os Atalhos para o Menu do COSMIC (WinApps)
 
-Dentro da VM Windows, o WinApps precisa que o script preparador de RDP da comunidade seja executado uma única vez:
-1. No Windows, abra o PowerShell como Administrador e execute:
-   ```powershell
-   irm https://raw.githubusercontent.com/winapps-org/winapps/main/setup/install.ps1 | iex
+Dentro da VM Windows, o WinApps precisa habilitar o suporte a RemoteApps e preparar o RDP:
+
+### Método Direto (Recomendado via Pasta Compartilhada):
+Como mapeamos automaticamente a pasta `~/Compartilhado_VM` para a Área de Trabalho do Windows (atalho `Shared` no Desktop ou drive `D:` / `C:\shared`):
+1. No Windows, abra o PowerShell ou Prompt de Comando (CMD) como Administrador e execute:
+   ```cmd
+   \\host.lan\Data\install.bat
    ```
+   *(ou simplesmente abra o atalho **Shared** que está na Área de Trabalho do Windows e clique duas vezes com o botão direito em **`install.bat`** -> **"Executar como Administrador"**)*.
+
+### Método Alternativo via One-liner Oficial:
+Se preferir rodar direto no PowerShell como Administrador:
+```powershell
+& ([scriptblock]::Create((irm "https://raw.githubusercontent.com/winapps-org/winapps/main/oem/install.bat")))
+```
+ou simplesmente:
+```powershell
+cd C:\shared; .\install.bat
+```
 2. No Pop!_OS, execute o detector de aplicativos:
    ```bash
    winapps-vm setup-apps

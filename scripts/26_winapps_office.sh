@@ -38,7 +38,8 @@ WINAPPS_CPU="${WINAPPS_CPU_CORES:-4}"
 log_msg "INFO" "Instalando dependências do host (FreeRDP, dialog, iproute2, cifs-utils)..."
 sudo apt update -y
 sudo apt install -y \
-    freerdp2-x11 \
+    freerdp3-x11 \
+    freerdp3-wayland \
     dialog \
     iproute2 \
     cifs-utils \
@@ -81,7 +82,8 @@ RDP_PORT="$WINAPPS_PORT"
 RDP_SCALE="100"
 RDP_FLAGS="/cert:ignore /clipboard /sound:sys:alsa /drive:home,$REAL_HOME"
 DEBUG="false"
-AUTOPAUSE="on"
+WAFLAVOR="manual"
+AUTOPAUSE="off"
 AUTOPAUSE_TIME="300"
 EOF
 

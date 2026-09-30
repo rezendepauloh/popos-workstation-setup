@@ -205,11 +205,11 @@ fi
 
 # Cria lançadores dedicados para cada ferramenta do Microsoft 365
 declare -A MS_APPS=(
-    ["ms365"]="Microsoft 365|Suíte de Produtividade em Nuvem da Microsoft|https://www.office.com/?auth=2|ms365"
-    ["ms-word"]="Microsoft Word|Processador de texto da Microsoft|https://www.office.com/launch/word?auth=2|ms-word"
-    ["ms-excel"]="Microsoft Excel|Planilhas eletrônicas da Microsoft|https://www.office.com/launch/excel?auth=2|ms-excel"
-    ["ms-powerpoint"]="Microsoft PowerPoint|Apresentações de slides da Microsoft|https://www.office.com/launch/powerpoint?auth=2|ms-powerpoint"
-    ["ms-outlook"]="Microsoft Outlook|Email e calendário institucional|https://outlook.office.com/mail/|ms-outlook"
+    ["ms365"]="Microsoft 365 (Web)|Suíte de Produtividade em Nuvem da Microsoft|https://www.office.com/?auth=2|ms365"
+    ["ms-word"]="Microsoft Word (Web)|Processador de texto da Microsoft|https://www.office.com/launch/word?auth=2|ms-word"
+    ["ms-excel"]="Microsoft Excel (Web)|Planilhas eletrônicas da Microsoft|https://www.office.com/launch/excel?auth=2|ms-excel"
+    ["ms-powerpoint"]="Microsoft PowerPoint (Web)|Apresentações de slides da Microsoft|https://www.office.com/launch/powerpoint?auth=2|ms-powerpoint"
+    ["ms-outlook"]="Microsoft Outlook (Web)|Email e calendário institucional|https://outlook.office.com/mail/|ms-outlook"
 )
 
 for app_id in "${!MS_APPS[@]}"; do
