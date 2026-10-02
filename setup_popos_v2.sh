@@ -120,6 +120,7 @@ MODULES=(
     "25_samba_storage.sh"
     "26_winapps_office.sh"
     "27_limpeza_otimizacao.sh"
+    "28_tailscale.sh"
 )
 
 TOTAL_MODULES=${#MODULES[@]}

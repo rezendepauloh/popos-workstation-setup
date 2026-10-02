@@ -79,6 +79,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "org.localsend.localsend_app",
                 "org.kde.kdeconnect",
                 "org.kde.kdeconnect.app",
+                "tailscale",
             ],
             exclude: [],
         ),

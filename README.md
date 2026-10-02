@@ -208,7 +208,8 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 │   ├── 24_pdf_editors.sh               # Master PDF Editor (Edição) e Okular (Leitura/Marcadores)
 │   ├── 25_samba_storage.sh             # Servidor Samba local (/mnt/storage_700/samba) e share homelab
 │   ├── 26_winapps_office.sh            # WinApps (Microsoft 365, Office e OneDrive MPMS via Docker/KVM)
-│   └── 27_limpeza_otimizacao.sh        # Limpeza final, otimizações de kernel, Docker e backups
+│   ├── 27_limpeza_otimizacao.sh        # Limpeza final, otimizações de kernel, Docker e backups
+│   └── 28_tailscale.sh                 # Mesh VPN Tailscale (WireGuard P2P, tailscaled, UFW e atalho COSMIC)
 ```
 
 ### 📋 Módulos e Responsabilidades:
@@ -244,6 +245,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/25_samba_storage.sh` | Módulo de Servidor Samba local: compartilhamento de armazenamento de alta capacidade (`/mnt/storage_700/samba`) compatível com o Homelab. |
 | `scripts/26_winapps_office.sh` | Módulo do WinApps: provisionamento de container Windows KVM (`dockurr/windows`), Microsoft 365, FreeRDP seamless e integração do OneDrive corporativo ao Nautilus. |
 | `scripts/27_limpeza_otimizacao.sh` | Módulo de limpeza final, remoção de pacotes órfãos/unused Flatpaks, otimizações de kernel/inotify, Docker sob demanda, latência PipeWire, firewall UFW (KDE Connect, LocalSend, Sunshine) e backup automatizado de dotfiles. |
+| `scripts/28_tailscale.sh` | Módulo de instalação, otimização de IP forwarding de rede, liberação no UFW e integração gráfica do Tailscale VPN (Mesh WireGuard). |
 
 ---
 
