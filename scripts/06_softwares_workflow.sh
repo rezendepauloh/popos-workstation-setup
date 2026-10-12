@@ -54,10 +54,33 @@ tray_items=10
 EOF
 chown -R "$REAL_USER:$REAL_USER" "$COPYQ_CONFIG_DIR" 2>/dev/null || true
 
-# 2. Configuração do Flathub e Instalação de Flatpaks
+# 2. Configuração de Navegadores Web (Firefox Flatpak, Chrome e Brave)
+log_msg "INFO" "Garantindo transição do Firefox para Flatpak e removendo pacotes deb residuais..."
+sudo apt purge -y firefox firefox-locale-* 2>/dev/null || true
+sudo apt autoremove -y 2>/dev/null || true
+
+# Configura repositório oficial do Google Chrome caso não instalado
+if ! command -v google-chrome >/dev/null 2>&1; then
+    log_msg "INFO" "Configurando repositório e instalando Google Chrome..."
+    wget -q -O /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    sudo apt install -y /tmp/google-chrome.deb || sudo dpkg -i /tmp/google-chrome.deb || true
+    rm -f /tmp/google-chrome.deb
+fi
+
+# Configura repositório oficial do Brave Browser caso não instalado
+if ! command -v brave-browser >/dev/null 2>&1; then
+    log_msg "INFO" "Configurando repositório oficial e instalando Brave Browser..."
+    sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+    echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main" | sudo tee /etc/apt/sources.list.d/brave-browser-release.list > /dev/null
+    sudo apt update
+    sudo apt install -y brave-browser
+fi
+
+# 3. Configuração do Flathub e Instalação de Flatpaks
 log_msg "INFO" "Configurando Flathub e instalando Flatpaks..."
 flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 flatpak install -y --system flathub \
+    org.mozilla.firefox \
     com.dropbox.Client \
     org.onlyoffice.desktopeditors \
     org.jellyfin.JellyfinDesktop \
@@ -68,7 +91,9 @@ flatpak install -y --system flathub \
     com.nextcloud.desktopclient.nextcloud \
     com.github.tchx84.Flatseal \
     org.gnome.Calculator \
-    io.github.cosmic_utils.camera
+    io.github.cosmic_utils.camera \
+    dev.edfloreshz.CosmicTweaks \
+    com.rcloneui.RcloneUI
 
 # 2.0 Pré-estruturação do diretório de dados do Nextcloud
 NC_SYNC_FOLDER="${NEXTCLOUD_SYNC_DIR:-$REAL_HOME/Nextcloud}"
