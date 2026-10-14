@@ -60,5 +60,19 @@ if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
         "$NC_APP_ID" 2>/dev/null || true
 fi
 
+log_msg "INFO" "Configurando permissões do Kooha (Gravação de Tela / Vídeos em discos secundários)..."
+KOOHA_APP_ID="io.github.seadve.Kooha"
+flatpak override --user \
+    --filesystem=/mnt/storage_700 \
+    --filesystem=/mnt/storage_930 \
+    "$KOOHA_APP_ID" 2>/dev/null || true
+
+if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
+    sudo flatpak override \
+        --filesystem=/mnt/storage_700 \
+        --filesystem=/mnt/storage_930 \
+        "$KOOHA_APP_ID" 2>/dev/null || true
+fi
+
 set_flag "$FLAG_NAME"
 log_msg "SUCCESS" "Overrides de Flatpak aplicados com sucesso."

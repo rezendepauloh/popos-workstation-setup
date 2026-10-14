@@ -121,7 +121,8 @@ Script de automação e provisionamento idempotente para configuração completa
     *   **Proteção Contra Crashes & Locks:** Limpeza automática de `code.lock`, `GPUCache`, `DawnGraphiteCache`, `DawnWebGPUCache` e relatórios de crash pendentes.
     *   Instalação de ícones hicolor de alta resolução e entrada `.desktop` com categorias e mimetypes no menu de aplicativos (com cópia prioritária em `~/.local/share/applications/`).
 *   **Aplicativos Flatpak & Overrides:**
-    *   Instalação de **Nextcloud Desktop Client** (`com.nextcloud.desktopclient.nextcloud`), **Dropbox**, **CopyQ**, **OnlyOffice Desktop Editors**, **Jellyfin Desktop**, **GIMP**, **LocalSend**, **Calculadora GNOME** (`org.gnome.Calculator`), **Flatseal** (`com.github.tchx84.Flatseal`) e **Câmera COSMIC** (`io.github.cosmic_utils.camera`).
+    *   Instalação de **Nextcloud Desktop Client** (`com.nextcloud.desktopclient.nextcloud`), **Dropbox**, **CopyQ**, **OnlyOffice Desktop Editors**, **Jellyfin Desktop**, **GIMP**, **LocalSend**, **Calculadora GNOME** (`org.gnome.Calculator`), **Flatseal** (`com.github.tchx84.Flatseal`), **Câmera COSMIC** (`io.github.cosmic_utils.camera`) e **Kooha** (`io.github.seadve.Kooha` - Gravador de Tela nativo Wayland com suporte a `.mp4`, áudio interno e microfone).
+    *   **Gravação de Tela & Atalho <kbd>Ctrl</kbd> + <kbd>Print</kbd>:** Documentação completa e integração com o Kando pie menu detalhadas em [`Docs/gravacao_de_tela_cosmic_kooha.md`](Docs/gravacao_de_tela_cosmic_kooha.md).
     *   **Patch PhotoGIMP (Diolinux/PhotoGIMP):** Aplicação automatizada do patch de customização sobre o GIMP Flatpak, trazendo layout da interface e atalhos de teclado espelhados no Adobe Photoshop, splash screen customizada e ícones de alta resolução.
     *   Aplicação automática de overrides de permissão de sistema de arquivos para acesso aos discos `/mnt/storage_700`, `/mnt/storage_930`, `/mnt` e integração com a bandeja do Wayland (`StatusNotifierWatcher` para o CopyQ e Nextcloud Desktop Client).
     *   Associação do **OnlyOffice** como leitor padrão para documentos (`.docx`, `.xlsx`, `.pptx`).
@@ -223,7 +224,7 @@ O projeto foi totalmente refatorado para uma **arquitetura modular desacoplada**
 | `scripts/03_atualizacao_sistema.sh` | Módulo de atualização de pacotes APT, Pop recovery e firmware. |
 | `scripts/04_pacotes_base_dev.sh` | Módulo de utilitários base, compiladores, Nautilus (`gvfs-backends`), NVM, Cargo/Rust, KDE Connect, ADB e dependências de desenvolvimento. |
 | `scripts/05_rclone_storage.sh` | Módulo de serviços systemd do Rclone (GDrive, OneDrive, MEGA), Celeste (Tray), Web Dashboard, Rclone Browser e Discos no COSMIC Files. |
-| `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Telegram, ZapZap (WhatsApp), OnlyOffice, LocalSend, Jellyfin Desktop, GIMP com patch PhotoGIMP, Apps2Samsung, Balena Etcher, Espanso e Kando. |
+| `scripts/06_softwares_workflow.sh` | Módulo de instalação do VS Code, Telegram, ZapZap (WhatsApp), OnlyOffice, LocalSend, Jellyfin Desktop, GIMP com patch PhotoGIMP, Kooha (Gravador de tela MP4), Apps2Samsung, Balena Etcher, Espanso e Kando. |
 | `scripts/07_powershell7.sh` | Módulo de instalação oficial do Microsoft PowerShell 7 (`pwsh`), repositórios Microsoft e perfil do usuário. |
 | `scripts/08_antigravity_ide.sh` | Módulo de instalação completa e isolada do Google Antigravity IDE (`/opt/antigravity`, AppArmor e `.desktop`). |
 | `scripts/09_onlyoffice_padrao.sh` | Módulo de associação padrão: OnlyOffice para documentos office e Nautilus (`inode/directory`) como gerenciador de pastas padrão. |
