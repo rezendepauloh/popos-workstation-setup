@@ -21,7 +21,7 @@ sudo apt install -y \
     curl wget git build-essential \
     software-properties-common apt-transport-https ca-certificates gnupg lsb-release \
     htop btop neofetch p7zip-full unrar \
-    vlc piper ratbagd jq tree rclone \
+    piper ratbagd jq tree rclone \
     nautilus gvfs-backends syncthing \
     kdeconnect adb \
     zsh cargo rustc just pkg-config libssl-dev libdbus-1-dev libglib2.0-dev libasound2-dev \

@@ -232,20 +232,32 @@ EOF
     fi
 fi
 
+# Garante sincronização de configurações também para a sandbox do Flatpak
+VLC_FLATPAK_DIR="$REAL_HOME/.var/app/org.videolan.VLC/config/vlc"
+if [ -d "$REAL_HOME/.var/app/org.videolan.VLC" ]; then
+    mkdir -p "$VLC_FLATPAK_DIR"
+    cp -rn "$REAL_HOME/.config/vlc/"* "$VLC_FLATPAK_DIR/" 2>/dev/null || true
+fi
+
 # Configura estabilidade de vídeo e comportamento de tela cheia para XWayland / COSMIC / NVIDIA
-VLCRC="$REAL_HOME/.config/vlc/vlcrc"
-if [ -f "$VLCRC" ]; then
-    sed -i 's/^#*avcodec-hw=.*/avcodec-hw=none/' "$VLCRC"
-    sed -i 's/^#*vout=.*/vout=any/' "$VLCRC"
-    sed -i 's/^#*video-on-top=.*/video-on-top=1/' "$VLCRC"
-    sed -i 's/^#*qt-fs-opacity=.*/qt-fs-opacity=1.000000/' "$VLCRC"
-fi
+for vrc in "$REAL_HOME/.config/vlc/vlcrc" "$VLC_FLATPAK_DIR/vlcrc"; do
+    if [ -f "$vrc" ]; then
+        sed -i 's/^#*avcodec-hw=.*/avcodec-hw=none/' "$vrc"
+        sed -i 's/^#*vout=.*/vout=any/' "$vrc"
+        sed -i 's/^#*video-on-top=.*/video-on-top=1/' "$vrc"
+        sed -i 's/^#*qt-fs-opacity=.*/qt-fs-opacity=1.000000/' "$vrc"
+        sed -i 's/^#*aout=.*/aout=alsa/' "$vrc"
+        sed -i 's/^#*audio-resampler=.*/audio-resampler=speex_resampler/' "$vrc"
+    fi
+done
 
-if [ -f "$VLC_CONF" ]; then
-    sed -i 's/^wide=.*/wide=true/' "$VLC_CONF" 2>/dev/null || true
-fi
+for vconf in "$VLC_CONF" "$VLC_FLATPAK_DIR/vlc-qt-interface.conf"; do
+    if [ -f "$vconf" ]; then
+        sed -i 's/^wide=.*/wide=true/' "$vconf" 2>/dev/null || true
+    fi
+done
 
-# Garante que o VLC sempre use o backend XCB (XWayland) tanto no menu do COSMIC quanto no terminal
+# Garante que o VLC use o backend XCB (XWayland) e funcione no terminal e menu
 mkdir -p "$REAL_HOME/.local/share/applications"
 mkdir -p "$REAL_HOME/.local/bin"
 
@@ -257,11 +269,15 @@ fi
 
 cat << 'EOF' > "$REAL_HOME/.local/bin/vlc"
 #!/bin/bash
-exec env QT_QPA_PLATFORM=xcb /usr/bin/vlc "$@"
+if command -v /usr/bin/vlc >/dev/null 2>&1; then
+    exec env QT_QPA_PLATFORM=xcb /usr/bin/vlc "$@"
+elif flatpak info org.videolan.VLC >/dev/null 2>&1; then
+    exec flatpak run org.videolan.VLC "$@"
+fi
 EOF
 chmod +x "$REAL_HOME/.local/bin/vlc"
 
-chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/cosmic" "$REAL_HOME/.config/gtk-3.0" "$REAL_HOME/.config/gtk-4.0" "$REAL_HOME/.config/qt5ct" "$REAL_HOME/.config/qt6ct" "$REAL_HOME/.config/vlc" "$REAL_HOME/.local/share/applications/vlc.desktop" "$REAL_HOME/.local/bin/vlc" 2>/dev/null || true
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/cosmic" "$REAL_HOME/.config/gtk-3.0" "$REAL_HOME/.config/gtk-4.0" "$REAL_HOME/.config/qt5ct" "$REAL_HOME/.config/qt6ct" "$REAL_HOME/.config/vlc" "$REAL_HOME/.local/share/applications/vlc.desktop" "$REAL_HOME/.local/bin/vlc" "$REAL_HOME/.var/app/org.videolan.VLC" 2>/dev/null || true
 
 set_flag "$FLAG_NAME"
 log_msg "SUCCESS" "Etapa de temas visuais, regras de janelas e contraste do VLC concluída com sucesso."

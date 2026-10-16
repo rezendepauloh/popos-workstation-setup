@@ -94,7 +94,8 @@ flatpak install -y --system flathub \
     io.github.cosmic_utils.camera \
     dev.edfloreshz.CosmicTweaks \
     com.rcloneui.RcloneUI \
-    io.github.seadve.Kooha
+    io.github.seadve.Kooha \
+    org.videolan.VLC
 
 # 2.0 Pré-estruturação do diretório de dados do Nextcloud
 NC_SYNC_FOLDER="${NEXTCLOUD_SYNC_DIR:-$REAL_HOME/Nextcloud}"

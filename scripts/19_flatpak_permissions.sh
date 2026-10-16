@@ -74,5 +74,23 @@ if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
         "$KOOHA_APP_ID" 2>/dev/null || true
 fi
 
+log_msg "INFO" "Configurando permissões do VLC Flatpak (Acesso a discos secundários e perfil de temas)..."
+VLC_APP_ID="org.videolan.VLC"
+flatpak override --user \
+    --filesystem=/mnt/storage_700 \
+    --filesystem=/mnt/storage_930 \
+    --filesystem=xdg-config/qt5ct:ro \
+    --filesystem=xdg-config/Kvantum:ro \
+    "$VLC_APP_ID" 2>/dev/null || true
+
+if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
+    sudo flatpak override \
+        --filesystem=/mnt/storage_700 \
+        --filesystem=/mnt/storage_930 \
+        --filesystem=xdg-config/qt5ct:ro \
+        --filesystem=xdg-config/Kvantum:ro \
+        "$VLC_APP_ID" 2>/dev/null || true
+fi
+
 set_flag "$FLAG_NAME"
 log_msg "SUCCESS" "Overrides de Flatpak aplicados com sucesso."

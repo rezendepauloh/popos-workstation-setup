@@ -175,6 +175,7 @@ tar -czf "$BACKUP_DEST/$ARCHIVE_NAME" \
     .config/kando \
     .config/cosmic \
     .config/vlc \
+    .var/app/org.videolan.VLC/config/vlc \
     .ssh \
     Documentos/Scripts \
     2>/dev/null || true

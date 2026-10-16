@@ -130,6 +130,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "org.jellyfin.JellyfinDesktop",
                 "org.gimp.GIMP",
                 "vlc",
+                "org.videolan.VLC",
                 "opentabletdriver",
             ],
             exclude: [],
