@@ -38,7 +38,7 @@ Este documento descreve como funciona a arquitetura do **WinApps** via Docker (`
 
 ## 🚀 2. Passo a Passo Inicial: Subir o Windows
 
-O módulo [`scripts/26_winapps_office.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/26_winapps_office.sh) instala todas as dependências e cria o utilitário `winapps-vm`.
+O módulo [`scripts/26_winapps_office.sh`](scripts/26_winapps_office.sh) instala todas as dependências e cria o utilitário `winapps-vm`.
 
 ### 2.1. Iniciar o container Windows
 No terminal, execute:

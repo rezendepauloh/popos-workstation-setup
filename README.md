@@ -28,7 +28,7 @@ Script de automação e provisionamento idempotente para configuração completa
         *   Persistência sincronizada em `/var/lib/cosmic-greeter/.config/cosmic/com.system76.CosmicComp/v1/` para ativação desde a tela de login.
         *   Utilitário nativo `/usr/local/bin/numlock-on` (Python/evdev/uinput) e serviço no autostart para acender imediatamente o LED físico do teclado no login. Documentação em [`Docs/issue_cosmic_numlock_boot.md`](file:///home/rezendepauloh/Documentos/Scripts/Docs/issue_cosmic_numlock_boot.md).
     *   **Alt Codes do Windows no Teclado Numérico (Daemon evdev + uinput em Wayland):**
-        *   Implementado o daemon de usuário [`scripts/alt-numpad-daemon.py`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/alt-numpad-daemon.py) gerenciado pelo systemd (`alt-numpad.service`), que traz para o Pop!_OS e COSMIC Desktop (Wayland) o comportamento clássico do Windows:
+        *   Implementado o daemon de usuário [`scripts/alt-numpad-daemon.py`](scripts/alt-numpad-daemon.py) gerenciado pelo systemd (`alt-numpad.service`), que traz para o Pop!_OS e COSMIC Desktop (Wayland) o comportamento clássico do Windows:
             *   <kbd>Alt</kbd> + <kbd>1</kbd><kbd>6</kbd><kbd>7</kbd> = **`º`** *(Ordinal masculino)*
             *   <kbd>Alt</kbd> + <kbd>1</kbd><kbd>6</kbd><kbd>6</kbd> = **`ª`** *(Ordinal feminino)*
             *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>6</kbd><kbd>7</kbd> = **`§`** *(Parágrafo / Seção)*

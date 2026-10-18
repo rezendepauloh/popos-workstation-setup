@@ -1,6 +1,6 @@
 ### 📱 Guia de Backup e Restauração de Dispositivos Android via ADB
 
-Este guia detalha o fluxo prático e seguro para realizar o backup completo, formatação (restauração aos padrões de fábrica) e restauração de dados para aparelhos Android (Xiaomi/MIUI, Samsung, Motorola, etc.) utilizando os utilitários [backup_android.sh](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/util/backup_android.sh) e [restore_android.sh](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/util/restore_android.sh).
+Este guia detalha o fluxo prático e seguro para realizar o backup completo, formatação (restauração aos padrões de fábrica) e restauração de dados para aparelhos Android (Xiaomi/MIUI, Samsung, Motorola, etc.) utilizando os utilitários [backup_android.sh](util/backup_android.sh) e [restore_android.sh](util/restore_android.sh).
 
 ---
 
@@ -33,7 +33,7 @@ Este guia detalha o fluxo prático e seguro para realizar o backup completo, for
    * **Identificação Automática:** Detecta modelo, fabricante, versão do Android e número de série, gerando o relatório `info_dispositivo.txt`.
    * **Monitoramento e Progresso em Tempo Real:** Possui animação contínua (spinner), cronômetro de tempo decorrido (`[⏱️ Tempo: MM:SS]`) e medidor de tamanho gravado no disco (`[💾 No destino: X.X GB]`), garantindo visibilidade mesmo em diretórios gigantes (como o WhatsApp com dezenas de milhares de arquivos).
    * **Grandezas de Dados Formatadas:** Todas as saídas de transferência são convertidas automaticamente para a grandeza mais próxima e legível (`GB`, `MB`, `KB` ou `bytes`), em vez de exibir números brutos e difíceis de ler (ex: `2.1 GB` em vez de `2248083276 bytes`).
-   * **Geração Automática de Logs:** Toda a saída do terminal é salva de forma detalhada e com timestamp no diretório de [Logs](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/Logs) (ex: `Logs/backup_android_DD-MM-YYYY_HH-MM-SS.log`).
+   * **Geração Automática de Logs:** Toda a saída do terminal é salva de forma detalhada e com timestamp no diretório de [Logs](Logs) (ex: `Logs/backup_android_DD-MM-YYYY_HH-MM-SS.log`).
    * **Mídias e Arquivos:** Cópia de `DCIM` (Câmera/Screenshots), `Pictures`, `Download`, `Documents`, `Movies`, `Music`, `Audiobooks`, `Podcasts`.
    * **Áudios do Sistema e Gravador:** `Recordings`, `VoiceRecorder`, `Sounds`, `Notifications`, `Ringtones`, `Alarms`.
    * **Mensageiros:** `WhatsApp` (legado e moderno `Android/media/com.whatsapp`), `WhatsApp Business` e `Telegram`.
@@ -71,7 +71,7 @@ Após iniciar o celular formatado, passar pela configuração inicial do Android
    * **Menu Interativo de Backups:** Lista os backups salvos em disco com data, hora e tamanho total formatado em grandezas amigáveis (`GB` / `MB`). Basta pressionar ENTER para selecionar o mais recente.
    * **Monitoramento com Progresso em Tempo Real:** Exibe indicador visual contínuo, cronômetro e tamanho do lote de arquivos que está sendo transmitido para a memória interna.
    * **Pré-criação da Estrutura de Diretórios:** O script pré-cria recursivamente as pastas de destino no Android antes do envio, evitando falhas de permissão ou erros de criação de arquivos pelo subsistema FUSE/MTP do Android (como `remote couldn't create file: No such file or directory` em subpastas ocultas ou de thumbnails).
-   * **Registro em Logs:** Salva o relatório e saída completa da restauração em [Logs](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/Logs) (ex: `Logs/restore_android_DD-MM-YYYY_HH-MM-SS.log`).
+   * **Registro em Logs:** Salva o relatório e saída completa da restauração em [Logs](Logs) (ex: `Logs/restore_android_DD-MM-YYYY_HH-MM-SS.log`).
    * **Restauração de Arquivos e Mensageiros:** Envia de volta todas as pastas para `/sdcard/` e restaura as mídias do WhatsApp, WhatsApp Business e Telegram no caminho padrão do Android 11+ (`Android/media/...`).
    * **Reinstalação Automática de Aplicativos:** Se o backup continha APKs, pergunta se deseja reinstalar todos os apps de uma só vez em lote via ADB.
    * **Reindexador de Mídia (`MediaScanner`):** Executa o scanner interno do Android para que todas as fotos, vídeos, músicas e toques apareçam imediatamente na Galeria e reprodutores sem que seja necessário reiniciar o aparelho!

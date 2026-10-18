@@ -78,7 +78,7 @@ Links oficiais nos repositórios do Chromium, Electron, VS Code e COSMIC para ac
 
 ## ✅ 5. Solução Definitiva Implementada (Status: Resolvido)
 
-Em setembro de 2026, implementamos a solução definitiva e permanente no repositório através do utilitário [`scripts/patch_cedilla_electron.py`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/patch_cedilla_electron.py):
+Em setembro de 2026, implementamos a solução definitiva e permanente no repositório através do utilitário [`scripts/patch_cedilla_electron.py`](scripts/patch_cedilla_electron.py):
 
 1. **Patch Cirúrgico por Padrão de Bytes nos Binários:**
    - O utilitário localiza os bytes estáveis compilados no `CharacterComposer` e substitui diretamente:
@@ -91,5 +91,5 @@ Em setembro de 2026, implementamos a solução definitiva e permanente no reposi
 
 2. **Persistência Total via Hook APT:**
    - Registrado em `/etc/apt/apt.conf.d/99-patch-cedilla-electron`. Qualquer atualização futura via `apt upgrade` reaplica o patch automaticamente nos navegadores e editores.
-   - Integrado de ponta a ponta no provisionamento automatizado ([`scripts/02_teclado_cedilha_numlock.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/02_teclado_cedilha_numlock.sh) e [`scripts/08_antigravity_ide.sh`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/08_antigravity_ide.sh)).
+   - Integrado de ponta a ponta no provisionamento automatizado ([`scripts/02_teclado_cedilha_numlock.sh`](scripts/02_teclado_cedilha_numlock.sh) e [`scripts/08_antigravity_ide.sh`](scripts/08_antigravity_ide.sh)).
 

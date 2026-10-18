@@ -1,0 +1,13 @@
+[Unit]
+Description=Wacom ExpressKeys & Touch Ring Daemon para COSMIC Wayland
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/wacom-expresskeys-daemon.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
