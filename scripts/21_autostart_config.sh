@@ -41,7 +41,7 @@ cat << 'EOF' > "$AUTOSTART_DIR/menu.kando.Kando.desktop"
 Type=Application
 Name=Kando
 Comment=The Cross-Platform Pie Menu.
-Exec=env XDG_SESSION_TYPE=x11 GDK_BACKEND=x11 /usr/lib/kando/kando
+Exec=/usr/local/bin/kando
 Icon=kando
 Terminal=false
 Categories=Utility;

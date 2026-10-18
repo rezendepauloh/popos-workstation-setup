@@ -382,9 +382,13 @@ export GDK_BACKEND=x11
 exec /usr/lib/kando/kando "$@"
 EOF
 sudo chmod +x /usr/local/bin/kando
+mkdir -p "$REAL_HOME/.local/bin"
+cp -f /usr/local/bin/kando "$REAL_HOME/.local/bin/kando"
+chmod +x "$REAL_HOME/.local/bin/kando"
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/kando"
 
 if [ -f /usr/share/applications/menu.kando.Kando.desktop ]; then
-    sudo sed -i 's|^Exec=.*|Exec=env XDG_SESSION_TYPE=x11 GDK_BACKEND=x11 /usr/lib/kando/kando %U|' /usr/share/applications/menu.kando.Kando.desktop
+    sudo sed -i 's|^Exec=.*|Exec=/usr/local/bin/kando %U|' /usr/share/applications/menu.kando.Kando.desktop
     sudo update-desktop-database /usr/share/applications 2>/dev/null || true
 fi
 
