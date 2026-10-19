@@ -170,7 +170,7 @@ fi
 
 # 3. Espanso (Wayland Edition) e bibliotecas wxWidgets 3.0 no Ubuntu/Pop!_OS 24.04 (noble)
 log_msg "INFO" "Baixando e instalando Espanso (Wayland)..."
-wget -qO /tmp/espanso.deb https://github.com/espanso/espanso/releases/download/v2.2.1/espanso-debian-wayland-amd64.deb
+wget -qO /tmp/espanso.deb https://github.com/espanso/espanso/releases/download/v2.4.1/espanso-debian-wayland-amd64.deb
 sudo apt install -y /tmp/espanso.deb
 
 sudo mkdir -p /usr/local/lib/espanso
@@ -193,8 +193,8 @@ fi
 echo "/usr/local/lib/espanso" | sudo tee /etc/ld.so.conf.d/espanso.conf > /dev/null
 sudo ldconfig 2>/dev/null || true
 
-# Instala dependências Python e utilitários de Clipboard/GUI para automações
-sudo apt install -y python3-tk python3-pyperclip python3-pip python3-yaml wl-clipboard xclip
+# Instala dependências Python e utilitários de Clipboard/GUI para automações e Tray Indicator
+sudo apt install -y python3-tk python3-pyperclip python3-pip python3-yaml wl-clipboard xclip gir1.2-ayatanaappindicator3-0.1
 
 # Permite acesso evdev com capabilities
 ESPANSO_BIN=$(which espanso || true)
@@ -359,13 +359,21 @@ if os.path.exists(utils_path):
 
 chown -R "$REAL_USER:$REAL_USER" "$ESPANSO_CONFIG_DIR" 2>/dev/null || true
 
-# Registra e inicia o serviço do Espanso no usuário
+# Registra e inicia o serviço do Espanso e o Indicador de Tray no usuário
+mkdir -p "$REAL_HOME/.config/systemd/user"
+cp -f "$SCRIPT_DIR/../config/systemd/user/espanso-indicator.service" "$REAL_HOME/.config/systemd/user/" 2>/dev/null || true
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/systemd" 2>/dev/null || true
+
 if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
     sudo -u "$REAL_USER" espanso service register 2>/dev/null || true
     sudo -u "$REAL_USER" espanso start 2>/dev/null || true
+    sudo -u "$REAL_USER" systemctl --user daemon-reload 2>/dev/null || true
+    sudo -u "$REAL_USER" systemctl --user enable --now espanso-indicator.service 2>/dev/null || true
 else
     espanso service register 2>/dev/null || true
     espanso start 2>/dev/null || true
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user enable --now espanso-indicator.service 2>/dev/null || true
 fi
 
 # 4. Kando (Menu Circular / Pie Menu)

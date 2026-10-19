@@ -1,0 +1,13 @@
+[Unit]
+Description=Espanso System Tray Indicator (Wayland / COSMIC)
+After=espanso.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/espanso-indicator.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
