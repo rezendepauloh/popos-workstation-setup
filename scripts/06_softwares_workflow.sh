@@ -360,7 +360,11 @@ if os.path.exists(utils_path):
 chown -R "$REAL_USER:$REAL_USER" "$ESPANSO_CONFIG_DIR" 2>/dev/null || true
 
 # Registra e inicia o serviço do Espanso e o Indicador de Tray no usuário
-mkdir -p "$REAL_HOME/.config/systemd/user"
+mkdir -p "$REAL_HOME/.local/bin" "$REAL_HOME/.config/systemd/user"
+cp -f "$SCRIPT_DIR/daemons/espanso-indicator.py" "$REAL_HOME/.local/bin/espanso-indicator.py"
+chmod +x "$REAL_HOME/.local/bin/espanso-indicator.py"
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/espanso-indicator.py"
+
 cp -f "$SCRIPT_DIR/../config/systemd/user/espanso-indicator.service" "$REAL_HOME/.config/systemd/user/" 2>/dev/null || true
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/systemd" 2>/dev/null || true
 

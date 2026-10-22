@@ -5,7 +5,7 @@ PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/espanso-indicator.py
+ExecStart=%h/.local/bin/espanso-indicator.py
 Restart=on-failure
 RestartSec=3
 

@@ -275,9 +275,40 @@ elif flatpak info org.videolan.VLC >/dev/null 2>&1; then
     exec flatpak run org.videolan.VLC "$@"
 fi
 EOF
-chmod +x "$REAL_HOME/.local/bin/vlc"
+# 7. Tema de Cursores Moderno (Bibata Modern Classic)
+log_msg "INFO" "Configurando tema de cursores Bibata Modern Classic..."
+sudo apt install -y bibata-cursor-theme 2>/dev/null || true
+
+# Configura cursor nas interfaces GTK/GNOME e fallback X11/XWayland
+if [ -n "$REAL_UID" ]; then
+    sudo -u "$REAL_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic' 2>/dev/null || true
+    sudo -u "$REAL_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" gsettings set org.gnome.desktop.interface cursor-size 24 2>/dev/null || true
+fi
+
+mkdir -p "$REAL_HOME/.icons/default"
+cat << 'EOF' > "$REAL_HOME/.icons/default/index.theme"
+[Icon Theme]
+Name=Default
+Comment=Default Cursor Theme
+Inherits=Bibata-Modern-Classic
+EOF
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.icons" 2>/dev/null || true
+
+# Configura variáveis de ambiente globais lidas pelo compositor cosmic-comp no login
+mkdir -p "$REAL_HOME/.config/environment.d"
+cat << 'EOF' > "$REAL_HOME/.config/environment.d/10-cursor.conf"
+XCURSOR_THEME="Bibata-Modern-Classic"
+XCURSOR_SIZE="24"
+EOF
+
+if ! grep -q 'export XCURSOR_THEME="Bibata-Modern-Classic"' "$REAL_HOME/.profile" 2>/dev/null; then
+    cat << 'EOF' >> "$REAL_HOME/.profile"
+export XCURSOR_THEME="Bibata-Modern-Classic"
+export XCURSOR_SIZE="24"
+EOF
+fi
 
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/cosmic" "$REAL_HOME/.config/gtk-3.0" "$REAL_HOME/.config/gtk-4.0" "$REAL_HOME/.config/qt5ct" "$REAL_HOME/.config/qt6ct" "$REAL_HOME/.config/vlc" "$REAL_HOME/.local/share/applications/vlc.desktop" "$REAL_HOME/.local/bin/vlc" "$REAL_HOME/.var/app/org.videolan.VLC" 2>/dev/null || true
 
 set_flag "$FLAG_NAME"
-log_msg "SUCCESS" "Etapa de temas visuais, regras de janelas e contraste do VLC concluída com sucesso."
+log_msg "SUCCESS" "Etapa de temas visuais, regras de janelas, contraste do VLC e cursores Bibata concluída com sucesso."

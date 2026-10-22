@@ -130,7 +130,7 @@ for p in [
 
 # 6. Instalação do utilitário global patch-cedilla-electron e Hook do APT
 log_msg "INFO" "Instalando utilitário global patch-cedilla-electron e Hook de persistência do APT..."
-sudo cp -f "$SCRIPT_DIR/patch_cedilla_electron.py" /usr/local/bin/patch-cedilla-electron
+sudo cp -f "$SCRIPT_DIR/daemons/patch_cedilla_electron.py" /usr/local/bin/patch-cedilla-electron
 sudo chmod +x /usr/local/bin/patch-cedilla-electron
 
 # Criação do Hook APT para reaplicar o patch após qualquer atualização de pacotes (Chrome, Code, etc.)
@@ -217,7 +217,7 @@ done
 log_msg "INFO" "Instalando Daemon de Alt Codes do Windows e serviço de usuário..."
 mkdir -p "$REAL_HOME/.local/bin" "$REAL_HOME/.config/systemd/user"
 
-cp -f "$SCRIPT_DIR/alt-numpad-daemon.py" "$REAL_HOME/.local/bin/alt-numpad-daemon.py"
+cp -f "$SCRIPT_DIR/daemons/alt-numpad-daemon.py" "$REAL_HOME/.local/bin/alt-numpad-daemon.py"
 chmod +x "$REAL_HOME/.local/bin/alt-numpad-daemon.py"
 chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/alt-numpad-daemon.py"
 

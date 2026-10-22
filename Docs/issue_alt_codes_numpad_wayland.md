@@ -79,7 +79,7 @@ A solução implementada adota o modelo de mais baixo nível e máxima confiabil
 
 | Arquivo | Finalidade |
 | :--- | :--- |
-| `scripts/alt-numpad-daemon.py` | Código-fonte do daemon de captura e injeção via evdev/uinput. |
+| `scripts/daemons/alt-numpad-daemon.py` | Código-fonte do daemon de captura e injeção via evdev/uinput. |
 | `~/.local/bin/alt-numpad-daemon.py` | Binário executável do usuário em produção. |
 | `config/systemd/user/alt-numpad.service` | Modelo da unidade systemd de usuário. |
 | `~/.config/systemd/user/alt-numpad.service` | Serviço systemd ativo no escopo do usuário. |

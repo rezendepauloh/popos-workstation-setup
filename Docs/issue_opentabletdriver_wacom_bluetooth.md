@@ -94,6 +94,6 @@ Como o protocolo `zwp_tablet_pad_v2` do Wayland ainda não repassa atalhos arbit
 
 ## 📦 Automação no Repositório
 * Implementado no script oficial: [12_wacom_tablet.sh](scripts/12_wacom_tablet.sh).
-* Daemon de atalhos: [wacom-expresskeys-daemon.py](scripts/wacom-expresskeys-daemon.py).
+* Daemon de atalhos: [wacom-expresskeys-daemon.py](scripts/daemons/wacom-expresskeys-daemon.py).
 * Serviço systemd do usuário: [wacom-expresskeys.service](config/systemd/user/wacom-expresskeys.service).
 * Execução idempotente compatível com o assistente central `setup_popos_v2.sh`.

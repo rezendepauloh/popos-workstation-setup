@@ -44,8 +44,8 @@ chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/"*-flags.conf 2>/dev/null || t
 # Revalida / reaplica patch de cedilha nos binários das IDEs
 if [ -x /usr/local/bin/patch-cedilla-electron ]; then
     /usr/local/bin/patch-cedilla-electron /opt/antigravity/antigravity-ide /usr/share/code/code 2>/dev/null || true
-elif [ -f "$SCRIPT_DIR/patch_cedilla_electron.py" ]; then
-    python3 "$SCRIPT_DIR/patch_cedilla_electron.py" /opt/antigravity/antigravity-ide /usr/share/code/code 2>/dev/null || true
+elif [ -f "$SCRIPT_DIR/daemons/patch_cedilla_electron.py" ]; then
+    python3 "$SCRIPT_DIR/daemons/patch_cedilla_electron.py" /opt/antigravity/antigravity-ide /usr/share/code/code 2>/dev/null || true
 fi
 
 if [ -d "$IDE_BACKUP_DIR" ]; then

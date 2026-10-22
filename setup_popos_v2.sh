@@ -119,8 +119,8 @@ MODULES=(
     "24_pdf_editors.sh"
     "25_samba_storage.sh"
     "26_winapps_office.sh"
-    "27_limpeza_otimizacao.sh"
-    "28_tailscale.sh"
+    "27_tailscale.sh"
+    "28_limpeza_otimizacao.sh"
 )
 
 TOTAL_MODULES=${#MODULES[@]}

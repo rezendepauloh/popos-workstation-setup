@@ -78,7 +78,7 @@ Links oficiais nos repositórios do Chromium, Electron, VS Code e COSMIC para ac
 
 ## ✅ 5. Solução Definitiva Implementada (Status: Resolvido)
 
-Em setembro de 2026, implementamos a solução definitiva e permanente no repositório através do utilitário [`scripts/patch_cedilla_electron.py`](scripts/patch_cedilla_electron.py):
+Em setembro de 2026, implementamos a solução definitiva e permanente no repositório através do utilitário [`scripts/daemons/patch_cedilla_electron.py`](scripts/daemons/patch_cedilla_electron.py):
 
 1. **Patch Cirúrgico por Padrão de Bytes nos Binários:**
    - O utilitário localiza os bytes estáveis compilados no `CharacterComposer` e substitui diretamente:

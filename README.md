@@ -18,7 +18,7 @@ Script de automação, provisionamento idempotente e infraestrutura como código
     *   Taxa de repetição ergonômica ajustada para 300ms de atraso e 30ms de intervalo (~33 caracteres/segundo).
     *   **Cedilha e Aspas do Windows no Wayland Nativo (`ui::CharacterComposer`):**
         *   Em Wayland nativo (`--ozone-platform=wayland`), motores Chromium/Electron utilizam tabelas estáticas de composição interna onde `' + c` resultava em `ć` (U+0107) e pressionar <kbd>"</kbd> (<kbd>Shift</kbd>+<kbd>'</kbd>) duas vezes gerava o trema `¨` (U+00A8).
-        *   Utilitário nativo `/usr/local/bin/patch-cedilla-electron` ([scripts/patch_cedilla_electron.py](scripts/patch_cedilla_electron.py)) aplicando patch seguro por padrão de bytes diretamente nos binários de **Google Antigravity IDE**, **VS Code**, **Google Chrome** e **Brave**:
+        *   Utilitário nativo `/usr/local/bin/patch-cedilla-electron` ([scripts/daemons/patch_cedilla_electron.py](scripts/daemons/patch_cedilla_electron.py)) aplicando patch seguro por padrão de bytes diretamente nos binários de **Google Antigravity IDE**, **VS Code**, **Google Chrome** e **Brave**:
             *   <kbd>'</kbd> + <kbd>c</kbd> = **`ç`** e <kbd>'</kbd> + <kbd>C</kbd> = **`Ç`**
             *   <kbd>"</kbd> 2x = **`"`** (em vez de `¨`)
             *   <kbd>'</kbd> 2x = **`'`** (em vez de `´`)
@@ -27,7 +27,7 @@ Script de automação, provisionamento idempotente e infraestrutura como código
         *   Layout XKB do COSMIC configurado com `options: Some("numpad:mac")` garantindo que o teclado numérico sempre emita números.
         *   Persistência no `cosmic-greeter` para funcionamento já na tela de login e script `/usr/local/bin/numlock-on` (evdev/uinput) para acender o LED físico do hardware no boot. Documentação em [Docs/issue_cosmic_numlock_boot.md](Docs/issue_cosmic_numlock_boot.md).
     *   **Alt Codes do Windows no Teclado Numérico (Wayland Native):**
-        *   Daemon de usuário [scripts/alt-numpad-daemon.py](scripts/alt-numpad-daemon.py) gerenciado pelo systemd (`alt-numpad.service`), emulando com perfeição os códigos clássicos do Windows sob Wayland:
+        *   Daemon de usuário [scripts/daemons/alt-numpad-daemon.py](scripts/daemons/alt-numpad-daemon.py) gerenciado pelo systemd (`alt-numpad.service`), emulando com perfeição os códigos clássicos do Windows sob Wayland:
             *   <kbd>Alt</kbd> + <kbd>1</kbd><kbd>6</kbd><kbd>7</kbd> = **`º`** | <kbd>Alt</kbd> + <kbd>1</kbd><kbd>6</kbd><kbd>6</kbd> = **`ª`**
             *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>6</kbd><kbd>7</kbd> = **`§`** | <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>7</kbd><kbd>6</kbd> = **`°`**
             *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>5</kbd><kbd>3</kbd> = **`™`** | <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>6</kbd><kbd>9</kbd> = **`©`** | <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>7</kbd><kbd>4</kbd> = **`®`**
@@ -41,14 +41,14 @@ Script de automação, provisionamento idempotente e infraestrutura como código
 *   **Mesa Digitalizadora (Wacom Intuos Pro S / PTH-460):**
     *   **Driver Oficial do Kernel (`wacom.ko`):** Módulo nativo desbloqueado, com regras udev de permissão de usuário (`/etc/udev/rules.d/99-wacom-native.rules`) e pareamento Bluetooth confiável no BlueZ.
     *   **Modo Canhoto 180° e Calibração de Proporção:** Configurado nativamente no compositor COSMIC (`~/.config/cosmic/com.system76.CosmicComp/v1/input_devices`) mapeando a Caneta e Touchpad para o monitor principal ultrawide (`DP-1`) com rotação de 180° para toques com os dedos.
-    *   **ExpressKeys e Touch Ring:** Daemon leve em Python [scripts/wacom-expresskeys-daemon.py](scripts/wacom-expresskeys-daemon.py) gerenciado pelo systemd (`wacom-expresskeys.service`), injetando Desfazer (<kbd>Ctrl</kbd>+<kbd>Z</kbd>), Refazer (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>), Pan (<kbd>Espaço</kbd>), Salvar (<kbd>Ctrl</kbd>+<kbd>S</kbd>), Copiar (<kbd>Ctrl</kbd>+<kbd>C</kbd>), Colar (<kbd>Ctrl</kbd>+<kbd>V</kbd>) e Zoom In/Out pelo anel. Documentação técnica em [Docs/issue_opentabletdriver_wacom_bluetooth.md](Docs/issue_opentabletdriver_wacom_bluetooth.md).
+    *   **ExpressKeys e Touch Ring:** Daemon leve em Python [scripts/daemons/wacom-expresskeys-daemon.py](scripts/daemons/wacom-expresskeys-daemon.py) gerenciado pelo systemd (`wacom-expresskeys.service`), injetando Desfazer (<kbd>Ctrl</kbd>+<kbd>Z</kbd>), Refazer (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>), Pan (<kbd>Espaço</kbd>), Salvar (<kbd>Ctrl</kbd>+<kbd>S</kbd>), Copiar (<kbd>Ctrl</kbd>+<kbd>C</kbd>), Colar (<kbd>Ctrl</kbd>+<kbd>V</kbd>) e Zoom In/Out pelo anel. Documentação técnica em [Docs/issue_opentabletdriver_wacom_bluetooth.md](Docs/issue_opentabletdriver_wacom_bluetooth.md).
 
 ### 3. Produtividade, Automação & Workflows
 *   **Espanso v2.4.1 (Wayland Edition):**
     *   Text expander moderno em Rust integrado com repositório privado de snippets [`espanso-automacoes-sti`](https://github.com/rezendepauloh/espanso-automacoes-sti) em `~/.config/espanso`.
     *   Execução estável via backend `EVDEV` com permissões `cap_dac_override`.
     *   Formulários gráficos interativos em Python/Tkinter e processamento de linguagem natural (spaCy).
-    *   **Ícone Nativo na Bandeja do Painel COSMIC (StatusNotifierItem):** Daemon dedicado [scripts/espanso-indicator.py](scripts/espanso-indicator.py) gerenciado por serviço systemd (`espanso-indicator.service`), trazendo menu interativo (Buscar Snippets, Pausar/Retomar, Abrir Configurações e Reiniciar) e eliminando a micro-janela fantasma X11 de 1 pixel na tela. Documentação e relatório para upstream em [Docs/issue_espanso_wayland_tray_cosmic.md](Docs/issue_espanso_wayland_tray_cosmic.md).
+    *   **Ícone Nativo na Bandeja do Painel COSMIC (StatusNotifierItem):** Daemon dedicado [scripts/daemons/espanso-indicator.py](scripts/daemons/espanso-indicator.py) gerenciado por serviço systemd (`espanso-indicator.service`), trazendo menu interativo (Buscar Snippets, Pausar/Retomar, Abrir Configurações e Reiniciar) e eliminando a micro-janela fantasma X11 de 1 pixel na tela. Documentação e relatório para upstream em [Docs/issue_espanso_wayland_tray_cosmic.md](Docs/issue_espanso_wayland_tray_cosmic.md).
 *   **Kando v3.0.0 (Pie Menu):**
     *   Menu radial circular moderno com atalho global <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F10</kbd> e acionamento no botão de gatilho do mouse G502 X.
     *   Wrapper de compatibilidade gráfica Wayland/X11 e conversão automática de atalhos e aplicativos do Windows para apps nativos Linux Pop!_OS e Flatpak.
@@ -119,12 +119,13 @@ Script de automação, provisionamento idempotente e infraestrutura como código
 │   ├── 24_pdf_editors.sh               # Master PDF Editor e Okular
 │   ├── 25_samba_storage.sh             # Servidor Samba local (/mnt/storage_700/samba)
 │   ├── 26_winapps_office.sh            # WinApps (Windows KVM acelerado com FreeRDP)
-│   ├── 27_limpeza_otimizacao.sh        # Limpeza, Docker socket, latência PipeWire e backups
-│   ├── 28_tailscale.sh                 # Mesh VPN Tailscale (WireGuard)
-│   ├── alt-numpad-daemon.py            # Daemon Python de Alt Codes do Windows (Wayland)
-│   ├── espanso-indicator.py            # Tray Indicator nativo StatusNotifierItem para Espanso
-│   ├── patch_cedilla_electron.py       # Patch cirúrgico de cedilha em binários Electron
-│   └── wacom-expresskeys-daemon.py     # Daemon de atalhos e anel de zoom da Wacom (UInput)
+│   ├── 27_tailscale.sh                 # Mesh VPN Tailscale (WireGuard)
+│   ├── 28_limpeza_otimizacao.sh        # Limpeza, Docker socket, latência PipeWire e backups
+│   └── daemons/                        # Daemons e Utilitários em Python (Background Services)
+│       ├── alt-numpad-daemon.py        # Daemon Python de Alt Codes do Windows (Wayland)
+│       ├── espanso-indicator.py        # Tray Indicator nativo StatusNotifierItem para Espanso
+│       ├── patch_cedilla_electron.py   # Patch cirúrgico de cedilha em binários Electron
+│       └── wacom-expresskeys-daemon.py # Daemon de atalhos e anel de zoom da Wacom (UInput)
 ├── util/                               # Utilitários de Manutenção e Hardware
 │   ├── backup_android.sh               # Backup automatizado de celular Android via ADB
 │   └── restore_android.sh              # Restauração assistida no celular formatado via ADB
@@ -133,6 +134,7 @@ Script de automação, provisionamento idempotente e infraestrutura como código
     ├── issue_opentabletdriver_wacom_bluetooth.md   # Relatório de Driver Nativo Wacom
     ├── issue_chromium_electron_cedilha_wayland.md  # Relatório do Patch de Cedilha
     ├── issue_alt_codes_numpad_wayland.md           # Relatório de Alt Codes no Wayland
+    ├── issue_cursor_blurry_gtk4_wayland.md         # Relatório de Cursor Borrado em Janelas GTK4
     ├── issue_cosmic_numlock_boot.md                # Relatório do NumLock no Greeter
     ├── issue_cosmic_files_fuse_freeze.md           # Diagnóstico de I/O e FUSE
     ├── como-parear-sunshine-moonlight-samsung-tv.md# Guia de streaming para Smart TV Samsung

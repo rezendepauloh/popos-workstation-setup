@@ -102,7 +102,7 @@ chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/cosmic"
 log_msg "INFO" "Instalando daemon nativo de ExpressKeys e Touch Ring (UInput)..."
 mkdir -p "$REAL_HOME/.local/bin" "$REAL_HOME/.config/systemd/user"
 
-cp -f "$SCRIPT_DIR/wacom-expresskeys-daemon.py" "$REAL_HOME/.local/bin/wacom-expresskeys-daemon.py"
+cp -f "$SCRIPT_DIR/daemons/wacom-expresskeys-daemon.py" "$REAL_HOME/.local/bin/wacom-expresskeys-daemon.py"
 chmod +x "$REAL_HOME/.local/bin/wacom-expresskeys-daemon.py"
 chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/wacom-expresskeys-daemon.py"
 

@@ -135,6 +135,17 @@ Você pode salvar qualquer arquivo nessa pasta e ele estará acessível em ambos
 > [!TIP]
 > Ao clicar duas vezes em um arquivo `.docx` pelo Nautilus através do compartilhamento, o sistema abrirá o Microsoft Word oficial do WinApps diretamente na sua tela!
 
+> [!IMPORTANT]
+> **Atenção ao Recurso "Arquivos sob Demanda" (Files On-Demand) via SMB:**
+> Se um arquivo estiver apenas como ponteiro na nuvem no Windows (ícone de nuvenzinha azul, atributos `OrsA` / *Cloud Placeholder*), o protocolo SMB não consegue disparar o download sob demanda em tempo real para o Linux, retornando `Erro de entrada/saída` ou `Argumento inválido` (código NT `0xc000cf01 - STATUS_CLOUD_FILE_PROVIDER_NOT_RUNNING`).
+> 
+> **Como resolver para os arquivos/pastas que você usa no dia a dia:**
+> 1. Acesse o Windows (pelo navegador em `http://127.0.0.1:8006` ou via `winapps windows`).
+> 2. No Explorador de Arquivos do Windows, vá na pasta do seu OneDrive (`OneDrive - Ministério Público...`).
+> 3. Clique com o botão direito nas pastas ou arquivos desejados (ex: `Documents`, `Aulas`, etc.).
+> 4. Clique em **"Sempre manter neste dispositivo"** (*Always keep on this device*).
+> 5. Assim que o ícone mudar para o círculo verde com visto (arquivo baixado localmente no Windows), o Linux conseguirá ler, abrir com o Visualizador de Documentos ou qualquer app nativo instantaneamente sem qualquer erro.
+
 ---
 
 ## 🛠️ 6. Comandos Úteis do Helper (`winapps-vm`)
@@ -147,6 +158,11 @@ Você pode salvar qualquer arquivo nessa pasta e ele estará acessível em ambos
 | `winapps-vm web` | Abre a interface de visualização da VM no navegador (`http://127.0.0.1:8006`). |
 | `winapps-vm logs` | Exibe os logs do container Windows em tempo real. |
 | `winapps-vm setup-apps` | Roda a detecção do WinApps e atualiza os atalhos no COSMIC. |
+| `winapps-vm fix-smb` | Reajusta imediatamente as regras do iptables no container e remonta no Nautilus. |
+
+> [!NOTE]
+> **Inicialização Automática com o Sistema:**
+> O container `winapps-windows` está configurado com `restart: unless-stopped` e sobe automaticamente na inicialização do Docker / boot do sistema. O serviço de usuário `winapps-smb-sync.service` (`systemctl --user`) é acionado no login para desobstruir as regras do firewall QEMU (portas SMB 139/445) e garantir que a montagem no Nautilus esteja pronta para uso.
 
 ---
 

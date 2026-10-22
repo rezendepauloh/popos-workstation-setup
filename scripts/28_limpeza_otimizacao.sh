@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Módulo 27: Limpeza Final, Otimização de Recursos e Hardening
+# Módulo 28: Limpeza Final, Otimização de Recursos e Hardening
 # Implementa as melhorias de performance, docker sob demanda, rede e backups
 # ==============================================================================
 
@@ -15,7 +15,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "27. LIMPEZA FINAL, OTIMIZAÇÕES E HARDENING DO SISTEMA"
+log_msg "HEADER" "28. LIMPEZA FINAL, OTIMIZAÇÕES E HARDENING DO SISTEMA"
 
 # ------------------------------------------------------------------------------
 # 1. Limpeza de Pacotes e Runtimes

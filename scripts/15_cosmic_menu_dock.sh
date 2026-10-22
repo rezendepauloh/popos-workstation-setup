@@ -113,6 +113,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "microsoft-excel",
                 "microsoft-powerpoint",
                 "microsoft-onedrive",
+                "winapps-windows",
             ],
             exclude: [],
         ),

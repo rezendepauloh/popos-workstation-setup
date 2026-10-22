@@ -18,9 +18,9 @@ fi
 log_msg "HEADER" "26. CONFIGURAÇÃO DO WINAPPS (MICROSOFT 365 & WINDOWS SEAMLESS)"
 
 # Carregar variáveis de ambiente se existirem
-if [ -f "$PROJECT_ROOT/.env" ]; then
+if [ -f "$BASE_DIR/.env" ]; then
     set -a
-    source "$PROJECT_ROOT/.env"
+    source "$BASE_DIR/.env"
     set +a
 fi
 
@@ -142,13 +142,27 @@ cat <<'EOF' > "$WINAPPS_HELPER"
 # Helper de Gerenciamento do Container Windows para o WinApps
 # ==============================================================================
 COMPOSE_DIR="$HOME/Docker/winapps-windows"
+CONTAINER="winapps-windows"
+
+fix_smb_routing() {
+    for i in {1..30}; do
+        if docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null | grep -q "true"; then
+            while docker exec "$CONTAINER" iptables -t nat -L QEMU_DNAT -n --line-numbers 2>/dev/null | grep -E "dpt:(139|445)" >/dev/null; do
+                LINE=$(docker exec "$CONTAINER" iptables -t nat -L QEMU_DNAT -n --line-numbers 2>/dev/null | grep -E "dpt:(139|445)" | head -n1 | awk '{print $1}')
+                [ -n "$LINE" ] && docker exec "$CONTAINER" iptables -t nat -D QEMU_DNAT "$LINE" 2>/dev/null || break
+            done
+            gio mount "smb://172.20.0.2/onedrive-mpms" 2>/dev/null || true
+            return 0
+        fi
+        sleep 2
+    done
+}
 
 case "$1" in
     start)
         echo "🚀 Iniciando VM/Container Windows..."
         docker compose -f "$COMPOSE_DIR/docker-compose.yml" up -d
-        # Aguarda container subir e roteia portas de compartilhamento de arquivos SMB para o Windows
-        (sleep 5 && docker exec winapps-windows iptables -t nat -D QEMU_DNAT 3 2>/dev/null && docker exec winapps-windows iptables -t nat -D QEMU_DNAT 3 2>/dev/null || true) &
+        (fix_smb_routing) &
         echo "Acesse http://127.0.0.1:8006 no navegador para acompanhar o progresso de inicialização."
         ;;
     stop)
@@ -158,6 +172,7 @@ case "$1" in
     restart)
         echo "🔄 Reiniciando VM/Container Windows..."
         docker compose -f "$COMPOSE_DIR/docker-compose.yml" restart
+        (fix_smb_routing) &
         ;;
     status)
         docker compose -f "$COMPOSE_DIR/docker-compose.yml" ps
@@ -172,8 +187,12 @@ case "$1" in
         echo "🔍 Detectando e instalando atalhos de aplicativos com WinApps..."
         cd "$HOME/.local/share/winapps" && ./setup.sh --user
         ;;
+    fix-smb)
+        echo "🔧 Ajustando roteamento SMB e montagem no Nautilus..."
+        fix_smb_routing
+        ;;
     *)
-        echo "Uso: winapps-vm {start|stop|restart|status|logs|web|setup-apps}"
+        echo "Uso: winapps-vm {start|stop|restart|status|logs|web|setup-apps|fix-smb}"
         exit 1
         ;;
 esac
@@ -181,6 +200,57 @@ EOF
 
 chmod +x "$WINAPPS_HELPER"
 chown "$REAL_USER:$REAL_USER" "$WINAPPS_HELPER"
+
+# ------------------------------------------------------------------------------
+# 5.1 Serviço Systemd de Usuário para Sincronização SMB e Automount do OneDrive
+# ------------------------------------------------------------------------------
+SMB_SYNC_SCRIPT="$REAL_HOME/.local/bin/winapps-smb-sync.sh"
+cat <<'EOF' > "$SMB_SYNC_SCRIPT"
+#!/bin/bash
+# ==============================================================================
+# Sincronizador de regras de firewall SMB e automount GVFS para WinApps
+# ==============================================================================
+CONTAINER="winapps-windows"
+
+for i in {1..30}; do
+    if docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null | grep -q "true"; then
+        while docker exec "$CONTAINER" iptables -t nat -L QEMU_DNAT -n --line-numbers 2>/dev/null | grep -E "dpt:(139|445)" >/dev/null; do
+            LINE=$(docker exec "$CONTAINER" iptables -t nat -L QEMU_DNAT -n --line-numbers 2>/dev/null | grep -E "dpt:(139|445)" | head -n1 | awk '{print $1}')
+            [ -n "$LINE" ] && docker exec "$CONTAINER" iptables -t nat -D QEMU_DNAT "$LINE" 2>/dev/null || break
+        done
+        gio mount "smb://172.20.0.2/onedrive-mpms" 2>/dev/null || true
+        exit 0
+    fi
+    sleep 2
+done
+EOF
+
+chmod +x "$SMB_SYNC_SCRIPT"
+chown "$REAL_USER:$REAL_USER" "$SMB_SYNC_SCRIPT"
+
+USER_SYSTEMD_DIR="$REAL_HOME/.config/systemd/user"
+mkdir -p "$USER_SYSTEMD_DIR"
+cat <<EOF > "$USER_SYSTEMD_DIR/winapps-smb-sync.service"
+[Unit]
+Description=WinApps SMB Firewall Router & OneDrive Automount
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=$SMB_SYNC_SCRIPT
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target
+EOF
+
+chown -R "$REAL_USER:$REAL_USER" "$USER_SYSTEMD_DIR"
+
+if [ -n "$REAL_UID" ]; then
+    sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user daemon-reload 2>/dev/null || true
+    sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user enable winapps-smb-sync.service 2>/dev/null || true
+fi
 
 # ------------------------------------------------------------------------------
 # 6. Atualizar Categorias do COSMIC App Library para Incluir o WinApps e Office
@@ -207,10 +277,59 @@ chown "$REAL_USER:$REAL_USER" "$ONEDRIVE_MOUNT_POINT"
 # Adicionar marcador no Nautilus GTK bookmarks se ainda não existir
 GTK_BOOKMARKS="$REAL_HOME/.config/gtk-3.0/bookmarks"
 if [ -f "$GTK_BOOKMARKS" ]; then
-    if ! grep -q "$ONEDRIVE_MOUNT_POINT" "$GTK_BOOKMARKS"; then
-        echo "file://$ONEDRIVE_MOUNT_POINT OneDrive (MPMS)" >> "$GTK_BOOKMARKS"
-        chown "$REAL_USER:$REAL_USER" "$GTK_BOOKMARKS"
+    # Garantir marcador SMB direto no Nautilus
+    if ! grep -q "smb://172.20.0.2/onedrive-mpms" "$GTK_BOOKMARKS"; then
+        echo "smb://172.20.0.2/onedrive-mpms OneDrive-MPMS" >> "$GTK_BOOKMARKS"
     fi
+    chown "$REAL_USER:$REAL_USER" "$GTK_BOOKMARKS"
+fi
+
+# ------------------------------------------------------------------------------
+# 8. Criar Ícone Oficial do Windows e Lançador Desktop para o WinApps
+# ------------------------------------------------------------------------------
+ICON_DIR="$REAL_HOME/.local/share/icons/hicolor/scalable/apps"
+mkdir -p "$ICON_DIR"
+cat << 'EOF' > "$ICON_DIR/windows-11.svg"
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88">
+  <path fill="#0078d4" d="M0 0h41.6v41.6H0zM46.4 0H88v41.6H46.4zM0 46.4h41.6V88H0zM46.4 46.4H88V88H46.4z"/>
+</svg>
+EOF
+
+DESKTOP_DIR="$REAL_HOME/.local/share/applications"
+mkdir -p "$DESKTOP_DIR"
+cat << EOF > "$DESKTOP_DIR/winapps-windows.desktop"
+[Desktop Entry]
+Name=Windows 11 (WinApps VM)
+Comment=Acessar o Windows 11 virtualizado via navegador / web viewer
+Exec=xdg-open http://127.0.0.1:8006
+Icon=windows-11
+Terminal=false
+Type=Application
+Categories=System;Utility;Office;
+Keywords=windows;winapps;vm;rdp;office;onedrive;
+StartupNotify=true
+Actions=DesktopRDP;RestartVM;StopVM;FixSMB;
+
+[Desktop Action DesktopRDP]
+Name=Conectar via Desktop RDP (WinApps)
+Exec=$REAL_HOME/.local/bin/winapps windows
+
+[Desktop Action RestartVM]
+Name=Reiniciar Container Windows
+Exec=$REAL_HOME/.local/bin/winapps-vm restart
+
+[Desktop Action StopVM]
+Name=Desligar Container Windows
+Exec=$REAL_HOME/.local/bin/winapps-vm stop
+
+[Desktop Action FixSMB]
+Name=Desbloquear Roteamento SMB (OneDrive)
+Exec=$REAL_HOME/.local/bin/winapps-vm fix-smb
+EOF
+
+chown -R "$REAL_USER:$REAL_USER" "$ICON_DIR" "$DESKTOP_DIR/winapps-windows.desktop"
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database "$DESKTOP_DIR" 2>/dev/null || true
 fi
 
 set_flag "$FLAG_NAME"

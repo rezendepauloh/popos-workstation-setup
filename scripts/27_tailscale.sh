@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Módulo 28: Tailscale VPN (Mesh VPN segura, WireGuard & Acesso Remoto)
+# Módulo 27: Tailscale VPN (Mesh VPN segura, WireGuard & Acesso Remoto)
 # ==============================================================================
 
 set -e
@@ -14,7 +14,7 @@ if check_flag "$FLAG_NAME" "$@"; then
     exit 0
 fi
 
-log_msg "HEADER" "28. INSTALAÇÃO E CONFIGURAÇÃO DO TAILSCALE VPN"
+log_msg "HEADER" "27. INSTALAÇÃO E CONFIGURAÇÃO DO TAILSCALE VPN"
 
 # ------------------------------------------------------------------------------
 # 1. Instalação Oficial do Tailscale (Repositório Oficial do Tailscale)
