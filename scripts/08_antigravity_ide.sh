@@ -16,8 +16,25 @@ fi
 
 log_msg "HEADER" "7. INSTALAÇÃO DO ANTIGRAVITY IDE"
 
-ANTIGRAVITY_URL="https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/2.5.5-4923483625488384/linux-x64/Antigravity%20IDE.tar.gz"
-log_msg "INFO" "Baixando tar.gz do Antigravity IDE..."
+ANTIGRAVITY_FALLBACK_VER="2.6.0"
+ANTIGRAVITY_FALLBACK_EXEC="5526304964083712"
+
+log_msg "INFO" "Consultando versão estável mais recente do Antigravity IDE..."
+LATEST_RELEASE_JSON=$(curl -fsSL --connect-timeout 5 --max-time 10 https://antigravity-ide-auto-updater-974169037036.us-central1.run.app/releases 2>/dev/null || true)
+
+ANTIGRAVITY_VER=$(echo "$LATEST_RELEASE_JSON" | jq -r '.[0].version' 2>/dev/null || true)
+ANTIGRAVITY_EXEC=$(echo "$LATEST_RELEASE_JSON" | jq -r '.[0].execution_id' 2>/dev/null || true)
+
+if [ -z "$ANTIGRAVITY_VER" ] || [ "$ANTIGRAVITY_VER" = "null" ] || [ -z "$ANTIGRAVITY_EXEC" ] || [ "$ANTIGRAVITY_EXEC" = "null" ]; then
+    ANTIGRAVITY_VER="$ANTIGRAVITY_FALLBACK_VER"
+    ANTIGRAVITY_EXEC="$ANTIGRAVITY_FALLBACK_EXEC"
+    log_msg "WARN" "Não foi possível consultar a API de releases. Usando versão fixa de fallback: v${ANTIGRAVITY_VER}"
+else
+    log_msg "INFO" "Versão mais recente identificada: v${ANTIGRAVITY_VER} (${ANTIGRAVITY_EXEC})"
+fi
+
+ANTIGRAVITY_URL="https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/${ANTIGRAVITY_VER}-${ANTIGRAVITY_EXEC}/linux-x64/Antigravity%20IDE.tar.gz"
+log_msg "INFO" "Baixando Antigravity IDE v${ANTIGRAVITY_VER}..."
 wget -qO /tmp/antigravity.tar.gz "$ANTIGRAVITY_URL"
 
 sudo mkdir -p /opt/antigravity

@@ -57,6 +57,15 @@ VPN_USERNAME="${VPN_USERNAME:-}"
 VPN_PASSWORD="${VPN_PASSWORD:-}"
 VPN_TRUSTED_CERT="${VPN_TRUSTED_CERT:-}"
 
+# Tenta obter automaticamente o hash SHA256 atualizado do certificado do Gateway MPMS
+if [ -n "$VPN_HOST" ]; then
+    LIVE_CERT=$(echo | timeout 5 openssl s_client -connect "${VPN_HOST}:${VPN_PORT:-443}" 2>/dev/null | openssl x509 -noout -fingerprint -sha256 2>/dev/null | cut -d'=' -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')
+    if [[ "$LIVE_CERT" =~ ^[0-9a-f]{64}$ ]]; then
+        VPN_TRUSTED_CERT="$LIVE_CERT"
+        log_msg "INFO" "Certificado SSL do Gateway detectado dinamicamente: $VPN_TRUSTED_CERT"
+    fi
+fi
+
 sudo mkdir -p /etc/openfortivpn
 sudo chmod 700 /etc/openfortivpn
 
@@ -76,8 +85,13 @@ fi
 sudo chmod 600 /etc/openfortivpn/mpms.conf
 
 # Cria binário global /usr/local/bin/vpn-mpms
-sudo tee /usr/local/bin/vpn-mpms > /dev/null << 'EOF'
+sudo tee /usr/local/bin/vpn-mpms > /dev/null << EOF
 #!/bin/bash
+VPN_HOST="${VPN_HOST}"
+VPN_PORT="${VPN_PORT}"
+EOF
+
+sudo tee -a /usr/local/bin/vpn-mpms > /dev/null << 'EOF'
 clear
 
 C_RESET='\033[0m'
@@ -91,16 +105,79 @@ echo -e "${C_CYAN}=======================================================${C_RES
 echo -e "${C_BOLD}   🏢 CONECTANDO À VPN DO MPMS (openfortivpn) 🏢${C_RESET}"
 echo -e "${C_CYAN}=======================================================${C_RESET}"
 echo ""
-echo -e " ${C_YELLOW}➜${C_RESET} Digite seu ${C_BOLD}Token / OTP 2FA${C_RESET} quando solicitado."
+echo -e " ${C_YELLOW}➜${C_RESET} Informe sua ${C_BOLD}Senha da Rede MPMS${C_RESET} e o ${C_BOLD}Token / OTP 2FA${C_RESET} abaixo."
 echo -e " ${C_YELLOW}➜${C_RESET} Para ${C_RED}desconectar${C_RESET} a qualquer momento, pressione ${C_BOLD}Ctrl + C${C_RESET}."
 echo -e "${C_CYAN}-------------------------------------------------------${C_RESET}"
 echo ""
 
-echo -e " ${C_GREEN}Iniciando túnel seguro...${C_RESET}\n"
-sudo openfortivpn -c /etc/openfortivpn/mpms.conf
+# Solicita explicitamente a Senha e o Token 2FA com prompts amigáveis no terminal
+echo -ne " ${C_CYAN}🔑 Digite sua Senha do MPMS:${C_RESET} "
+read -s VPN_INPUT_PASS
+echo ""
+
+echo -ne " ${C_CYAN}📱 Digite o código Token / OTP 2FA:${C_RESET} "
+read -r VPN_INPUT_OTP
+echo ""
+
+# Captura dinamicamente o hash SHA256 atual do certificado do Gateway MPMS (caso tenha sido renovado)
+LIVE_CERT=$(echo | timeout 4 openssl s_client -connect "${VPN_HOST}:${VPN_PORT}" 2>/dev/null | openssl x509 -noout -fingerprint -sha256 2>/dev/null | cut -d'=' -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')
+
+EXTRA_ARGS=()
+if [[ "$LIVE_CERT" =~ ^[0-9a-f]{64}$ ]]; then
+    EXTRA_ARGS+=("--trusted-cert" "$LIVE_CERT")
+fi
+if [ -n "$VPN_INPUT_PASS" ]; then
+    EXTRA_ARGS+=("-p" "$VPN_INPUT_PASS")
+fi
+if [ -n "$VPN_INPUT_OTP" ]; then
+    EXTRA_ARGS+=("-o" "$VPN_INPUT_OTP")
+fi
+
+echo -e " ${C_GREEN}Iniciando túnel seguro...${C_RESET}"
+
+# Filtra os logs técnicos do openfortivpn/pppd e exibe um painel amigável em verde
+VPN_IP=""
+VPN_IFACE="ppp0"
+
+while IFS= read -r line; do
+    case "$line" in
+        *"Connected to gateway"*)
+            echo -e " ${C_CYAN}➜${C_RESET} Conectado ao servidor do MPMS. Validando credenciais..."
+            ;;
+        *"Authenticated"*)
+            echo -e " ${C_GREEN}✔${C_RESET} Autenticação 2FA aprovada! Configurando rotas e DNS..."
+            ;;
+        *"Using interface"*)
+            VPN_IFACE=$(echo "$line" | awk '{print $3}')
+            ;;
+        *"local  IP address"*)
+            VPN_IP=$(echo "$line" | awk '{print $4}')
+            ;;
+        *"Tunnel is up and running"*)
+            echo ""
+            echo -e "${C_GREEN}=======================================================${C_RESET}"
+            echo -e "${C_GREEN}${C_BOLD}   ✅ CONEXÃO VPN ESTABELECIDA COM SUCESSO!${C_RESET}"
+            echo -e "${C_GREEN}=======================================================${C_RESET}"
+            [ -n "$VPN_IP" ] && echo -e " ${C_CYAN}• IP na Rede MPMS:${C_RESET} ${C_BOLD}${VPN_IP}${C_RESET} (${VPN_IFACE})"
+            echo -e " ${C_CYAN}• DNS Interno:${C_RESET}     Ativo (in.mpe.ms.gov.br)"
+            echo -e " ${C_CYAN}• Status:${C_RESET}          ${C_GREEN}Túnel seguro e ativo 🔒${C_RESET}"
+            echo -e "${C_GREEN}-------------------------------------------------------${C_RESET}"
+            echo -e " ${C_YELLOW}💡 Mantenha esta janela aberta enquanto estiver trabalhando.${C_RESET}"
+            echo -e " ${C_YELLOW}💡 Pressione ${C_BOLD}Ctrl + C${C_RESET}${C_YELLOW} quando quiser encerrar a VPN.${C_RESET}"
+            echo ""
+            ;;
+        *"Cancelling"*|*"Terminating"*|*"Closed connection"*)
+            ;;
+        *"ERROR:"*|*"WARN:"*|*"Could not authenticate"*)
+            echo -e " ${C_RED}✖ ${line}${C_RESET}"
+            ;;
+    esac
+done < <(sudo openfortivpn -c /etc/openfortivpn/mpms.conf "${EXTRA_ARGS[@]}" 2>&1)
+
+unset VPN_INPUT_PASS VPN_INPUT_OTP
 
 echo ""
-echo -e "${C_YELLOW}🔌 VPN Desconectada.${C_RESET}"
+echo -e "${C_YELLOW}🔌 VPN Desconectada com segurança.${C_RESET}"
 read -n 1 -s -r -p "Pressione qualquer tecla para fechar esta janela..."
 EOF
 sudo chmod +x /usr/local/bin/vpn-mpms
