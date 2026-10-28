@@ -28,7 +28,7 @@ mkdir -p "$KANDO_CONFIG_DIR"
 if [ -f "$KANDO_BACKUP_DIR/general-settings-backup.json" ] && [ -f "$KANDO_BACKUP_DIR/menu-settings-backup.json" ]; then
     log_msg "INFO" "Restaurando configurações e injetando atalho Control+Shift+F10..."
     cp "$KANDO_BACKUP_DIR/general-settings-backup.json" "$KANDO_CONFIG_DIR/config.json"
-    jq '.menus[0].shortcut = "Control+Shift+F10" | .menus[0].centered = true' "$KANDO_BACKUP_DIR/menu-settings-backup.json" > "$KANDO_CONFIG_DIR/menus.json"
+    jq '.menus[0].shortcut = "Control+Shift+F10" | .menus[0].centered = false | .menus[0].useFixedPosition = false' "$KANDO_BACKUP_DIR/menu-settings-backup.json" > "$KANDO_CONFIG_DIR/menus.json"
     
     # Injeta atalho do gravador de tela Kooha no submenu de Utilitários se ainda não existir
     python3 -c "
