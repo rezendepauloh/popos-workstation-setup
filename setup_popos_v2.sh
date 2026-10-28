@@ -25,10 +25,16 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
     echo "  sudo ./setup_popos_v2.sh            # Executa todo o provisionamento sequencialmente"
     echo "  sudo ./setup_popos_v2.sh --force    # Limpa checkpoints e força reexecução completa"
     echo "  ./setup_popos_v2.sh --list          # Lista todos os módulos disponíveis"
+    echo "  ./setup_popos_v2.sh --test          # Executa a suíte de testes automatizados (tests/run_all.py)"
     echo "  sudo ./setup_popos_v2.sh <modulo>   # Executa apenas um módulo específico (ex: 02 ou 16)"
     echo "  ./setup_popos_v2.sh --repair-ides   # Repara IDEs (Antigravity e VS Code), limpa locks/caches e ajusta Wayland"
     echo ""
     exit 0
+fi
+
+if [ "$1" == "--test" ] || [ "$1" == "-t" ]; then
+    python3 "$BASE_DIR/tests/run_all.py"
+    exit $?
 fi
 
 if [ "$1" == "--repair-ides" ] || [ "$1" == "--fix-ides" ]; then

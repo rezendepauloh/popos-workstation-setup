@@ -90,6 +90,7 @@ Script de automação, provisionamento idempotente e infraestrutura como código
 
 ```
 .
+├── AGENTS.md                           # Diretrizes para Agentes de IA & Engenharia Autônoma
 ├── setup_popos_v2.sh                   # Orquestrador Central Modular
 ├── scripts/                            # Módulos de Provisionamento Independentes
 │   ├── 00_comum.sh                     # Biblioteca base (logs, checkpoints, usuário real)
@@ -126,6 +127,10 @@ Script de automação, provisionamento idempotente e infraestrutura como código
 │       ├── espanso-indicator.py        # Tray Indicator nativo StatusNotifierItem para Espanso
 │       ├── patch_cedilla_electron.py   # Patch cirúrgico de cedilha em binários Electron
 │       └── wacom-expresskeys-daemon.py # Daemon de atalhos e anel de zoom da Wacom (UInput)
+├── tests/                              # Suíte de Testes Automatizados (Unitários & Integração)
+│   ├── run_all.py                      # Executor unificado com relatório colorido ANSI
+│   ├── unit/                           # Testes de sintaxe Bash/Python, 00_comum.sh e daemons
+│   └── integration/                    # Testes do orquestrador CLI e regras de módulos
 ├── util/                               # Utilitários de Manutenção e Hardware
 │   ├── backup_android.sh               # Backup automatizado de celular Android via ADB
 │   └── restore_android.sh              # Restauração assistida no celular formatado via ADB
@@ -159,6 +164,12 @@ sudo ./setup_popos_v2.sh
 ### 📋 Listar Todos os Módulos:
 ```bash
 ./setup_popos_v2.sh --list
+```
+
+### 🧪 Executar a Suíte de Testes Automatizados:
+Valida sintaxe de todos os scripts Bash e daemons Python, biblioteca de idempotência, patches binários e coerência dos módulos:
+```bash
+./setup_popos_v2.sh --test
 ```
 
 ### 🎯 Executar um Módulo Isolado:
