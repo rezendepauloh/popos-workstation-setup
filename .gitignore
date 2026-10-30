@@ -15,6 +15,10 @@ rclone.conf
 *.pem
 *.pfx
 *.cer
+config/ssl/
+!config/ssl/*.cnf
+!config/ssl/*.example
+!config/ssl/homelab-ca.crt
 
 # Logs e Arquivos de Estado/Idempotência
 Logs/

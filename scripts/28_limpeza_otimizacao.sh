@@ -130,13 +130,39 @@ if command -v ufw >/dev/null 2>&1; then
 fi
 
 # ------------------------------------------------------------------------------
-# Configuração de Roteamento de Domínios Locais do Homelab (*.pk.local)
+# Configuração de Roteamento de Domínios Locais do Homelab (*.pk.local) e SSL CA
 # ------------------------------------------------------------------------------
 log_msg "INFO" "Configurando resolvedor do sistema para domínios locais (*.pk.local)..."
 DEFAULT_IFACE=$(ip route show default 2>/dev/null | awk '{print $5}' | head -n1)
 if [[ -n "$DEFAULT_IFACE" ]]; then
     sudo resolvectl domain "$DEFAULT_IFACE" "~." >/dev/null 2>&1 || true
     sudo resolvectl default-route "$DEFAULT_IFACE" yes >/dev/null 2>&1 || true
+fi
+
+# Instalação Idempotente da Autoridade Certificadora do Homelab (Homelab Root CA)
+HOMELAB_CA_SRC="$SCRIPT_DIR/../config/ssl/homelab-ca.crt"
+if [[ -f "$HOMELAB_CA_SRC" ]]; then
+    log_msg "INFO" "Instalando Autoridade Certificadora Local (Homelab Root CA)..."
+    
+    # 1. No repositório de CAs do sistema operacional
+    sudo cp -f "$HOMELAB_CA_SRC" /usr/local/share/ca-certificates/homelab-ca.crt
+    sudo update-ca-certificates >/dev/null 2>&1 || true
+    
+    # 2. No cofre de certificados do Chrome/Brave/Edge (NSS DB)
+    if command -v certutil >/dev/null 2>&1 && [[ -d "$REAL_HOME/.pki/nssdb" ]]; then
+        certutil -d sql:"$REAL_HOME/.pki/nssdb" -A -t "C,," -n "Homelab Root CA" -i "$HOMELAB_CA_SRC" 2>/dev/null || true
+    fi
+
+    # 3. No cofre do Firefox Flatpak (se instalado)
+    FIREFOX_FLATPAK_DIR="$REAL_HOME/.var/app/org.mozilla.firefox/config/mozilla/firefox"
+    if command -v certutil >/dev/null 2>&1 && [[ -d "$FIREFOX_FLATPAK_DIR" ]]; then
+        for profile in "$FIREFOX_FLATPAK_DIR"/*default*; do
+            if [[ -d "$profile" && -f "$profile/cert9.db" ]]; then
+                certutil -d sql:"$profile" -A -t "C,," -n "Homelab Root CA" -i "$HOMELAB_CA_SRC" 2>/dev/null || true
+            fi
+        done
+    fi
+    log_msg "SUCCESS" "Homelab Root CA instalada com sucesso no sistema, navegadores e Firefox Flatpak!"
 fi
 
 
