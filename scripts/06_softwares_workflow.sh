@@ -247,100 +247,10 @@ for yml in glob.glob(f'{match_dir}/*.yml'):
         f.write(content)
 " 2>/dev/null || true
 
-# Cria executor nativo de formulários no Linux (form_runner.py)
-cat << 'EOF' > "$ESPANSO_CONFIG_DIR/scripts/lib/form_runner.py"
-# -*- coding: utf-8 -*-
-import sys, os, yaml
-from pathlib import Path
-
-def run_gui_form(form_config_path):
-    config_path = Path(form_config_path)
-    if not config_path.exists():
-        return {}
-    try:
-        form_data = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-    properties = form_data.get("schema", {}).get("properties", {})
-    defaults = form_data.get("data", {}) or {}
-    try:
-        import tkinter as tk
-        from tkinter import ttk
-        root = tk.Tk()
-        root.title(f"Espanso - {config_path.stem.replace('_', ' ').title()}")
-        root.configure(bg="#24283b")
-        root.attributes("-topmost", True)
-        root.geometry("480x520")
-        root.eval('tk::PlaceWindow . center')
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure(".", background="#24283b", foreground="#c0caf5", font=("Cantarell", 10))
-        style.configure("TLabel", background="#24283b", foreground="#c0caf5", font=("Cantarell", 10, "bold"))
-        style.configure("TEntry", fieldbackground="#1f2335", foreground="#ffffff")
-        style.configure("TCombobox", fieldbackground="#1f2335", foreground="#ffffff")
-        style.configure("TButton", background="#7aa2f7", foreground="#1a1b26", font=("Cantarell", 10, "bold"))
-        main_frame = ttk.Frame(root, padding="20")
-        main_frame.pack(fill=tk.BOTH, expand=True)
-        entries = {}
-        row = 0
-        for field_name, field_info in properties.items():
-            title = field_info.get("title", field_name)
-            lbl = ttk.Label(main_frame, text=title)
-            lbl.grid(row=row, column=0, sticky="w", pady=(8, 2))
-            row += 1
-            enums = field_info.get("enum")
-            default_val = defaults.get(field_name, "")
-            if enums:
-                combo = ttk.Combobox(main_frame, values=enums, state="readonly")
-                if default_val and default_val in enums:
-                    combo.set(default_val)
-                elif enums:
-                    combo.current(0)
-                combo.grid(row=row, column=0, sticky="ew", pady=(0, 6))
-                entries[field_name] = combo
-            else:
-                entry = ttk.Entry(main_frame)
-                if default_val:
-                    entry.insert(0, str(default_val))
-                entry.grid(row=row, column=0, sticky="ew", pady=(0, 6))
-                entries[field_name] = entry
-            row += 1
-        result_data = {}
-        def on_submit(event=None):
-            for fname, widget in entries.items():
-                result_data[fname] = widget.get()
-            root.destroy()
-        def on_cancel(event=None):
-            root.destroy()
-        btn_frame = ttk.Frame(main_frame)
-        btn_frame.grid(row=row, column=0, sticky="e", pady=(15, 0))
-        cancel_btn = ttk.Button(btn_frame, text="Cancelar", command=on_cancel)
-        cancel_btn.pack(side=tk.RIGHT, padx=(8, 0))
-        ok_btn = ttk.Button(btn_frame, text="Preencher", command=on_submit)
-        ok_btn.pack(side=tk.RIGHT)
-        root.bind("<Return>", on_submit)
-        root.bind("<Escape>", on_cancel)
-        for widget in entries.values():
-            widget.focus_set()
-            break
-        root.mainloop()
-        return result_data
-    except Exception:
-        cmd = ["zenity", "--forms", f"--title=Espanso - {config_path.stem}", "--text=Preencha as informações:"]
-        fields_order = []
-        for field_name, field_info in properties.items():
-            cmd.append(f"--add-entry={field_info.get('title', field_name)}")
-            fields_order.append(field_name)
-        import subprocess
-        try:
-            res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
-            if res.returncode != 0 or not res.stdout.strip():
-                return {}
-            values = res.stdout.strip().split("|")
-            return {fname: (values[i] if i < len(values) else "") for i, fname in enumerate(fields_order)}
-        except Exception:
-            return {}
-EOF
+# Instala/Atualiza o executor nativo de formulários no Linux a partir de scripts/daemons/form_runner.py
+mkdir -p "$ESPANSO_CONFIG_DIR/scripts/lib"
+cp -f "$SCRIPT_DIR/daemons/form_runner.py" "$ESPANSO_CONFIG_DIR/scripts/lib/form_runner.py"
+chmod +x "$ESPANSO_CONFIG_DIR/scripts/lib/form_runner.py"
 
 # Atualiza utils.py para suportar uinput e lazy loading de spacy
 python3 -c "
@@ -404,7 +314,156 @@ if [ -f /usr/share/applications/menu.kando.Kando.desktop ]; then
     sudo update-desktop-database /usr/share/applications 2>/dev/null || true
 fi
 
-# 5. Balena Etcher (Gravador de Imagens / Pendrive Bootável)
+# 5. Espanso Dynamic Forms (EDF) e assistente chamar_espanso_acao
+log_msg "INFO" "Instalando Espanso Dynamic Forms (EDF) e assistente de workflow..."
+EDF_URL="https://github.com/lumetrium/espanso-dynamic-forms/releases/download/v1.6.13/Espanso-Dynamic-Forms-Linux.deb"
+wget -qO /tmp/edf.deb "$EDF_URL" || true
+if [ -f /tmp/edf.deb ]; then
+    EDF_OPT_DIR="$REAL_HOME/.local/opt/espanso-dynamic-forms"
+    mkdir -p "$EDF_OPT_DIR"
+    dpkg-deb -x /tmp/edf.deb /tmp/edf_extracted || true
+    if [ -d /tmp/edf_extracted/opt/espanso-dynamic-forms ]; then
+        cp -rn /tmp/edf_extracted/opt/espanso-dynamic-forms/* "$EDF_OPT_DIR/" 2>/dev/null || true
+        # Renomeia binário original para edf-bin se necessário
+        if [ -f "$EDF_OPT_DIR/edf" ] && [ ! -f "$EDF_OPT_DIR/edf-bin" ]; then
+            mv "$EDF_OPT_DIR/edf" "$EDF_OPT_DIR/edf-bin"
+        fi
+        chmod +x "$EDF_OPT_DIR/edf-bin" 2>/dev/null || true
+        cat << 'EOF' > "$REAL_HOME/.local/bin/edf"
+#!/bin/bash
+unset ELECTRON_RUN_AS_NODE
+export ELECTRON_OZONE_PLATFORM_HINT=auto
+exec "$HOME/.local/opt/espanso-dynamic-forms/edf-bin" "$@"
+EOF
+        chmod +x "$REAL_HOME/.local/bin/edf"
+        chown -R "$REAL_USER:$REAL_USER" "$EDF_OPT_DIR" "$REAL_HOME/.local/bin/edf" 2>/dev/null || true
+    fi
+    rm -rf /tmp/edf_extracted /tmp/edf.deb
+fi
+
+# Assistente centralizado para acionamento das ações do Espanso via Kando Pie Menu
+cat << 'EOF' > "$REAL_HOME/.local/bin/chamar_espanso_acao"
+#!/bin/bash
+# ==============================================================================
+# Executa ação de formulário do Espanso, copia o resultado para a área de transferência
+# e simula Ctrl+V na aplicação ativa sob o COSMIC Wayland
+# ==============================================================================
+ACAO="$1"
+CONFIG_DIR="$HOME/.config/espanso"
+LOG_FILE="/tmp/chamar_espanso_acao.log"
+
+run_and_paste() {
+    local SCRIPT="$1"
+    local ARGS=("${@:2}")
+    
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executando $SCRIPT para ação $ACAO..." >> "$LOG_FILE"
+    
+    export DISPLAY="${DISPLAY:-:1}"
+    export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"
+    export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+    
+    OUTPUT=$(python3 "$CONFIG_DIR/scripts/python/$SCRIPT" "${ARGS[@]}" 2>> "$LOG_FILE")
+    EXIT_CODE=$?
+    
+    if [ $EXIT_CODE -eq 0 ] && [ -n "$OUTPUT" ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Saída gerada com sucesso (${#OUTPUT} caracteres)." >> "$LOG_FILE"
+        PLAIN_TEXT=$(echo "$OUTPUT" | sed -e 's/<[^>]*>//g')
+        
+        # 1. Atualiza CopyQ se disponível
+        if command -v copyq >/dev/null 2>&1; then
+            copyq add "$PLAIN_TEXT" 2>/dev/null || true
+            copyq write text/html "$OUTPUT" text/plain "$PLAIN_TEXT" 2>/dev/null || true
+            copyq select 0 2>/dev/null || true
+        fi
+        
+        # 2. Garante cópia primária e de clipboard no Wayland nativo (wl-copy)
+        if command -v wl-copy >/dev/null 2>&1; then
+            echo -n "$PLAIN_TEXT" | wl-copy --type text/plain 2>/dev/null || true
+            echo -n "$OUTPUT" | wl-copy --type text/html 2>/dev/null || true
+        fi
+        
+        # 3. Simula Ctrl+V via evdev/uinput após retorno do foco da janela
+        python3 -c "
+import time, evdev
+from evdev import ecodes
+try:
+    time.sleep(0.35)
+    ui = evdev.UInput({ecodes.EV_KEY: [ecodes.KEY_LEFTCTRL, ecodes.KEY_V]}, name='Espanso-Paster')
+    time.sleep(0.1)
+    ui.write(ecodes.EV_KEY, ecodes.KEY_LEFTCTRL, 1)
+    ui.write(ecodes.EV_KEY, ecodes.KEY_V, 1)
+    ui.syn()
+    time.sleep(0.05)
+    ui.write(ecodes.EV_KEY, ecodes.KEY_V, 0)
+    ui.write(ecodes.EV_KEY, ecodes.KEY_LEFTCTRL, 0)
+    ui.syn()
+    time.sleep(0.05)
+    ui.close()
+except Exception as e:
+    pass
+" 2>/dev/null || true
+    else
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Script encerrado ou cancelado (código: $EXIT_CODE)." >> "$LOG_FILE"
+    fi
+}
+
+case "$ACAO" in
+    transporte_material)
+        run_and_paste "transporte_material.py"
+        ;;
+    transporte_urbano)
+        run_and_paste "transporte_urbano.py"
+        ;;
+    devolucao_chamado)
+        run_and_paste "devolucao_chamado.py"
+        ;;
+    diaria_viagem)
+        run_and_paste "diaria_viagem.py"
+        ;;
+    transporte_viagem)
+        run_and_paste "transporte_viagem.py"
+        ;;
+    ola)
+        run_and_paste "dispatcher.py"
+        ;;
+    celular)
+        run_and_paste "celular.py"
+        ;;
+    ia_arrumar)
+        python3 "$CONFIG_DIR/scripts/python/ia_arrumar.py" --kando --update-clipboard --paste
+        ;;
+    minuscula)
+        python3 -c "
+import subprocess
+try:
+    text = subprocess.check_output(['copyq', 'read', '0'], text=True)
+    subprocess.run(['copyq', 'write', 'text/plain', text.lower()])
+    subprocess.run(['copyq', 'paste'])
+except Exception:
+    pass
+"
+        ;;
+    maiuscula)
+        python3 -c "
+import subprocess
+try:
+    text = subprocess.check_output(['copyq', 'read', '0'], text=True)
+    subprocess.run(['copyq', 'write', 'text/plain', text.upper()])
+    subprocess.run(['copyq', 'paste'])
+except Exception:
+    pass
+"
+        ;;
+    *)
+        echo "Ação desconhecida: $ACAO" >> "$LOG_FILE"
+        exit 1
+        ;;
+esac
+EOF
+chmod +x "$REAL_HOME/.local/bin/chamar_espanso_acao"
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/chamar_espanso_acao" 2>/dev/null || true
+
+# 6. Balena Etcher (Gravador de Imagens / Pendrive Bootável)
 log_msg "INFO" "Baixando e instalando Balena Etcher..."
 ETCHER_URL=$(curl -sL https://api.github.com/repos/balena-io/etcher/releases/latest | jq -r '.assets[] | select(.name | endswith("amd64.deb")) | .browser_download_url' | head -n 1)
 if [ -n "$ETCHER_URL" ] && [ "$ETCHER_URL" != "null" ]; then

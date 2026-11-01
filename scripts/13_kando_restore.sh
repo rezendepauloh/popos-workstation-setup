@@ -59,6 +59,7 @@ except Exception:
 " 2>/dev/null || true
 
     # Higieniza atalhos legados do Windows para comandos nativos do Linux (Pop!_OS / Flatpak)
+    # e mapeia ícones nativos (Material Symbols Rounded e Simple Icons) substituindo ícones não resolvidos
     python3 -c "
 import json
 path = '$KANDO_CONFIG_DIR/menus.json'
@@ -83,10 +84,70 @@ try:
         'WhatsApp': 'flatpak run com.rtosta.zapzap',
         'web.whatsapp': 'flatpak run com.rtosta.zapzap',
         'Kooha': 'flatpak run io.github.seadve.Kooha',
+        'Outlook': 'thunderbird',
+        'Thunderbird': 'thunderbird',
+    }
+
+    icon_fixes = {
+        'Everything': ('search', 'material-symbols-rounded'),
+        'Agendador de Tarefas': ('schedule', 'material-symbols-rounded'),
+        'Espanso': ('smart_toy', 'material-symbols-rounded'),
+        'Kando': ('pie_chart', 'material-symbols-rounded'),
+        'AltSnap': ('pan_tool', 'material-symbols-rounded'),
+        'CopyQ': ('content_paste', 'material-symbols-rounded'),
+        'Gravar Tela (Kooha)': ('videocam', 'material-symbols-rounded'),
+        'Firefox': ('firefox', 'simple-icons'),
+        'Google Chrome': ('googlechrome', 'simple-icons'),
+        'Microsoft Edge': ('brave', 'simple-icons'),
+        'Antigravity': ('rocket_launch', 'material-symbols-rounded'),
+        'Visual Studio Code': ('code', 'material-symbols-rounded'),
+        'MongoDB Compass': ('mongodb', 'simple-icons'),
+        'Calculadora': ('calculate', 'material-symbols-rounded'),
+        'Thunderbird': ('thunderbird', 'simple-icons'),
+        'Outlook': ('thunderbird', 'simple-icons'),
+        'Terminal elevado': ('admin_panel_settings', 'material-symbols-rounded'),
+        'Microsoft Teams': ('groups', 'material-symbols-rounded'),
+        'WhatsApp Web': ('whatsapp', 'simple-icons'),
     }
 
     def update_actions(node):
         name = node.get('name', '')
+        if name == 'Outlook':
+            node['name'] = 'Thunderbird'
+            name = 'Thunderbird'
+
+        if name == 'Utilitários':
+            node['children'] = [c for c in node.get('children', []) if c.get('name') != 'AltSnap']
+
+        if name == 'Desenvolvimento':
+            node['children'] = [c for c in node.get('children', []) if c.get('name') not in ('Insomnia', 'MongoDB Compass')]
+
+        if name == 'Próximo Espaço de Trabalho':
+            node['angle'] = 180
+            node['icon'] = '⬇️'
+            node['selectWorkflow'] = {
+                'actions': [
+                    {'type': 'close-menu'},
+                    {'type': 'simulate-hotkey', 'hotkey': 'MetaLeft+ControlLeft+ArrowDown'}
+                ]
+            }
+
+        if name == 'Espaço de Trabalho Anterior':
+            node['angle'] = 0
+            node['icon'] = '⬆️'
+            node['selectWorkflow'] = {
+                'actions': [
+                    {'type': 'close-menu'},
+                    {'type': 'simulate-hotkey', 'hotkey': 'MetaLeft+ControlLeft+ArrowUp'}
+                ]
+            }
+
+        if name in icon_fixes:
+            node['icon'], node['iconTheme'] = icon_fixes[name]
+        elif node.get('iconTheme') == 'kando' and node.get('icon') == 'command-item.svg':
+            node['icon'] = 'terminal'
+            node['iconTheme'] = 'material-symbols-rounded'
+
         if node.get('type') == 'command' and 'data' in node:
             cmd = node['data'].get('command', '')
             for k, target in replacements.items():
