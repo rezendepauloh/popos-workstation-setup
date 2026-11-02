@@ -348,6 +348,9 @@ cat << 'EOF' > "$REAL_HOME/.local/bin/chamar_espanso_acao"
 # Executa ação de formulário do Espanso, copia o resultado para a área de transferência
 # e simula Ctrl+V na aplicação ativa sob o COSMIC Wayland
 # ==============================================================================
+# Executa ação de formulário do Espanso, copia o resultado para a área de transferência
+# e restaura o foco da aplicação chamadora para colar via COSMIC Wayland
+# ==============================================================================
 ACAO="$1"
 CONFIG_DIR="$HOME/.config/espanso"
 LOG_FILE="/tmp/chamar_espanso_acao.log"
@@ -356,54 +359,91 @@ run_and_paste() {
     local SCRIPT="$1"
     local ARGS=("${@:2}")
     
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Executando $SCRIPT para ação $ACAO..." >> "$LOG_FILE"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Início do acionamento: $SCRIPT ($ACAO)..." >> "$LOG_FILE"
     
     export DISPLAY="${DISPLAY:-:1}"
     export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"
     export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
     
+    # 1. Salva a janela que estava com o foco ativo antes de abrir o formulário
+    TARGET_APP=""
+    TARGET_TITLE=""
+    if command -v kando-cosmic-helper >/dev/null 2>&1; then
+        FOCUSED_RAW=$(kando-cosmic-helper focused 2>/dev/null || true)
+        if [ -n "$FOCUSED_RAW" ]; then
+            TARGET_APP=$(echo "$FOCUSED_RAW" | awk -F'\t' '{print $1}' | tr -d '"')
+            TARGET_TITLE=$(echo "$FOCUSED_RAW" | awk -F'\t' '{print $2}' | tr -d '"')
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Janela ativa detectada: app='$TARGET_APP', title='$TARGET_TITLE'" >> "$LOG_FILE"
+        fi
+    fi
+    
+    # 2. Executa o script gerador (abre o formulário GTK3)
     OUTPUT=$(python3 "$CONFIG_DIR/scripts/python/$SCRIPT" "${ARGS[@]}" 2>> "$LOG_FILE")
     EXIT_CODE=$?
     
     if [ $EXIT_CODE -eq 0 ] && [ -n "$OUTPUT" ]; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Saída gerada com sucesso (${#OUTPUT} caracteres)." >> "$LOG_FILE"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Saída gerada (${#OUTPUT} caracteres). Enviando para clipboard..." >> "$LOG_FILE"
         PLAIN_TEXT=$(echo "$OUTPUT" | sed -e 's/<[^>]*>//g')
         
-        # 1. Atualiza CopyQ se disponível
+        # 3. Alimenta o CopyQ
         if command -v copyq >/dev/null 2>&1; then
             copyq add "$PLAIN_TEXT" 2>/dev/null || true
             copyq write text/html "$OUTPUT" text/plain "$PLAIN_TEXT" 2>/dev/null || true
             copyq select 0 2>/dev/null || true
         fi
         
-        # 2. Garante cópia primária e de clipboard no Wayland nativo (wl-copy)
+        # 4. Alimenta o clipboard do Wayland nativo
         if command -v wl-copy >/dev/null 2>&1; then
             echo -n "$PLAIN_TEXT" | wl-copy --type text/plain 2>/dev/null || true
             echo -n "$OUTPUT" | wl-copy --type text/html 2>/dev/null || true
         fi
         
-        # 3. Simula Ctrl+V via evdev/uinput após retorno do foco da janela
+        # 5. Restaura o foco na aplicação original e injeta Ctrl+V
         python3 -c "
-import time, evdev
-from evdev import ecodes
+import time, subprocess, evdev
+from evdev import ecodes, UInput
+
+target_app = '''$TARGET_APP'''
+target_title = '''$TARGET_TITLE'''
+
+if target_app:
+    try:
+        subprocess.run(['kando-cosmic-helper', 'focus', target_app, target_title], check=False, timeout=1)
+    except Exception:
+        pass
+
+time.sleep(0.3)
+
+# X11 keycodes esperados pelo kando-cosmic-helper:
+# 37 = Control_L, 55 = v
+simulated = False
 try:
-    time.sleep(0.35)
-    ui = evdev.UInput({ecodes.EV_KEY: [ecodes.KEY_LEFTCTRL, ecodes.KEY_V]}, name='Espanso-Paster')
-    time.sleep(0.1)
-    ui.write(ecodes.EV_KEY, ecodes.KEY_LEFTCTRL, 1)
-    ui.write(ecodes.EV_KEY, ecodes.KEY_V, 1)
-    ui.syn()
-    time.sleep(0.05)
-    ui.write(ecodes.EV_KEY, ecodes.KEY_V, 0)
-    ui.write(ecodes.EV_KEY, ecodes.KEY_LEFTCTRL, 0)
-    ui.syn()
-    time.sleep(0.05)
-    ui.close()
-except Exception as e:
+    res = subprocess.run(['kando-cosmic-helper', 'keys', '37:down:30', '55:down:30', '55:up:30', '37:up:30'], capture_output=True, timeout=1)
+    if res.returncode == 0:
+        simulated = True
+except Exception:
     pass
-" 2>/dev/null || true
+
+if not simulated:
+    try:
+        cap = {ecodes.EV_KEY: [ecodes.KEY_LEFTCTRL, ecodes.KEY_V]}
+        ui = UInput(cap, name='Virtual-Paste-Emitter')
+        time.sleep(0.05)
+        ui.write(ecodes.EV_KEY, ecodes.KEY_LEFTCTRL, 1)
+        ui.write(ecodes.EV_KEY, ecodes.KEY_V, 1)
+        ui.syn()
+        time.sleep(0.04)
+        ui.write(ecodes.EV_KEY, ecodes.KEY_V, 0)
+        ui.write(ecodes.EV_KEY, ecodes.KEY_LEFTCTRL, 0)
+        ui.syn()
+        ui.close()
+    except Exception:
+        pass
+" 2>> "$LOG_FILE" || true
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Injeção de colagem concluída com sucesso." >> "$LOG_FILE"
+
     else
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Script encerrado ou cancelado (código: $EXIT_CODE)." >> "$LOG_FILE"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Ação cancelada ou sem saída (código: $EXIT_CODE)." >> "$LOG_FILE"
     fi
 }
 

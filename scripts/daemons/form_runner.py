@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Form Runner nativo multiplataforma (Linux / Tkinter) com suporte total a regras dinâmicas
-do uischema (SHOW/HIDE), listas de arrays multilinhas e estilização moderna Pop!_OS / Catppuccin.
+Form Runner nativo moderno em Python/GTK3 (PyGObject) para Pop!_OS e COSMIC Desktop.
+Implementa:
+- Estilização moderna CSS completa (Catppuccin Mocha / Pop Dark)
+- Menus suspensos nativos Wayland que NÃO bugam no canto superior esquerdo da tela
+- Ocultamento dinâmico real (SHOW/HIDE) baseado nas regras uischema do JSON Forms
+- Suporte a arrays e caixas multilinhas
+- Fallback automático para Tkinter caso PyGObject não esteja disponível
 """
 
 import os
@@ -59,7 +64,291 @@ def parse_uischema_rules(uischema_elements):
     return rules
 
 
+def run_gtk3_form(config_path, form_data):
+    """Renderizador moderno GTK3 com suporte a CSS e popups nativos Wayland."""
+    import gi
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import Gtk, Gdk
+
+    properties = form_data.get("schema", {}).get("properties", {})
+    defaults = form_data.get("data", {}) or {}
+    rules = parse_uischema_rules(form_data.get("uischema", {}).get("elements", []))
+
+    win = Gtk.Window(title=f"Espanso - {config_path.stem.replace('_', ' ').title()}")
+    win.set_default_size(560, 680)
+    win.set_position(Gtk.WindowPosition.CENTER)
+    win.set_keep_above(True)
+
+    # CSS moderno no estilo Pop!_OS / Catppuccin Mocha
+    css = b"""
+    window {
+        background-color: #1e1e2e;
+        color: #cdd6f4;
+        font-family: 'Cantarell', 'Ubuntu', sans-serif;
+    }
+    .field-label {
+        color: #cdd6f4;
+        font-size: 13px;
+        font-weight: bold;
+        margin-bottom: 3px;
+    }
+    entry {
+        background-color: #313244;
+        color: #ffffff;
+        border: 1px solid #45475a;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        min-height: 24px;
+    }
+    entry:focus {
+        border-color: #89b4fa;
+        box-shadow: 0 0 0 1px #89b4fa;
+    }
+    textview {
+        background-color: #313244;
+        color: #ffffff;
+        border: 1px solid #45475a;
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 13px;
+    }
+    textview text {
+        background-color: #313244;
+        color: #ffffff;
+    }
+    textview:focus {
+        border-color: #89b4fa;
+    }
+    combobox button {
+        background-color: #313244;
+        color: #ffffff;
+        border: 1px solid #45475a;
+        border-radius: 8px;
+        padding: 6px 12px;
+        min-height: 28px;
+    }
+    combobox button:hover {
+        background-color: #45475a;
+    }
+    menu {
+        background-color: #1e1e2e;
+        color: #ffffff;
+        border: 1px solid #45475a;
+        border-radius: 8px;
+        padding: 6px;
+    }
+    menuitem {
+        padding: 6px 12px;
+        color: #cdd6f4;
+        border-radius: 4px;
+    }
+    menuitem:hover {
+        background-color: #89b4fa;
+        color: #11111b;
+        font-weight: bold;
+    }
+    .btn-submit {
+        background-color: #89b4fa;
+        color: #11111b;
+        font-weight: bold;
+        border-radius: 8px;
+        padding: 9px 24px;
+        border: none;
+    }
+    .btn-submit:hover {
+        background-color: #b4befe;
+    }
+    .btn-cancel {
+        background-color: #313244;
+        color: #cdd6f4;
+        border-radius: 8px;
+        padding: 9px 20px;
+        border: 1px solid #45475a;
+    }
+    .btn-cancel:hover {
+        background-color: #45475a;
+    }
+    .footer-bar {
+        border-top: 1px solid #313244;
+        padding: 12px 20px;
+        background-color: #181825;
+    }
+    """
+    provider = Gtk.CssProvider()
+    provider.load_from_data(css)
+    Gtk.StyleContext.add_provider_for_screen(
+        Gdk.Screen.get_default(),
+        provider,
+        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+    )
+
+    main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+    win.add(main_box)
+
+    scrolled = Gtk.ScrolledWindow()
+    scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+    scrolled.set_vexpand(True)
+    main_box.pack_start(scrolled, True, True, 0)
+
+    form_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+    form_box.set_margin_start(20)
+    form_box.set_margin_end(20)
+    form_box.set_margin_top(20)
+    form_box.set_margin_bottom(20)
+    scrolled.add(form_box)
+
+    field_containers = {}
+    widgets = {}
+
+    for field_name, field_info in properties.items():
+        row_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        field_containers[field_name] = row_box
+
+        title = field_info.get("title", field_name)
+        lbl = Gtk.Label(label=title, xalign=0)
+        lbl.get_style_context().add_class("field-label")
+        row_box.pack_start(lbl, False, False, 0)
+
+        enums = field_info.get("enum")
+        field_type = field_info.get("type")
+        default_val = defaults.get(field_name, "")
+
+        if enums:
+            combo = Gtk.ComboBoxText()
+            for idx, val in enumerate(enums):
+                combo.append_text(str(val))
+            if default_val and default_val in enums:
+                combo.set_active(enums.index(default_val))
+            else:
+                combo.set_active(0)
+            row_box.pack_start(combo, False, False, 0)
+            widgets[field_name] = (combo, "combobox", enums)
+        elif field_type == "array":
+            tv = Gtk.TextView()
+            tv.set_wrap_mode(Gtk.WrapMode.WORD)
+            buf = tv.get_buffer()
+            if isinstance(default_val, list):
+                buf.set_text("\n".join(str(x) for x in default_val))
+            elif default_val:
+                buf.set_text(str(default_val))
+            tv.set_size_request(-1, 80)
+            row_box.pack_start(tv, False, False, 0)
+            widgets[field_name] = (tv, "text", None)
+        else:
+            entry = Gtk.Entry()
+            if default_val:
+                entry.set_text(str(default_val))
+            row_box.pack_start(entry, False, False, 0)
+            widgets[field_name] = (entry, "entry", None)
+
+        form_box.pack_start(row_box, False, False, 0)
+
+    def get_current_values():
+        vals = {}
+        for fname, (w, wtype, extra) in widgets.items():
+            if wtype == "combobox":
+                active_idx = w.get_active()
+                vals[fname] = extra[active_idx] if 0 <= active_idx < len(extra) else ""
+            elif wtype == "text":
+                buf = w.get_buffer()
+                start, end = buf.get_bounds()
+                vals[fname] = buf.get_text(start, end, True).strip()
+            else:
+                vals[fname] = w.get_text().strip()
+        return vals
+
+    def update_visibility(*args):
+        current_vals = get_current_values()
+        for fname, rule in rules.items():
+            if fname not in field_containers:
+                continue
+            trigger = rule["trigger_field"]
+            expected = rule["expected_value"]
+            effect = rule["effect"]
+            current_trig_val = current_vals.get(trigger, "")
+
+            is_match = (current_trig_val == expected)
+            should_show = is_match if effect == "SHOW" else not is_match
+
+            box = field_containers[fname]
+            box.set_visible(should_show)
+            box.set_no_show_all(not should_show)
+
+    for fname, (w, wtype, extra) in widgets.items():
+        if wtype == "combobox":
+            w.connect("changed", update_visibility)
+        elif wtype == "entry":
+            w.connect("changed", update_visibility)
+
+    result_data = {}
+
+    def on_submit(btn=None):
+        nonlocal result_data
+        for fname, (w, wtype, extra) in widgets.items():
+            box = field_containers[fname]
+            if not box.get_visible():
+                result_data[fname] = ""
+                continue
+
+            if wtype == "combobox":
+                active_idx = w.get_active()
+                result_data[fname] = extra[active_idx] if 0 <= active_idx < len(extra) else ""
+            elif wtype == "text":
+                buf = w.get_buffer()
+                start, end = buf.get_bounds()
+                result_data[fname] = buf.get_text(start, end, True).strip()
+            else:
+                result_data[fname] = w.get_text().strip()
+
+        win.destroy()
+        Gtk.main_quit()
+
+    def on_cancel(btn=None):
+        win.destroy()
+        Gtk.main_quit()
+
+    def on_key_press(widget, event):
+        if event.keyval == Gdk.KEY_Escape:
+            on_cancel()
+            return True
+        return False
+
+    win.connect("key-press-event", on_key_press)
+    win.connect("destroy", Gtk.main_quit)
+
+    # Barra inferior de ações
+    footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+    footer.get_style_context().add_class("footer-bar")
+    main_box.pack_end(footer, False, False, 0)
+
+    btn_cancel = Gtk.Button(label="Cancelar")
+    btn_cancel.get_style_context().add_class("btn-cancel")
+    btn_cancel.connect("clicked", on_cancel)
+
+    btn_ok = Gtk.Button(label="Preencher")
+    btn_ok.get_style_context().add_class("btn-submit")
+    btn_ok.connect("clicked", on_submit)
+
+    footer.pack_end(btn_ok, False, False, 0)
+    footer.pack_end(btn_cancel, False, False, 0)
+
+    win.show_all()
+    update_visibility()
+
+    # Foca no primeiro campo visível
+    for fname, (w, wtype, extra) in widgets.items():
+        if field_containers[fname].get_visible():
+            w.grab_focus()
+            break
+
+    Gtk.main()
+    return result_data
+
+
 def run_gui_form(form_config_path):
+    """Ponto de entrada: tenta GTK3 primeiro e recorre a Zenity em último caso."""
     config_path = Path(form_config_path)
     if not config_path.exists():
         return {}
@@ -69,180 +358,11 @@ def run_gui_form(form_config_path):
     except Exception:
         return {}
 
-    properties = form_data.get("schema", {}).get("properties", {})
-    defaults = form_data.get("data", {}) or {}
-    rules = parse_uischema_rules(form_data.get("uischema", {}).get("elements", []))
-
     try:
-        import tkinter as tk
-        from tkinter import ttk
-
-        root = tk.Tk()
-        form_title = f"Espanso - {config_path.stem.replace('_', ' ').title()}"
-        root.title(form_title)
-        root.configure(bg="#1e1e2e")
-        root.attributes("-topmost", True)
-        root.geometry("560x700")
-        root.minsize(500, 420)
-        root.eval("tk::PlaceWindow . center")
-
-        # Configuração de temas e fontes
-        style = ttk.Style()
-        style.theme_use("clam")
-        style.configure(".", background="#1e1e2e", foreground="#cdd6f4", font=("Cantarell", 10))
-        style.configure("TLabel", background="#1e1e2e", foreground="#cdd6f4", font=("Cantarell", 10, "bold"))
-        style.configure("TEntry", fieldbackground="#313244", foreground="#ffffff", insertcolor="#ffffff")
-        style.configure("TCombobox", fieldbackground="#313244", foreground="#ffffff")
-        style.configure("TButton", background="#89b4fa", foreground="#11111b", font=("Cantarell", 10, "bold"))
-
-        # Frame com scroll
-        canvas = tk.Canvas(root, bg="#1e1e2e", highlightthickness=0)
-        scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas, padding="15")
-
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
-        )
-
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw", width=530)
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side="top", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        field_containers = {}
-        entries = {}
-
-        for field_name, field_info in properties.items():
-            # Cria container individual por campo (permite esconder/mostrar dinamicamente)
-            container = ttk.Frame(scrollable_frame)
-            container.pack(fill="x", expand=True, pady=4)
-            field_containers[field_name] = container
-
-            title = field_info.get("title", field_name)
-            lbl = ttk.Label(container, text=title)
-            lbl.pack(anchor="w", pady=(0, 2))
-
-            enums = field_info.get("enum")
-            field_type = field_info.get("type")
-            default_val = defaults.get(field_name, "")
-
-            if enums:
-                combo = ttk.Combobox(container, values=enums, state="readonly")
-                if default_val and default_val in enums:
-                    combo.set(default_val)
-                elif enums:
-                    combo.current(0)
-                combo.pack(fill="x", expand=True)
-                entries[field_name] = (combo, "combobox")
-            elif field_type == "array":
-                txt = tk.Text(
-                    container,
-                    height=4,
-                    bg="#313244",
-                    fg="#ffffff",
-                    insertbackground="#ffffff",
-                    relief="flat",
-                    font=("Cantarell", 10),
-                )
-                if isinstance(default_val, list):
-                    txt.insert("1.0", "\n".join(str(x) for x in default_val))
-                elif default_val:
-                    txt.insert("1.0", str(default_val))
-                txt.pack(fill="x", expand=True)
-                entries[field_name] = (txt, "text")
-            else:
-                entry = ttk.Entry(container)
-                if default_val:
-                    entry.insert(0, str(default_val))
-                entry.pack(fill="x", expand=True)
-                entries[field_name] = (entry, "entry")
-
-        def get_current_values():
-            vals = {}
-            for fname, (widget, wtype) in entries.items():
-                if wtype == "text":
-                    vals[fname] = widget.get("1.0", "end-1c").strip()
-                else:
-                    vals[fname] = widget.get().strip()
-            return vals
-
-        def update_visibility(*args):
-            current_vals = get_current_values()
-            for fname, rule in rules.items():
-                if fname not in field_containers:
-                    continue
-                trigger = rule["trigger_field"]
-                expected = rule["expected_value"]
-                effect = rule["effect"]
-                current_trig_val = current_vals.get(trigger, "")
-
-                is_match = (current_trig_val == expected)
-                should_show = is_match if effect == "SHOW" else not is_match
-
-                container = field_containers[fname]
-                if should_show:
-                    if not container.winfo_ismapped():
-                        container.pack(fill="x", expand=True, pady=4)
-                else:
-                    if container.winfo_ismapped():
-                        container.pack_forget()
-
-            # Atualiza área de rolagem
-            root.update_idletasks()
-            canvas.configure(scrollregion=canvas.bbox("all"))
-
-        # Conecta ouvintes para atualização dinâmica de regras
-        for fname, (widget, wtype) in entries.items():
-            if wtype == "combobox":
-                widget.bind("<<ComboboxSelected>>", lambda e: update_visibility())
-            elif wtype == "entry":
-                widget.bind("<KeyRelease>", lambda e: update_visibility())
-
-        # Executa uma vez no início para ajustar visibilidade inicial
-        update_visibility()
-
-        result_data = {}
-
-        def on_submit(event=None):
-            for fname, (widget, wtype) in entries.items():
-                # Se o campo estiver oculto pelas regras do uischema, envia vazio
-                container = field_containers[fname]
-                if not container.winfo_ismapped():
-                    result_data[fname] = ""
-                    continue
-
-                if wtype == "text":
-                    result_data[fname] = widget.get("1.0", "end-1c").strip()
-                else:
-                    result_data[fname] = widget.get().strip()
-            root.destroy()
-
-        def on_cancel(event=None):
-            root.destroy()
-
-        btn_frame = ttk.Frame(root, padding="15")
-        btn_frame.pack(side="bottom", fill="x")
-
-        cancel_btn = ttk.Button(btn_frame, text="Cancelar", command=on_cancel)
-        cancel_btn.pack(side=tk.RIGHT, padx=(8, 0))
-        ok_btn = ttk.Button(btn_frame, text="Preencher", command=on_submit)
-        ok_btn.pack(side=tk.RIGHT)
-
-        root.bind("<Escape>", on_cancel)
-
-        # Foca no primeiro campo visível
-        for fname, (widget, wtype) in entries.items():
-            if field_containers[fname].winfo_ismapped():
-                widget.focus_set()
-                break
-
-        root.mainloop()
-        return result_data
-
-    except Exception:
-        # Fallback para Zenity caso o Tkinter falhe
+        return run_gtk3_form(config_path, form_data)
+    except Exception as e:
+        # Fallback para Zenity
+        properties = form_data.get("schema", {}).get("properties", {})
         cmd = ["zenity", "--forms", f"--title=Espanso - {config_path.stem}", "--text=Preencha as informações:"]
         fields_order = []
         for field_name, field_info in properties.items():
