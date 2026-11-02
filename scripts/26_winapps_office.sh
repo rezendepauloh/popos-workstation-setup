@@ -128,6 +128,9 @@ chown -R "$REAL_USER:$REAL_USER" "$WINAPPS_COMPOSE_DIR"
 
 # Criar pasta compartilhada bidirecional host <-> guest
 mkdir -p "$REAL_HOME/Compartilhado_VM"
+if [ -d "$BASE_DIR/util/winapps" ]; then
+    cp -u "$BASE_DIR/util/winapps/"* "$REAL_HOME/Compartilhado_VM/" 2>/dev/null || true
+fi
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/Compartilhado_VM"
 
 # ------------------------------------------------------------------------------

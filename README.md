@@ -133,8 +133,12 @@ Script de automação, provisionamento idempotente e infraestrutura como código
 │   └── integration/                    # Testes do orquestrador CLI e regras de módulos
 ├── util/                               # Utilitários de Manutenção e Hardware
 │   ├── backup_android.sh               # Backup automatizado de celular Android via ADB
-│   └── restore_android.sh              # Restauração assistida no celular formatado via ADB
+│   ├── restore_android.sh              # Restauração assistida no celular formatado via ADB
+│   └── winapps/                        # Scripts de debloat e otimização para VM Windows (WinApps)
+│       ├── otimizar_winapps_vm.cmd     # Launcher com elevação automática de Administrador
+│       └── otimizar_winapps_vm.ps1     # Script de remoção de telemetria, bloatware e serviços
 └── Docs/                               # Relatórios Técnicos e Manuais Especializados
+    ├── otimizacao_debloat_winapps_vm.md            # Guia completo de debloat e redução de consumo da VM
     ├── issue_espanso_wayland_tray_cosmic.md        # Relatório de Tray & Window no Wayland
     ├── issue_opentabletdriver_wacom_bluetooth.md   # Relatório de Driver Nativo Wacom
     ├── issue_chromium_electron_cedilha_wayland.md  # Relatório do Patch de Cedilha
