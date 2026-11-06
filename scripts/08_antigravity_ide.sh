@@ -137,11 +137,13 @@ Categories=Development;IDE;TextEditor;
 MimeType=text/plain;inode/directory;application/x-code-workspace;
 Keywords=vscode;development;ide;antigravity;agy;
 EOF
+sudo cp -f /usr/share/applications/antigravity.desktop /usr/share/applications/antigravity-ide.desktop
 
 # Garante cópia do lançador no diretório de usuário (prioridade máxima no COSMIC)
 mkdir -p "$REAL_HOME/.local/share/applications"
 cp -f /usr/share/applications/antigravity.desktop "$REAL_HOME/.local/share/applications/antigravity.desktop"
-chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/share/applications/antigravity.desktop" 2>/dev/null || true
+cp -f /usr/share/applications/antigravity.desktop "$REAL_HOME/.local/share/applications/antigravity-ide.desktop"
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/share/applications/antigravity"*.desktop 2>/dev/null || true
 
 sudo update-desktop-database /usr/share/applications 2>/dev/null || true
 update-desktop-database "$REAL_HOME/.local/share/applications" 2>/dev/null || true

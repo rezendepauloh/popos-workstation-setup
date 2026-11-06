@@ -53,6 +53,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "Development",
             ],
             include: [
+                "antigravity",
                 "antigravity-ide",
                 "code",
                 "pwsh",
@@ -194,7 +195,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppList/v1/favorite
 [
     "firefox",
     "org.gnome.Nautilus",
-    "antigravity-ide",
+    "antigravity",
     "code",
     "com.system76.CosmicTerm",
     "com.system76.CosmicSettings",

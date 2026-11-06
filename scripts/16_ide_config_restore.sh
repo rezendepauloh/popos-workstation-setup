@@ -109,7 +109,8 @@ Categories=Development;IDE;TextEditor;
 MimeType=text/plain;inode/directory;application/x-code-workspace;
 Keywords=vscode;development;ide;antigravity;agy;
 EOF
-        chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/share/applications/antigravity.desktop" 2>/dev/null || true
+        cp -f "$REAL_HOME/.local/share/applications/antigravity.desktop" "$REAL_HOME/.local/share/applications/antigravity-ide.desktop"
+        chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/share/applications/antigravity"*.desktop 2>/dev/null || true
         update-desktop-database "$REAL_HOME/.local/share/applications" 2>/dev/null || true
     fi
 
