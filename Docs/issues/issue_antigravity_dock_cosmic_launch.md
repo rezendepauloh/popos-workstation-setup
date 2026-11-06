@@ -64,3 +64,4 @@ O **Google Antigravity IDE** inicializa normalmente quando:
    - O daemon `cosmic-app-list` é executado como processo filho do `cosmic-panel` ou escopo do systemd (`user@1000.service`), podendo não herdar variáveis como `PATH` atualizado ou tokens do DBus necessários para comunicação IPC do Electron.
 4. **Single-Instance Lock do Electron / Antigravity:**
    - Investigar se passar a flag `--reuse-window` ou `--new-window` no `Exec` resolve a recusa do Electron em responder ao clique da dock quando já há um processo em execução.
+
