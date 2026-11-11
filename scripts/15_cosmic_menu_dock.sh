@@ -100,6 +100,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "org.kde.okular",
                 "pdfsam-basic",
                 "pdfsam-visual",
+                "stirling-pdf",
                 "org.remmina.Remmina",
                 "com.dropbox.Client",
                 "com.nextcloud.desktopclient.nextcloud",
