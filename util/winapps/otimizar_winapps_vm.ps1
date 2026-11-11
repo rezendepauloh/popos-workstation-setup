@@ -78,7 +78,16 @@ $registryTweaks = @(
     @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR"; Name = "AllowGameDVR"; Value = 0; Type = "DWord" },
 
     # Otimizar Performance Visual (Reduzir animações desnecessárias para fluidez no RDP)
-    @{ Path = "HKCU:\Control Panel\Desktop\WindowMetrics"; Name = "MinAnimate"; Value = "0"; Type = "String" }
+    @{ Path = "HKCU:\Control Panel\Desktop\WindowMetrics"; Name = "MinAnimate"; Value = "0"; Type = "String" },
+
+    # Configuração de Login Automático Transparente e Sem Tela de Bloqueio (WinApps)
+    @{ Path = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"; Name = "DefaultUserName"; Value = "winapps"; Type = "String" },
+    @{ Path = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"; Name = "DefaultPassword"; Value = "M!n0t@ur0"; Type = "String" },
+    @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"; Name = "NoLockScreen"; Value = 1; Type = "DWord" },
+    @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services"; Name = "fPromptForPassword"; Value = 0; Type = "DWord" },
+    @{ Path = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp"; Name = "fPromptForPassword"; Value = 0; Type = "DWord" },
+    @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Control Panel\Desktop"; Name = "ScreenSaverIsSecure"; Value = "0"; Type = "String" },
+    @{ Path = "HKCU:\Control Panel\Desktop"; Name = "ScreenSaverIsSecure"; Value = "0"; Type = "String" }
 )
 
 foreach ($item in $registryTweaks) {

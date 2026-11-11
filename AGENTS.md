@@ -53,6 +53,7 @@ Pilares fundamentais:
 │   └── daemons/                        # Daemons em Python gerenciados por systemd / hooks APT
 │       ├── alt-numpad-daemon.py        # Emulador de Alt Codes do Windows no Numpad via evdev/uinput
 │       ├── espanso-indicator.py        # Ícone de bandeja StatusNotifierItem (AyatanaAppIndicator3) para Espanso
+│       ├── onedrive-indicator.py       # Indicador de bandeja StatusNotifierItem para Microsoft OneDrive (MPMS)
 │       ├── patch_cedilla_electron.py   # Patch binário idempotente (ui::CharacterComposer) para ' + c = ç e aspas
 │       └── wacom-expresskeys-daemon.py # Daemon evdev/uinput para ExpressKeys e Touch Ring da Wacom Intuos Pro S
 ├── tests/                              # Suíte de Testes Automatizados (Unitários & Integração)

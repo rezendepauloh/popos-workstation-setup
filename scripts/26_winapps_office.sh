@@ -131,6 +131,55 @@ mkdir -p "$REAL_HOME/Compartilhado_VM"
 if [ -d "$BASE_DIR/util/winapps" ]; then
     cp -u "$BASE_DIR/util/winapps/"* "$REAL_HOME/Compartilhado_VM/" 2>/dev/null || true
 fi
+
+# Gerar script de AutoLogon e bypass de tela de bloqueio com as credenciais do .env
+cat <<EOF > "$REAL_HOME/Compartilhado_VM/setup_autologon.bat"
+@echo off
+:: ==============================================================================
+:: WinApps AutoLogon & Lock Screen Bypass Setup for Windows 11
+:: Configura o login automatico e desativa a tela de bloqueio do Windows
+:: ==============================================================================
+
+setlocal enabledelayedexpansion
+set "LOG_FILE=\\\\host.lan\\Data\\autologon_result.log"
+echo [%DATE% %TIME%] Iniciando configuracao de AutoLogon... > "%LOG_FILE%"
+
+set "RDP_USER=$WINAPPS_USER"
+set "RDP_PASS=$WINAPPS_PASS"
+if not "%~1"=="" set "RDP_USER=%~1"
+if not "%~2"=="" set "RDP_PASS=%~2"
+
+:: 1. Credenciais no Winlogon para RDP transparente
+reg.exe add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v "DefaultUserName" /t REG_SZ /d "%RDP_USER%" /f >> "%LOG_FILE%" 2>&1
+reg.exe add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v "DefaultPassword" /t REG_SZ /d "%RDP_PASS%" /f >> "%LOG_FILE%" 2>&1
+reg.exe add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v "DefaultDomainName" /t REG_SZ /d "" /f >> "%LOG_FILE%" 2>&1
+reg.exe delete "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v "ForceAutoLogon" /f >> "%LOG_FILE%" 2>&1
+reg.exe add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v "AutoAdminLogon" /t REG_SZ /d "0" /f >> "%LOG_FILE%" 2>&1
+
+:: 2. Desativar Tela de Bloqueio (NoLockScreen)
+reg.exe add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization" /v "NoLockScreen" /t REG_DWORD /d 1 /f >> "%LOG_FILE%" 2>&1
+
+:: 3. Desativar solicitacao de senha ao conectar via RDP / Terminal Services
+reg.exe add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" /v "fPromptForPassword" /t REG_DWORD /d 0 /f >> "%LOG_FILE%" 2>&1
+reg.exe add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v "fPromptForPassword" /t REG_DWORD /d 0 /f >> "%LOG_FILE%" 2>&1
+
+:: 4. Desativar protecao por senha no protetor de tela
+reg.exe add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Control Panel\\Desktop" /v "ScreenSaverIsSecure" /t REG_SZ /d 0 /f >> "%LOG_FILE%" 2>&1
+reg.exe add "HKCU\\Control Panel\\Desktop" /v "ScreenSaverIsSecure" /t REG_SZ /d 0 /f >> "%LOG_FILE%" 2>&1
+
+:: 5. Desativar suspensao e desligamento de tela via PowerCFG
+powercfg.exe -x -monitor-timeout-ac 0 >> "%LOG_FILE%" 2>&1
+powercfg.exe -x -standby-timeout-ac 0 >> "%LOG_FILE%" 2>&1
+powercfg.exe -h off >> "%LOG_FILE%" 2>&1
+
+:: 6. Impedir expiracao de senha da conta local
+net.exe accounts /maxpwage:unlimited >> "%LOG_FILE%" 2>&1
+
+echo [%DATE% %TIME%] AutoLogon configurado com sucesso! >> "%LOG_FILE%"
+exit /b 0
+EOF
+
+chmod +x "$REAL_HOME/Compartilhado_VM/setup_autologon.bat"
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/Compartilhado_VM"
 
 # ------------------------------------------------------------------------------
@@ -147,25 +196,13 @@ cat <<'EOF' > "$WINAPPS_HELPER"
 COMPOSE_DIR="$HOME/Docker/winapps-windows"
 CONTAINER="winapps-windows"
 
-fix_smb_routing() {
-    for i in {1..30}; do
-        if docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null | grep -q "true"; then
-            while docker exec "$CONTAINER" iptables -t nat -L QEMU_DNAT -n --line-numbers 2>/dev/null | grep -E "dpt:(139|445)" >/dev/null; do
-                LINE=$(docker exec "$CONTAINER" iptables -t nat -L QEMU_DNAT -n --line-numbers 2>/dev/null | grep -E "dpt:(139|445)" | head -n1 | awk '{print $1}')
-                [ -n "$LINE" ] && docker exec "$CONTAINER" iptables -t nat -D QEMU_DNAT "$LINE" 2>/dev/null || break
-            done
-            gio mount "smb://172.20.0.2/onedrive-mpms" 2>/dev/null || true
-            return 0
-        fi
-        sleep 2
-    done
-}
-
 case "$1" in
     start)
         echo "🚀 Iniciando VM/Container Windows..."
         docker compose -f "$COMPOSE_DIR/docker-compose.yml" up -d
-        (fix_smb_routing) &
+        if [ -x "$HOME/.local/bin/winapps-smb-sync.sh" ]; then
+            (sleep 3 && "$HOME/.local/bin/winapps-smb-sync.sh" --once) &
+        fi
         echo "Acesse http://127.0.0.1:8006 no navegador para acompanhar o progresso de inicialização."
         ;;
     stop)
@@ -175,7 +212,9 @@ case "$1" in
     restart)
         echo "🔄 Reiniciando VM/Container Windows..."
         docker compose -f "$COMPOSE_DIR/docker-compose.yml" restart
-        (fix_smb_routing) &
+        if [ -x "$HOME/.local/bin/winapps-smb-sync.sh" ]; then
+            (sleep 3 && "$HOME/.local/bin/winapps-smb-sync.sh" --once) &
+        fi
         ;;
     status)
         docker compose -f "$COMPOSE_DIR/docker-compose.yml" ps
@@ -192,10 +231,28 @@ case "$1" in
         ;;
     fix-smb)
         echo "🔧 Ajustando roteamento SMB e montagem no Nautilus..."
-        fix_smb_routing
+        if [ -x "$HOME/.local/bin/winapps-smb-sync.sh" ]; then
+            "$HOME/.local/bin/winapps-smb-sync.sh" --once
+        fi
+        ;;
+    fix-autologon)
+        echo "🔑 Aplicando AutoLogon e desativando tela de bloqueio do Windows..."
+        if [ -f "$HOME/.config/winapps/winapps.conf" ]; then
+            source "$HOME/.config/winapps/winapps.conf"
+        fi
+        USER_RDP="${RDP_USER:-winapps}"
+        PASS_RDP="${RDP_PASS:-M!n0t@ur0}"
+        IP_RDP="${RDP_IP:-127.0.0.1}"
+        PORT_RDP="${RDP_PORT:-3389}"
+        xfreerdp3 /cert:ignore /u:"$USER_RDP" /p:"$PASS_RDP" /app:program:"C:\\Windows\\System32\\cmd.exe",cmd:"/C \\\\host.lan\\Data\\setup_autologon.bat" /v:"$IP_RDP":"$PORT_RDP" &>/dev/null &
+        echo "Comando enviado para a VM. Log disponível em ~/Compartilhado_VM/autologon_result.log"
+        ;;
+    onedrive)
+        echo "📂 Abrindo OneDrive Corporativo (MPMS) no Nautilus..."
+        gio open "smb://172.20.0.2/onedrive-mpms" 2>/dev/null || xdg-open "$HOME/OneDrive_MPMS"
         ;;
     *)
-        echo "Uso: winapps-vm {start|stop|restart|status|logs|web|setup-apps|fix-smb}"
+        echo "Uso: winapps-vm {start|stop|restart|status|logs|web|setup-apps|fix-smb|fix-autologon|onedrive}"
         exit 1
         ;;
 esac
@@ -212,19 +269,55 @@ cat <<'EOF' > "$SMB_SYNC_SCRIPT"
 #!/bin/bash
 # ==============================================================================
 # Sincronizador de regras de firewall SMB e automount GVFS para WinApps
+# Monitora eventos do Docker para reconfigurar automaticamente quando o container subir
 # ==============================================================================
 CONTAINER="winapps-windows"
 
-for i in {1..30}; do
-    if docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null | grep -q "true"; then
+apply_smb_fix() {
+    # Aguarda o container estar rodando
+    local running=0
+    for attempt in {1..30}; do
+        if docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null | grep -q "true"; then
+            running=1
+            break
+        fi
+        sleep 2
+    done
+
+    if [ "$running" -eq 1 ]; then
+        # Remove as regras de bloqueio (RETURN) para 139 e 445 se existirem
         while docker exec "$CONTAINER" iptables -t nat -L QEMU_DNAT -n --line-numbers 2>/dev/null | grep -E "dpt:(139|445)" >/dev/null; do
-            LINE=$(docker exec "$CONTAINER" iptables -t nat -L QEMU_DNAT -n --line-numbers 2>/dev/null | grep -E "dpt:(139|445)" | head -n1 | awk '{print $1}')
-            [ -n "$LINE" ] && docker exec "$CONTAINER" iptables -t nat -D QEMU_DNAT "$LINE" 2>/dev/null || break
+            local line
+            line=$(docker exec "$CONTAINER" iptables -t nat -L QEMU_DNAT -n --line-numbers 2>/dev/null | grep -E "dpt:(139|445)" | head -n1 | awk '{print $1}')
+            [ -n "$line" ] && docker exec "$CONTAINER" iptables -t nat -D QEMU_DNAT "$line" 2>/dev/null || break
         done
+
+        # Tenta montar via GVFS no Nautilus silenciosamente
         gio mount "smb://172.20.0.2/onedrive-mpms" 2>/dev/null || true
-        exit 0
+
+        # Garantir link simbólico amigável em ~/OneDrive_MPMS apontando para o GVFS
+        local gvfs_dir="/run/user/$(id -u)/gvfs/smb-share:server=172.20.0.2,share=onedrive-mpms"
+        if [ -d "$gvfs_dir" ]; then
+            if [ -d "$HOME/OneDrive_MPMS" ] && [ ! -L "$HOME/OneDrive_MPMS" ]; then
+                rmdir "$HOME/OneDrive_MPMS" 2>/dev/null || true
+            fi
+            ln -sfn "$gvfs_dir" "$HOME/OneDrive_MPMS"
+        fi
     fi
-    sleep 2
+}
+
+# Se for passado o argumento --once, executa apenas uma vez e sai
+if [ "$1" == "--once" ]; then
+    apply_smb_fix
+    exit 0
+fi
+
+# Execução inicial
+apply_smb_fix
+
+# Fica em loop ouvindo eventos do Docker (start, restart, unpause)
+docker events --filter "container=$CONTAINER" --filter "event=start" --filter "event=unpause" --format '{{.Status}}' 2>/dev/null | while read -r event; do
+    apply_smb_fix
 done
 EOF
 
@@ -240,9 +333,10 @@ After=network-online.target docker.service
 Wants=network-online.target
 
 [Service]
-Type=oneshot
+Type=simple
 ExecStart=$SMB_SYNC_SCRIPT
-RemainAfterExit=yes
+Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=default.target
@@ -252,7 +346,7 @@ chown -R "$REAL_USER:$REAL_USER" "$USER_SYSTEMD_DIR"
 
 if [ -n "$REAL_UID" ]; then
     sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user daemon-reload 2>/dev/null || true
-    sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user enable winapps-smb-sync.service 2>/dev/null || true
+    sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user enable --now winapps-smb-sync.service 2>/dev/null || true
 fi
 
 # ------------------------------------------------------------------------------
@@ -274,8 +368,17 @@ fi
 # 7. Criar Ponto de Montagem e Marcador no Nautilus para o OneDrive Corporativo
 # ------------------------------------------------------------------------------
 ONEDRIVE_MOUNT_POINT="$REAL_HOME/OneDrive_MPMS"
-mkdir -p "$ONEDRIVE_MOUNT_POINT"
-chown "$REAL_USER:$REAL_USER" "$ONEDRIVE_MOUNT_POINT"
+GVFS_SMB_DIR="/run/user/${REAL_UID:-1000}/gvfs/smb-share:server=172.20.0.2,share=onedrive-mpms"
+
+if [ -d "$GVFS_SMB_DIR" ]; then
+    if [ -d "$ONEDRIVE_MOUNT_POINT" ] && [ ! -L "$ONEDRIVE_MOUNT_POINT" ]; then
+        rmdir "$ONEDRIVE_MOUNT_POINT" 2>/dev/null || true
+    fi
+    ln -sfn "$GVFS_SMB_DIR" "$ONEDRIVE_MOUNT_POINT"
+else
+    mkdir -p "$ONEDRIVE_MOUNT_POINT"
+fi
+chown -h "$REAL_USER:$REAL_USER" "$ONEDRIVE_MOUNT_POINT"
 
 # Adicionar marcador no Nautilus GTK bookmarks se ainda não existir
 GTK_BOOKMARKS="$REAL_HOME/.config/gtk-3.0/bookmarks"
@@ -288,7 +391,7 @@ if [ -f "$GTK_BOOKMARKS" ]; then
 fi
 
 # ------------------------------------------------------------------------------
-# 8. Criar Ícone Oficial do Windows e Lançador Desktop para o WinApps
+# 8. Criar Ícone Oficial do Windows e Lançadores Desktop (WinApps e OneDrive MPMS)
 # ------------------------------------------------------------------------------
 ICON_DIR="$REAL_HOME/.local/share/icons/hicolor/scalable/apps"
 mkdir -p "$ICON_DIR"
@@ -298,24 +401,64 @@ cat << 'EOF' > "$ICON_DIR/windows-11.svg"
 </svg>
 EOF
 
+if [ -f "$SCRIPT_DIR/../util/winapps/onedrive.svg" ]; then
+    cp -f "$SCRIPT_DIR/../util/winapps/onedrive.svg" "$ICON_DIR/onedrive.svg"
+    cp -f "$SCRIPT_DIR/../util/winapps/onedrive.svg" "$ICON_DIR/microsoft-onedrive.svg"
+    cp -f "$SCRIPT_DIR/../util/winapps/onedrive.svg" /usr/share/pixmaps/onedrive.svg 2>/dev/null || true
+fi
+
+# Gerar ícones rasterizados e atualizar cache do tema
+if [ -f /usr/share/icons/hicolor/index.theme ] && [ ! -f "$REAL_HOME/.local/share/icons/hicolor/index.theme" ]; then
+    cp -f /usr/share/icons/hicolor/index.theme "$REAL_HOME/.local/share/icons/hicolor/index.theme" 2>/dev/null || true
+fi
+python3 -c "
+import os, gi
+gi.require_version('Rsvg', '2.0')
+from gi.repository import Rsvg
+import cairo
+svg_path = '$ICON_DIR/onedrive.svg'
+if os.path.exists(svg_path):
+    handle = Rsvg.Handle.new_from_file(svg_path)
+    for sz in [16, 24, 32, 48, 64, 128, 256]:
+        sz_dir = '$REAL_HOME/.local/share/icons/hicolor/' + str(sz) + 'x' + str(sz) + '/apps'
+        os.makedirs(sz_dir, exist_ok=True)
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, sz, sz)
+        ctx = cairo.Context(surface)
+        ctx.scale(sz / 32.0, sz / 32.0)
+        handle.render_cairo(ctx)
+        surface.write_to_png(os.path.join(sz_dir, 'onedrive.png'))
+        surface.write_to_png(os.path.join(sz_dir, 'microsoft-onedrive.png'))
+" 2>/dev/null || true
+
+cp -f "$REAL_HOME/.local/share/icons/hicolor/48x48/apps/onedrive.png" /usr/share/pixmaps/onedrive.png 2>/dev/null || true
+gtk-update-icon-cache -f "$REAL_HOME/.local/share/icons/hicolor" 2>/dev/null || true
+
 DESKTOP_DIR="$REAL_HOME/.local/share/applications"
 mkdir -p "$DESKTOP_DIR"
 cat << EOF > "$DESKTOP_DIR/winapps-windows.desktop"
 [Desktop Entry]
 Name=Windows 11 (WinApps VM)
-Comment=Acessar o Windows 11 virtualizado via navegador / web viewer
-Exec=xdg-open http://127.0.0.1:8006
+Comment=Acessar o Windows 11 virtualizado via Remmina ou console web
+Exec=remmina -c $REAL_HOME/.local/share/remmina/winapps_windows11.remmina
 Icon=windows-11
 Terminal=false
 Type=Application
 Categories=System;Utility;Office;
-Keywords=windows;winapps;vm;rdp;office;onedrive;
+Keywords=windows;winapps;vm;rdp;vnc;remmina;office;onedrive;
 StartupNotify=true
-Actions=DesktopRDP;RestartVM;StopVM;FixSMB;
+Actions=RemminaVNC;RemminaRDP;WebConsole;RestartVM;StopVM;FixSMB;FixAutoLogon;
 
-[Desktop Action DesktopRDP]
-Name=Conectar via Desktop RDP (WinApps)
-Exec=$REAL_HOME/.local/bin/winapps windows
+[Desktop Action RemminaVNC]
+Name=Abrir no Remmina (Console Direto VNC)
+Exec=remmina -c $REAL_HOME/.local/share/remmina/winapps_windows11.remmina
+
+[Desktop Action RemminaRDP]
+Name=Abrir no Remmina (Sessão RDP)
+Exec=remmina -c $REAL_HOME/.local/share/remmina/winapps_windows11_rdp.remmina
+
+[Desktop Action WebConsole]
+Name=Abrir Console Web (:8006)
+Exec=xdg-open http://127.0.0.1:8006
 
 [Desktop Action RestartVM]
 Name=Reiniciar Container Windows
@@ -328,12 +471,121 @@ Exec=$REAL_HOME/.local/bin/winapps-vm stop
 [Desktop Action FixSMB]
 Name=Desbloquear Roteamento SMB (OneDrive)
 Exec=$REAL_HOME/.local/bin/winapps-vm fix-smb
+
+[Desktop Action FixAutoLogon]
+Name=Reparar Login Automatico Sem Senha
+Exec=$REAL_HOME/.local/bin/winapps-vm fix-autologon
 EOF
 
-chown -R "$REAL_USER:$REAL_USER" "$ICON_DIR" "$DESKTOP_DIR/winapps-windows.desktop"
+# Lançador nativo do OneDrive Corporativo para abrir diretamente no Nautilus
+cat << EOF > "$DESKTOP_DIR/onedrive-x86.desktop"
+[Desktop Entry]
+Name=Microsoft OneDrive (MPMS)
+GenericName=Armazenamento em Nuvem MPMS
+Comment=Acessar arquivos do OneDrive corporativo (MPMS) diretamente pelo Nautilus
+Exec=gio open smb://172.20.0.2/onedrive-mpms
+Icon=onedrive
+Terminal=false
+Type=Application
+Categories=Office;Network;FileManager;
+Keywords=onedrive;mpms;nuvem;arquivos;nautilus;share;
+StartupNotify=true
+Actions=OpenLocalFolder;SyncSMB;WebOneDrive;WindowsRemmina;
+
+[Desktop Action OpenLocalFolder]
+Name=Abrir Pasta Local (~/OneDrive_MPMS)
+Exec=nautilus $REAL_HOME/OneDrive_MPMS
+
+[Desktop Action SyncSMB]
+Name=Remontar Compartilhamento SMB
+Exec=$REAL_HOME/.local/bin/winapps-smb-sync.sh --once
+
+[Desktop Action WebOneDrive]
+Name=Abrir OneDrive no Navegador (Web)
+Exec=xdg-open https://www.office.com/launch/onedrive?auth=2
+
+[Desktop Action WindowsRemmina]
+Name=Abrir Windows 11 no Remmina
+Exec=remmina -c $REAL_HOME/.local/share/remmina/winapps_windows11.remmina
+EOF
+
+ln -sfn "$DESKTOP_DIR/onedrive-x86.desktop" "$DESKTOP_DIR/microsoft-onedrive.desktop"
+
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/share/icons" "$DESKTOP_DIR/winapps-windows.desktop" "$DESKTOP_DIR/onedrive-x86.desktop" "$DESKTOP_DIR/microsoft-onedrive.desktop"
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "$DESKTOP_DIR" 2>/dev/null || true
 fi
+
+# ------------------------------------------------------------------------------
+# 9. Configurar e Ativar o Indicador de Bandeja (Top Panel Tray AppIndicator)
+# ------------------------------------------------------------------------------
+log_msg "INFO" "Configurando indicador nativo de bandeja do OneDrive no painel COSMIC..."
+mkdir -p "$REAL_HOME/.local/bin" "$REAL_HOME/.config/systemd/user"
+cp -f "$SCRIPT_DIR/daemons/onedrive-indicator.py" "$REAL_HOME/.local/bin/onedrive-indicator.py"
+chmod +x "$REAL_HOME/.local/bin/onedrive-indicator.py"
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/onedrive-indicator.py"
+
+cp -f "$SCRIPT_DIR/../config/systemd/user/onedrive-indicator.service" "$REAL_HOME/.config/systemd/user/" 2>/dev/null || true
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/systemd" 2>/dev/null || true
+
+if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+    sudo -u "$REAL_USER" systemctl --user daemon-reload 2>/dev/null || true
+    sudo -u "$REAL_USER" systemctl --user enable --now onedrive-indicator.service 2>/dev/null || true
+else
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user enable --now onedrive-indicator.service 2>/dev/null || true
+fi
+
+# ------------------------------------------------------------------------------
+# 10. Provisionar Perfis de Conexão do Remmina (Console VNC e RDP)
+# ------------------------------------------------------------------------------
+log_msg "INFO" "Provisionando perfis de conexão direta no Remmina (WinApps VM)..."
+REMMINA_DIR="$REAL_HOME/.local/share/remmina"
+mkdir -p "$REMMINA_DIR"
+
+cat << EOF > "$REMMINA_DIR/winapps_windows11.remmina"
+[remmina]
+name=Windows 11 (WinApps VM)
+group=WinApps
+protocol=VNC
+server=172.20.0.2:5900
+viewmode=1
+window_maximize=1
+scale=1
+colordepth=32
+quality=9
+disableclipboard=0
+enable-autostart=0
+EOF
+
+cat << EOF > "$REMMINA_DIR/winapps_windows11_rdp.remmina"
+[remmina]
+name=Windows 11 (WinApps VM - RDP)
+group=WinApps
+protocol=RDP
+server=127.0.0.1:3389
+username=$WINAPPS_USER
+password=1gm8OsVmtyC/GZ9btOJlzA==
+colordepth=32
+quality=9
+sound=local
+sharesmartcard=0
+shareprinter=0
+sharefolder=$REAL_HOME/Compartilhado_VM
+disableclipboard=0
+disablepasswordstoring=0
+viewmode=1
+window_maximize=1
+scale=1
+glyph-cache=1
+relax-order-checks=1
+cert_ignore=1
+network=lan
+enable-autostart=0
+EOF
+
+chmod 600 "$REMMINA_DIR"/winapps_windows11*.remmina
+chown -R "$REAL_USER:$REAL_USER" "$REMMINA_DIR"
 
 set_flag "$FLAG_NAME"
 log_msg "SUCCESS" "🎉 WinApps e stack de virtualização Windows provisionados com sucesso!"

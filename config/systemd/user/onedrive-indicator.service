@@ -1,0 +1,14 @@
+[Unit]
+Description=OneDrive MPMS System Tray Indicator (Wayland / COSMIC)
+After=graphical-session.target winapps-smb-sync.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/onedrive-indicator.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+

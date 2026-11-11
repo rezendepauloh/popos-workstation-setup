@@ -199,6 +199,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppList/v1/favorite
 [
     "firefox",
     "org.gnome.Nautilus",
+    "onedrive-x86",
     "antigravity",
     "code",
     "com.system76.CosmicTerm",

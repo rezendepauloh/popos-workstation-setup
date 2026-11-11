@@ -125,6 +125,7 @@ Script de automação, provisionamento idempotente e infraestrutura como código
 │   └── daemons/                        # Daemons e Utilitários em Python (Background Services)
 │       ├── alt-numpad-daemon.py        # Daemon Python de Alt Codes do Windows (Wayland)
 │       ├── espanso-indicator.py        # Tray Indicator nativo StatusNotifierItem para Espanso
+│       ├── onedrive-indicator.py       # Indicador de bandeja StatusNotifierItem para Microsoft OneDrive (MPMS)
 │       ├── patch_cedilla_electron.py   # Patch cirúrgico de cedilha em binários Electron
 │       └── wacom-expresskeys-daemon.py # Daemon de atalhos e anel de zoom da Wacom (UInput)
 ├── tests/                              # Suíte de Testes Automatizados (Unitários & Integração)
@@ -135,8 +136,10 @@ Script de automação, provisionamento idempotente e infraestrutura como código
 │   ├── backup_android.sh               # Backup automatizado de celular Android via ADB
 │   ├── restore_android.sh              # Restauração assistida no celular formatado via ADB
 │   └── winapps/                        # Scripts de debloat e otimização para VM Windows (WinApps)
+│       ├── onedrive.svg                # Ícone oficial em vetor do Microsoft OneDrive
 │       ├── otimizar_winapps_vm.cmd     # Launcher com elevação automática de Administrador
-│       └── otimizar_winapps_vm.ps1     # Script de remoção de telemetria, bloatware e serviços
+│       ├── otimizar_winapps_vm.ps1     # Script de remoção de telemetria, bloatware e serviços
+│       └── setup_autologon.bat         # Configuração de AutoLogon e bypass de tela de bloqueio
 └── Docs/                               # Relatórios Técnicos e Manuais Especializados
     ├── guias/                          # Manuais Práticos e Guias de Configuração
     │   ├── como-fazer-backup-android.md

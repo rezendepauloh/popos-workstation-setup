@@ -104,33 +104,44 @@ cd C:\shared; .\install.bat
 
 ---
 
+## 🔑 4.1. Login Automático Transparente (Sem Senha ou Tela de Bloqueio)
+
+Para que os aplicativos do WinApps (Word, Excel, etc.) e as sessões RDP abram instantaneamente sem pedir senha nem exibir a tela de bloqueio do Windows:
+
+1. O script de provisionamento gera automaticamente o script `\\host.lan\Data\setup_autologon.bat`.
+2. Para aplicar ou revalidar a qualquer momento a partir do Pop!_OS:
+   ```bash
+   winapps-vm fix-autologon
+   ```
+3. O comando configura no Registro do Windows:
+   - `AutoAdminLogon = 1` com as credenciais do seu `.env`
+   - `NoLockScreen = 1` (desativa tela de bloqueio com relógio)
+   - `fPromptForPassword = 0` (impede solicitações repetitivas de senha no RDP)
+   - `powercfg -x -monitor-timeout-ac 0` (impede suspensão ou desligamento de tela)
+
+---
+
 ## 📂 5. Integrar a Pasta do OneDrive do MPMS ao Nautilus (Linux)
 
-Para você ver e gerenciar os arquivos do OneDrive corporativo diretamente pelo gerenciador de arquivos **Nautilus**:
+Os arquivos do OneDrive corporativo podem ser acessados diretamente no Linux sem precisar abrir a área de trabalho ou a janela do Windows:
 
-### Opção A: Pela Pasta Compartilhada Automática (`~/Compartilhado_VM`)
-O Docker Compose mapeia automaticamente:
-- Host Linux: `~/Compartilhado_VM`
-- Windows VM: `C:\shared` (ou drive de rede mapeado)
+### 5.1. Acesso com Um Clique pelo Menu ou Terminal
+- **Pelo Menu de Aplicativos do COSMIC:** Clique no lançador **"Microsoft OneDrive (MPMS)"**. Ele abre diretamente a pasta corporativa no Nautilus via GVFS SMB (`smb://172.20.0.2/onedrive-mpms`).
+- **Pelo Terminal ou Atalho do Nautilus:** Acesse a pasta amigável:
+  ```bash
+  cd ~/OneDrive_MPMS
+  # ou via helper:
+  winapps-vm onedrive
+  ```
+  O serviço de usuário `winapps-smb-sync.service` mantém o link simbólico `~/OneDrive_MPMS` apontando dinamicamente para o ponto de montagem GVFS sempre que a VM estiver ativa.
 
-Você pode salvar qualquer arquivo nessa pasta e ele estará acessível em ambos os sistemas instantaneamente.
-
-### Opção B: Compartilhar a Pasta do OneDrive do Windows via Rede Local
-1. No Windows (dentro da VM):
-   - Clique com o botão direito na pasta do seu OneDrive (`C:\Users\winapps\OneDrive - Ministério Público do Estado de Mato Grosso do Sul`).
-   - Vá em **Propriedades** -> aba **Compartilhamento** -> **Compartilhamento Avançado**.
-   - Marque **"Compartilhar esta pasta"** e defina o nome do compartilhamento como `OneDrive-MPMS`.
-   - Em **Permissões**, garanta controle total para o usuário `winapps`.
-2. No Pop!_OS (Nautilus):
-   - Abra o Nautilus (Arquivos).
-   - Na barra lateral, clique em **"Outros Locais"**.
-   - No campo "Conectar ao Servidor", digite:
-     ```text
-     smb://172.20.0.2/OneDrive-MPMS
-     ```
-   - Informe o usuário `winapps` e a senha definida.
-   - Marque a opção "Lembrar para sempre".
-   - Arraste a pasta conectada para os **Favoritos/Marcadores** do Nautilus (já pré-configurado como `~/OneDrive_MPMS`).
+### 5.2. Como o Compartilhamento SMB Funciona
+1. O container `dockurr/windows` expõe o Windows na rede interna Docker (`172.20.0.2`).
+2. O daemon `winapps-smb-sync.sh` desbloqueia as portas SMB (139/445) no firewall do container e efetua o `gio mount` no usuário.
+3. Se precisar remontar manualmente:
+   ```bash
+   winapps-vm fix-smb
+   ```
 
 > [!TIP]
 > Ao clicar duas vezes em um arquivo `.docx` pelo Nautilus através do compartilhamento, o sistema abrirá o Microsoft Word oficial do WinApps diretamente na sua tela!
@@ -148,6 +159,34 @@ Você pode salvar qualquer arquivo nessa pasta e ele estará acessível em ambos
 
 ---
 
+## ☁️ 5. Acesso Direto ao OneDrive no Linux & Indicador de Bandeja
+
+Para evitar ter que abrir a VM ou janelas do Windows apenas para acessar arquivos ou verificar sincronização, a estação conta com três camadas de integração nativa:
+
+1. **Lançador Desktop com Ícone Oficial da Nuvem (`onedrive-x86.desktop`):**
+   - No menu de aplicativos (Biblioteca de Aplicativos do COSMIC) e fixado na Dock de favoritos (`~/.config/cosmic/com.system76.CosmicAppList/v1/favorites`).
+   - Exibe o ícone em vetor SVG oficial da Microsoft Fluent Cloud (`Icon=onedrive`).
+   - Clicar nele abre instantaneamente a pasta `~/OneDrive_MPMS` no Nautilus.
+2. **Indicador Nativo no Painel Superior (Bandeja / StatusArea):**
+   - O daemon [`scripts/daemons/onedrive-indicator.py`](scripts/daemons/onedrive-indicator.py) opera via protocolo nativo Wayland **StatusNotifierItem** (`AyatanaAppIndicator3`), residindo no canto superior direito do painel COSMIC (`com.system76.CosmicAppletStatusArea`).
+   - Gerenciado pelo serviço systemd de usuário `onedrive-indicator.service` (`systemctl --user`).
+   - Apresenta status em tempo real (`● OneDrive MPMS: Conectado` / `○ Desconectado`).
+   - Menu com ações rápidas com 1 clique:
+     - 📂 **Abrir Pasta Local (`~/OneDrive_MPMS`)** no Nautilus
+     - 🔄 **Remontar / Sincronizar Compartilhamento SMB**
+     - 🌐 **Abrir OneDrive na Web (M365 Corporativo):** utiliza a URL oficial SSO multi-tenant `https://www.office.com/launch/onedrive?auth=2`, evitando falhas de locatário Azure AD do SharePoint.
+     - 🖥️ **Abrir Windows 11 no Remmina:** conecta diretamente pelo perfil salvo `winapps_windows11.remmina` (Console VNC ou RDP), com a mesma praticidade do perfil corporativo MPE-80703.
+     - 🖥️ **Abrir Console Web da VM (`:8006`):** acesso rápido via navegador ao painel do container.
+     - ⚙️ **Reiniciar Container Windows**
+3. **Perfis Nativos Salvos no Remmina (`~/.local/share/remmina`):**
+   - Salvos automaticamente sob o grupo **`WinApps`**:
+     - `Windows 11 (WinApps VM)`: conexão direta de console VNC (`172.20.0.2:5900`), imune a desconexões por limite de sessão RDP ou colisões de logon.
+     - `Windows 11 (WinApps VM - RDP)`: conexão de área de trabalho remota RDP (`127.0.0.1:3389`) com senha e compartilhamento de área de transferência.
+4. **Marcador Fixo no Nautilus (GTK Bookmarks):**
+   - Marcador `OneDrive-MPMS` na barra lateral esquerda do gerenciador de arquivos.
+
+---
+
 ## 🛠️ 6. Comandos Úteis do Helper (`winapps-vm`)
 
 | Comando | Descrição |
@@ -159,6 +198,8 @@ Você pode salvar qualquer arquivo nessa pasta e ele estará acessível em ambos
 | `winapps-vm logs` | Exibe os logs do container Windows em tempo real. |
 | `winapps-vm setup-apps` | Roda a detecção do WinApps e atualiza os atalhos no COSMIC. |
 | `winapps-vm fix-smb` | Reajusta imediatamente as regras do iptables no container e remonta no Nautilus. |
+| `winapps-vm fix-autologon` | Aplica o AutoLogon sem senha e desativa a tela de bloqueio da VM via RemoteApp. |
+| `winapps-vm onedrive` | Abre diretamente a pasta corporativa do OneDrive (MPMS) no Nautilus. |
 
 > [!NOTE]
 > **Inicialização Automática com o Sistema:**
