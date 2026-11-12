@@ -167,7 +167,27 @@ fi
 
 
 # ------------------------------------------------------------------------------
-# 6. Script e Timer de Backup Semanal Automatizado (Dotfiles & Configs)
+# 6. Comutador Inteligente de Áudio Bluetooth (QCY H3S & Fallback de Caixas de Som)
+# ------------------------------------------------------------------------------
+log_msg "INFO" "Configurando daemon de áudio inteligente (QCY H3S Auto-Switch & Fallback)..."
+mkdir -p "$REAL_HOME/.local/bin" "$REAL_HOME/.config/systemd/user"
+cp -f "$SCRIPT_DIR/daemons/bt-audio-switcher.py" "$REAL_HOME/.local/bin/bt-audio-switcher.py"
+chmod +x "$REAL_HOME/.local/bin/bt-audio-switcher.py"
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/bt-audio-switcher.py"
+
+cp -f "$SCRIPT_DIR/../config/systemd/user/bt-audio-switcher.service" "$REAL_HOME/.config/systemd/user/" 2>/dev/null || true
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/systemd" 2>/dev/null || true
+
+if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+    sudo -u "$REAL_USER" systemctl --user daemon-reload 2>/dev/null || true
+    sudo -u "$REAL_USER" systemctl --user enable --now bt-audio-switcher.service 2>/dev/null || true
+else
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user enable --now bt-audio-switcher.service 2>/dev/null || true
+fi
+
+# ------------------------------------------------------------------------------
+# 7. Script e Timer de Backup Semanal Automatizado (Dotfiles & Configs)
 # ------------------------------------------------------------------------------
 log_msg "INFO" "Criando script utilitário de backup de dotfiles e automações..."
 sudo tee /usr/local/bin/backup-workstation > /dev/null << 'EOF'

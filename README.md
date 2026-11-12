@@ -172,6 +172,7 @@
 │   ├── 28_limpeza_otimizacao.sh        # Limpeza, Docker socket on-demand, latência PipeWire e backups
 │   └── daemons/                        # Daemons e Utilitários em Python (Background Services)
 │       ├── alt-numpad-daemon.py        # Daemon de Alt Codes do Windows sob Wayland (evdev/uinput)
+│       ├── bt-audio-switcher.py        # Comutação automática para fone Bluetooth (QCY H3S) e caixas de som
 │       ├── espanso-indicator.py        # Tray Indicator nativo StatusNotifierItem para Espanso
 │       ├── form_runner.py              # Formulários gráficos GTK3 com injeção de foco para Espanso
 │       ├── onedrive-indicator.py       # Indicador de bandeja com menu oficial para o OneDrive corporativo

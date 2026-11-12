@@ -1,45 +1,49 @@
-# 📝 Contexto e Diretrizes: Instalação e Configuração do Nextcloud Client no Pop!_OS (COSMIC Desktop / Wayland)
+# 📝 Contexto e Diretrizes para a Próxima Conversa
 
-## 📌 1. Histórico e Conquistas Anteriores (Status: Concluído e Resolvido)
-Nas sessões anteriores, resolvemos de forma definitiva e estruturada:
-1. **Cedilha (`' + c = ç` e `' + C = Ç`)** no layout US-International com Dead Keys sob Wayland nativo.
-2. **Aspas duplas (`Shift + '` 2x = `""`)** e **Aspas simples (`'` 2x = `''`)**, eliminando o trema (`¨`) e acento agudo isolado (`´`) nos navegadores e editores (Google Antigravity IDE, VS Code, Google Chrome e Brave) através do patch idempotente no compositor do Chromium (`scripts/patch_cedilla_electron.py`) e persistência via Hook do APT (`/etc/apt/apt.conf.d/99-patch-cedilla-electron`).
-3. **Resolução de DNS Local Permanente (`192.168.0.8`) e Routing Domain (`~pk.local`)** configurado no Módulo 01 com failover para o `1.1.1.1` via `systemd-resolved` e `NetworkManager`.
-4. **Alt Codes do Windows no Teclado Numérico (Status: Concluído e Ativo):** Implementado via daemon Python (`scripts/alt-numpad-daemon.py`) sob `evdev` + `uinput` gerenciado por `alt-numpad.service` (`systemctl --user`). Suporta ordinais (`º`, `ª`), parágrafo (`§`), grau (`°`), setas clássicas e triangulares (`⭡ ⭢ ⭣ ⭠` via <kbd>Alt</kbd>+`88`, `66`, `22`, `44`) e símbolos matemáticos. Sensibilidade de repetição perfeitamente calibrada (delay 300ms, rate 30ms).
-5. **Servidor Samba e Compartilhamento de Armazenamento (`/mnt/storage_700/samba`):** Configurado no Módulo 25 (`scripts/25_samba_storage.sh`) com share `[Storage700]` espelhando a estrutura do UmbrelOS/Homelab, e o módulo de limpeza/hardening reordenado para a posição final 26 (`scripts/26_limpeza_otimizacao.sh`).
-6. **Nextcloud Desktop Client (Status: Concluído e Integrado):**
-   - Pacote oficial Flatpak (`com.nextcloud.desktopclient.nextcloud` via Flathub) adicionado no [`scripts/06_softwares_workflow.sh`](scripts/06_softwares_workflow.sh) com pré-criação da pasta local de sync (`~/Nextcloud`).
-   - Overrides de Flatpak configurados no [`scripts/19_flatpak_permissions.sh`](scripts/19_flatpak_permissions.sh) concedendo acesso a `home`, `/mnt/storage_700`, `/mnt/storage_930` e barramentos de bandeja D-Bus (`org.kde.StatusNotifierWatcher` e `org.freedesktop.StatusNotifierWatcher`).
-   - Autostart em segundo plano configurado no [`scripts/21_autostart_config.sh`](scripts/21_autostart_config.sh) (`flatpak run com.nextcloud.desktopclient.nextcloud --background`).
-   - Variáveis de ambiente `NEXTCLOUD_SERVER_URL` e `NEXTCLOUD_SYNC_DIR` documentadas no [`.env.example`](.env.example).
-7. **Atalhos do COSMIC (Padrão Windows & Produtividade):** Mapeamento persistente dos atalhos <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> (captura de tela interativa `cosmic-screenshot`) e <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>G</kbd> (fixar janelas no topo `ToggleSticky` / Always on Top / PiP) integrado no [`scripts/14_cosmic_theme_restore.sh`](scripts/14_cosmic_theme_restore.sh) e sincronizado com o backup da nuvem (`~/GoogleDrive_Pessoal/Organização/Backup_COSMIC`).
-8. **Backup e Restauração de Dispositivos Android via ADB ([`util/backup_android.sh`](util/backup_android.sh) e [`util/restore_android.sh`](util/restore_android.sh)):**
-   - Cobertura expandida de diretórios: `Podcasts`, `VoiceRecorder`, `Sounds`, `Alarms`, `WhatsApp` legado, `WhatsApp Business`, `Telegram` (`/sdcard/Telegram` e `/sdcard/Android/media/org.telegram.messenger`).
-   - Extração automática de instaladores `.apk` de todos os aplicativos instalados e reinstalação automatizada em lote no restore.
-   - Reindexação profunda do `MediaScanner` pós-restauração para fotos, vídeos e músicas.
-9. **Padronização de Aplicativos da Loja (Flatpaks Oficiais):**
-   - **Calculadora GNOME** (`org.gnome.Calculator`) e **Flatseal** (`com.github.tchx84.Flatseal` - gerenciador gráfico de permissões) integrados nos scripts [`scripts/06_softwares_workflow.sh`](scripts/06_softwares_workflow.sh), [`scripts/14_cosmic_theme_restore.sh`](scripts/14_cosmic_theme_restore.sh) (janela flutuante) e [`scripts/15_cosmic_menu_dock.sh`](scripts/15_cosmic_menu_dock.sh) (categoria Utilitários).
-   - **Câmera Oficial do COSMIC** (`io.github.cosmic_utils.camera`) instalada e posicionada na categoria Mídia com regra de janela flutuante nativa.
-10. **Web Apps do Microsoft 365 (Portal, Word, Excel, PowerPoint, Outlook):**
-    - Configurados no [`scripts/23_trabalho_remoto_vpn_rdp.sh`](scripts/23_trabalho_remoto_vpn_rdp.sh) como PWAs/janelas de aplicativo independentes via Chromium/Chrome.
-    - Ícones oficiais SVG baixados da CDN da Microsoft e organizados na categoria **"Escritório & Trabalho Remoto"** do COSMIC App Library ([`scripts/15_cosmic_menu_dock.sh`](scripts/15_cosmic_menu_dock.sh)), mantendo o OnlyOffice como editor local padrão.
-11. **WinApps & Microsoft 365 (Word, Excel, PowerPoint, OneDrive MPMS Oficial):**
-    - Módulo [`scripts/26_winapps_office.sh`](scripts/26_winapps_office.sh) criado com stack Docker KVM acelerada (`dockurr/windows`), FreeRDP e helper de controle `winapps-vm`.
-    - Script de limpeza e hardening renomeado de forma transparente para [`scripts/27_limpeza_otimizacao.sh`](scripts/27_limpeza_otimizacao.sh) no orquestrador [`setup_popos.sh`](setup_popos.sh).
-    - Guia detalhado passo a passo de deploy e integração do OneDrive corporativo (Files On-Demand) com o Nautilus documentado em [`Docs/onedrive_winapps_mpms_guia.md`](Docs/onedrive_winapps_mpms_guia.md).
-12. Documentação técnica atualizada em [`Docs/issue_chromium_electron_cedilha_wayland.md`](Docs/issue_chromium_electron_cedilha_wayland.md), [`Docs/issue_alt_codes_numpad_wayland.md`](Docs/issue_alt_codes_numpad_wayland.md), [`Docs/onedrive_winapps_mpms_guia.md`](Docs/onedrive_winapps_mpms_guia.md) e no [`README.md`](README.md).
+## 📌 1. Conquistas Recentes (Status: Concluído e Estável)
+1. **Reestruturação Arquitetural do Repositório**:
+   - `setup_popos_v2.sh` renomeado definitivamente para [`setup_popos.sh`](../../setup_popos.sh).
+   - `test_in_docker.sh` movido para [`tests/test_in_docker.sh`](../../tests/test_in_docker.sh).
+   - `mpms_ca.crt` movido para [`config/ssl/mpms_ca.crt`](../../config/ssl/mpms_ca.crt).
+   - `.setup_progress.log` movido para [`Logs/.setup_progress.log`](../../Logs/.setup_progress.log).
+   - `rclone.conf` movido para `config/rclone/rclone.conf`.
+   - Criado [`Docs/README.md`](../README.md) como portal centralizador de documentação e links.
+   - Atualizado e repaginado [`README.md`](../../README.md) com badges oficiais, tabela open source expandida e árvores de diretórios.
+   - Suíte de testes automatizados (`./setup_popos.sh --test`) com **100% de sucesso (22/22 testes passando)**.
+2. **Suíte ArtCraft como Padrão de Produtividade**:
+   - WordCraft, GridCraft e DeckCraft configurados como manipuladores MIME padrão em `~/.config/mimeapps.list` e `~/.config/cosmic-mimeapps.list`.
+3. **OneDrive Corporativo Integrado ao Nautilus & Indicador COSMIC**:
+   - Acesso nativo aos arquivos via SMB/GVFS sem dependência de janela da VM Windows.
+   - Indicador de status oficial na barra superior via daemon StatusNotifierItem [`scripts/daemons/onedrive-indicator.py`](../../scripts/daemons/onedrive-indicator.py).
+   - Permissões Flatpak ajustadas para anexar arquivos no ZapZap sem erro de arquivo vazio.
+4. **WinApps & Windows 11 KVM**:
+   - AutoLogon configurado (login automático sem prompt de senha).
+   - Conexão RDP salva e configurada no Remmina.
 
 ---
 
-## 🎯 2. Próximos Objetivos & Issues Mapeadas
+## 🎯 2. Pauta Prioritária para a Próxima Sessão (Amanhã)
 
-1. **Compartilhamento SMB do OneDrive no Nautilus (Status: Validado e Ativo):**
-   - Roteamento nativo das portas SMB (139 e 445) para a VM Windows ajustado no helper `winapps-vm`.
-   - Conexão testada e funcionando no Nautilus via `smb://172.20.0.2/OneDrive-MPMS` com credenciais do `.env`.
-2. **Depuração do Congelamento de Janela dos WinApps (Word / Excel / Office):**
-   - *Issue mapeada:* Ao clicar no aplicativo, a janela de splash screen/início congela sob o compositor Wayland/COSMIC.
-   - *Plano para a próxima conversa:*
-     - Adicionar exceções de janelas flutuantes no COSMIC (`14_cosmic_theme_restore.sh`) para as classes `Microsoft Word`, `Microsoft Excel`, etc.
-     - Testar backend nativo Wayland do FreeRDP 3 (`wlfreerdp3`) ou flags de aceleração gráfica (`/gdi:hw`, `/gfx:avc420`) e `/network:auto`.
-     - Garantir que telas modais de boas-vindas/licença do Office sejam suprimidas via registro do Windows (`SuppressFirstRunDialogs`).
+### 🎧 1. Automação de Áudio Inteligente (QCY H3S Bluetooth vs Caixas de Som)
+* **Objetivo:**
+  - Quando o fone Bluetooth **QCY H3S** for ligado/conectado, o sistema de som deve alternar automaticamente e imediatamente para ele como dispositivo de saída padrão (*Default Audio Sink*).
+  - Quando o **QCY H3S** for desligado/desconectado, o sistema de som deve retornar automaticamente para as caixas de som padrão (**Áudio interno Estéreo analógico** ou G733, conforme preferência).
+* **Stack Técnica Atual Identificada via `wpctl` / PipeWire / WirePlumber**:
+  - Servidor: **PipeWire 1.6.8** com gerenciador de sessão **WirePlumber 1.6.8**.
+  - Dispositivo Fone Bluetooth: `QCY H3S` (`bluez5`, MAC `84:AC:60:05:50:19`, nó sink `bluez_output.84_AC_60_05_50_19.1`).
+  - Dispositivo Caixas de Som: `Áudio interno Estéreo analógico` (alsa sink node `alsa_output.pci-0000_00_1f.3.analog-stereo`).
+  - Outros sinks presentes: `G733 Gaming Headset`, `HDA NVidia HDMI`.
+* **Abordagem Planejada**:
+  - Implementar regra de prioridade ou política de comutação no WirePlumber (`~/.config/wireplumber/wireplumber.conf.d/` ou script udev/bluetoothd / `pipewire-pulse`) que conceda prioridade máxima automática a sinks Bluetooth conectados dinamicamente (`bluez_output.*`), garantindo fallback suave e determinístico para o áudio interno analógico ao desconectar.
 
+---
+
+### 🐳 2. Atualização do Contêiner Docker do WinApps (`dockurr/windows`)
+* **Objetivo:**
+  - O Dozzle acusou que existe uma versão mais recente da imagem Docker `dockurr/windows`.
+  - Atualizar a imagem com segurança sem perder dados da VM Windows instalada (preservando o volume persistente do storage/KVM onde residem o Windows 11, o Office e o OneDrive configurados).
+* **Ações Técnicas**:
+  - Verificar a montagem de volumes do container `winapps-windows`.
+  - Fazer pull da imagem atualizada: `docker pull dockurr/windows:latest`.
+  - Recriar o container mantendo exatamente os mesmos mapeamentos de portas (`3389`, `8006`), volumes persistentes, variáveis de ambiente e flags KVM (`/dev/kvm`).
+  - Validar se o AutoLogon e a inicialização continuam 100% íntegros.

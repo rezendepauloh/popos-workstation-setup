@@ -1,0 +1,13 @@
+[Unit]
+Description=Bluetooth Audio Switcher (QCY H3S Auto-Switch & Fallback)
+After=pipewire.service wireplumber.service bluetooth.target
+Wants=bluetooth.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/bin/bt-audio-switcher.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

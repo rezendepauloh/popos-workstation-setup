@@ -52,6 +52,7 @@ Pilares fundamentais:
 │   ├── 28_limpeza_otimizacao.sh        # Limpeza final, Docker socket on-demand, PipeWire low-latency e backups
 │   └── daemons/                        # Daemons em Python gerenciados por systemd / hooks APT
 │       ├── alt-numpad-daemon.py        # Emulador de Alt Codes do Windows no Numpad via evdev/uinput
+│       ├── bt-audio-switcher.py        # Comutação automática para fone Bluetooth (QCY H3S) e caixas de som
 │       ├── espanso-indicator.py        # Ícone de bandeja StatusNotifierItem (AyatanaAppIndicator3) para Espanso
 │       ├── onedrive-indicator.py       # Indicador de bandeja StatusNotifierItem para Microsoft OneDrive (MPMS)
 │       ├── patch_cedilla_electron.py   # Patch binário idempotente (ui::CharacterComposer) para ' + c = ç e aspas
