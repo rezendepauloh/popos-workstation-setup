@@ -92,5 +92,23 @@ if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
         "$VLC_APP_ID" 2>/dev/null || true
 fi
 
+log_msg "INFO" "Configurando permissões do ZapZap (WhatsApp Flatpak - acesso a discos e GVFS/OneDrive)..."
+ZAPZAP_APP_ID="com.rtosta.zapzap"
+flatpak override --user \
+    --filesystem=home \
+    --filesystem=xdg-run/gvfs \
+    --filesystem=/mnt/storage_700 \
+    --filesystem=/mnt/storage_930 \
+    "$ZAPZAP_APP_ID" 2>/dev/null || true
+
+if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
+    sudo flatpak override \
+        --filesystem=home \
+        --filesystem=xdg-run/gvfs \
+        --filesystem=/mnt/storage_700 \
+        --filesystem=/mnt/storage_930 \
+        "$ZAPZAP_APP_ID" 2>/dev/null || true
+fi
+
 set_flag "$FLAG_NAME"
 log_msg "SUCCESS" "Overrides de Flatpak aplicados com sucesso."
