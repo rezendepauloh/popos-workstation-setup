@@ -1,135 +1,185 @@
-# Pop!_OS 24.04 LTS - Automated Workstation Provisioning & Setup
+# 🚀 Pop!_OS 24.04 LTS (COSMIC) - Automated Workstation Setup
 
-Script de automação, provisionamento idempotente e infraestrutura como código (IaC) para configuração completa do ambiente de trabalho, desenvolvimento, produtividade, mídia e jogos no **Pop!_OS 24.04 LTS** (com suporte de primeira classe ao **COSMIC Desktop Environment** e Wayland nativo).
+[![OS](https://img.shields.io/badge/OS-Pop!__OS%2024.04%20LTS-48B9C7.svg)](https://system76.com/pop)
+[![Desktop](https://img.shields.io/badge/Desktop-COSMIC%20(Wayland%20Native)-orange.svg)](https://github.com/pop-os/cosmic-epoch)
+[![Display](https://img.shields.io/badge/Display-Ultrawide%203440x1440-9cf.svg)](#)
+[![FreeRDP](https://img.shields.io/badge/FreeRDP-v3.x%20WinApps-blue.svg)](https://freerdp.com)
+[![Docker](https://img.shields.io/badge/Docker-KVM%20%2B%20Services-2496ED.svg)](https://www.docker.com)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
+
+> Ecossistema completo de automação pós-instalação, Infraestrutura como Código (IaC) e provisionamento idempotente para transformar uma estação de trabalho Linux de alta performance sob **COSMIC Desktop (`cosmic-comp` / Wayland nativo)** em um ambiente integrado para desenvolvimento de software, suíte de produtividade, engenharia, trabalho remoto e jogos.
+
+---
+
+## 📋 Sumário
+1. [Destaques & O que o Projeto Automatiza](#-destaques--o-que-o-projeto-automatiza)
+   - [1. Sistema, Kernel & I/O](#1-sistema-kernel--io)
+   - [2. Periféricos, Ergonomia & Wayland Native](#2-periféricos-ergonomia--wayland-native)
+   - [3. Suíte ArtCraft & Produtividade Office](#3-suíte-artcraft--produtividade-office)
+   - [4. Ferramentas Avançadas de PDF](#4-ferramentas-avançadas-de-pdf)
+   - [5. Automações de Digitação, Clipboard & Kando](#5-automações-de-digitação-clipboard--kando)
+   - [6. Armazenamento, Nuvem & Rede Local](#6-armazenamento-nuvem--rede-local)
+   - [7. Trabalho Remoto (MPMS), WinApps & OneDrive Integrado](#7-trabalho-remoto-mpms-winapps--onedrive-integrado)
+   - [8. Jogos, Streaming & Mídia](#8-jogos-streaming--mídia)
+2. [Estrutura do Repositório & Módulos](#️-estrutura-do-repositório--módulos)
+3. [Guia de Uso & Execução](#️-guia-de-uso--execução)
+   - [Execução Completa Automatizada](#-execução-completa-automatizada)
+   - [Listar Módulos Disponíveis](#-listar-módulos-disponíveis)
+   - [Execução de Módulo Isolado](#-execução-de-módulo-isolado)
+   - [Suíte de Testes Automatizados](#-executar-a-suíte-de-testes-automatizados)
+   - [Reparo Rápido de IDEs (Wayland/GPU)](#-reparo-rápido-de-ides-google-antigravity--vs-code)
+4. [Créditos & Projetos de Código Aberto](#-créditos--projetos-de-código-aberto)
+5. [Licença & Isenção de Responsabilidade](#-licença--isenção-de-responsabilidade)
 
 ---
 
 ## 🚀 Destaques & O que o Projeto Automatiza
 
-### 1. Otimizações de Sistema, Kernel & I/O
-*   **Swappiness Otimizado (`vm.swappiness=10`):** Aproveita a capacidade de 32 GB de RAM para máxima responsividade, minimizando acessos lentos de swap ao disco.
-*   **File Watchers Elevados (`fs.inotify.max_user_watches=524288`):** Evita falhas de limites de monitoramento de arquivos em tempo real para o Antigravity IDE, VS Code, Git e grandes monorepos.
-*   **DNS Local Permanente & Domínio de Roteamento (`~pk.local`):** Configuração persistente via drop-in do `systemd-resolved` (`/etc/systemd/resolved.conf.d/99-local-dns.conf`) e NetworkManager, com DNS primário local (`192.168.0.8`), fallback público seguro (`1.1.1.1`) e domínio de roteamento local (`~pk.local`) para desenvolvimento web e serviços locais sem conflito com mDNS.
-*   **Memória ZRAM com Compressão Zstandard (`zstd`):** Swap ultra-rápido compactado na RAM com prioridade máxima.
-*   **TRIM Semanal Automatizado (`fstrim.timer`):** Preservação contínua de vida útil e performance de leitura/escrita de todos os SSDs NVMe.
+### 1. Sistema, Kernel & I/O
+* **Swappiness Otimizado (`vm.swappiness=10`):** Aproveita a capacidade de 32 GB de RAM para máxima responsividade, mantendo o kernel focado em manter páginas ativas em cache.
+* **File Watchers Elevados (`fs.inotify.max_user_watches=524288`):** Evita falhas de monitoramento em tempo real de grandes monorepos no Google Antigravity IDE, VS Code e ferramentas de build.
+* **DNS Local Permanente & Domínio de Roteamento (`~pk.local`):** Drop-in no `systemd-resolved` (`/etc/systemd/resolved.conf.d/99-local-dns.conf`) apontando para o servidor DNS local (`192.168.0.8`) com fallback seguro para `1.1.1.1` e resolução do domínio `~pk.local` sem conflito com mDNS.
+* **Swap ZRAM Compactado (`zstd`):** Compressão ultra-rápida de memória com prioridade máxima.
+* **TRIM Semanal Automatizado (`fstrim.timer`):** Preservação contínua da vida útil e performance de leitura/escrita dos SSDs NVMe.
 
-### 2. Periféricos, Entrada & Ergonomia
-*   **Teclado Mecânico (Redragon Horus Pro):**
-    *   Taxa de repetição ergonômica ajustada para 300ms de atraso e 30ms de intervalo (~33 caracteres/segundo).
-    *   **Cedilha e Aspas do Windows no Wayland Nativo (`ui::CharacterComposer`):**
-        *   Em Wayland nativo (`--ozone-platform=wayland`), motores Chromium/Electron utilizam tabelas estáticas de composição interna onde `' + c` resultava em `ć` (U+0107) e pressionar <kbd>"</kbd> (<kbd>Shift</kbd>+<kbd>'</kbd>) duas vezes gerava o trema `¨` (U+00A8).
-        *   Utilitário nativo `/usr/local/bin/patch-cedilla-electron` ([scripts/daemons/patch_cedilla_electron.py](scripts/daemons/patch_cedilla_electron.py)) aplicando patch seguro por padrão de bytes diretamente nos binários de **Google Antigravity IDE**, **VS Code**, **Google Chrome** e **Brave**:
-            *   <kbd>'</kbd> + <kbd>c</kbd> = **`ç`** e <kbd>'</kbd> + <kbd>C</kbd> = **`Ç`**
-            *   <kbd>"</kbd> 2x = **`"`** (em vez de `¨`)
-            *   <kbd>'</kbd> 2x = **`'`** (em vez de `´`)
-        *   **APT Post-Invoke Hook** (`/etc/apt/apt.conf.d/99-patch-cedilla-electron`) garantindo reaplicação transparente a cada atualização do sistema. Documentação detalhada em [Docs/issues/issue_chromium_electron_cedilha_wayland.md](Docs/issues/issue_chromium_electron_cedilha_wayland.md).
-    *   **NumLock Permanente & Sincronização do LED de Hardware:**
-        *   Layout XKB do COSMIC configurado com `options: Some("numpad:mac")` garantindo que o teclado numérico sempre emita números.
-        *   Persistência no `cosmic-greeter` para funcionamento já na tela de login e script `/usr/local/bin/numlock-on` (evdev/uinput) para acender o LED físico do hardware no boot. Documentação em [Docs/issues/issue_cosmic_numlock_boot.md](Docs/issues/issue_cosmic_numlock_boot.md).
-    *   **Alt Codes do Windows no Teclado Numérico (Wayland Native):**
-        *   Daemon de usuário [scripts/daemons/alt-numpad-daemon.py](scripts/daemons/alt-numpad-daemon.py) gerenciado pelo systemd (`alt-numpad.service`), emulando com perfeição os códigos clássicos do Windows sob Wayland:
-            *   <kbd>Alt</kbd> + <kbd>1</kbd><kbd>6</kbd><kbd>7</kbd> = **`º`** | <kbd>Alt</kbd> + <kbd>1</kbd><kbd>6</kbd><kbd>6</kbd> = **`ª`**
-            *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>6</kbd><kbd>7</kbd> = **`§`** | <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>7</kbd><kbd>6</kbd> = **`°`**
-            *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>5</kbd><kbd>3</kbd> = **`™`** | <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>6</kbd><kbd>9</kbd> = **`©`** | <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>7</kbd><kbd>4</kbd> = **`®`**
-            *   <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>5</kbd><kbd>1</kbd> = **`—`** | <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>4</kbd><kbd>9</kbd> = **`•`**
-            *   <kbd>Alt</kbd> + <kbd>8</kbd><kbd>8</kbd> = **`⭡`** | <kbd>Alt</kbd> + <kbd>6</kbd><kbd>6</kbd> = **`⭢`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>2</kbd> = **`⭣`** | <kbd>Alt</kbd> + <kbd>4</kbd><kbd>4</kbd> = **`⭠`**
-            *   <kbd>Alt</kbd> + <kbd>2</kbd><kbd>4</kbd> = **`↑`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>6</kbd> = **`→`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>5</kbd> = **`↓`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>7</kbd> = **`←`**
-        *   Documentação detalhada em [Docs/issues/issue_alt_codes_numpad_wayland.md](Docs/issues/issue_alt_codes_numpad_wayland.md).
-*   **Mouse Gamer (Logitech G502 X):**
-    *   Curva de aceleração desativada (perfil plano linear `flat` 1:1) com polling rate de 1000Hz via [libratbag](https://github.com/libratbag/libratbag).
-    *   Macros gravadas na EEPROM interna do mouse: Botão 3 = Colar (<kbd>Ctrl</kbd>+<kbd>V</kbd>), Botão 4 = Gatilho Kando (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F10</kbd>), Botão 5 = Copiar (<kbd>Ctrl</kbd>+<kbd>C</kbd>), Botões 6 e 7 = Rolagem horizontal (*Tilt Wheel*).
-*   **Mesa Digitalizadora (Wacom Intuos Pro S / PTH-460):**
-    *   **Driver Oficial do Kernel (`wacom.ko`):** Módulo nativo desbloqueado, com regras udev de permissão de usuário (`/etc/udev/rules.d/99-wacom-native.rules`) e pareamento Bluetooth confiável no BlueZ.
-    *   **Modo Canhoto 180° e Calibração de Proporção:** Configurado nativamente no compositor COSMIC (`~/.config/cosmic/com.system76.CosmicComp/v1/input_devices`) mapeando a Caneta e Touchpad para o monitor principal ultrawide (`DP-1`) com rotação de 180° para toques com os dedos.
-    *   **ExpressKeys e Touch Ring:** Daemon leve em Python [scripts/daemons/wacom-expresskeys-daemon.py](scripts/daemons/wacom-expresskeys-daemon.py) gerenciado pelo systemd (`wacom-expresskeys.service`), injetando Desfazer (<kbd>Ctrl</kbd>+<kbd>Z</kbd>), Refazer (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>), Pan (<kbd>Espaço</kbd>), Salvar (<kbd>Ctrl</kbd>+<kbd>S</kbd>), Copiar (<kbd>Ctrl</kbd>+<kbd>C</kbd>), Colar (<kbd>Ctrl</kbd>+<kbd>V</kbd>) e Zoom In/Out pelo anel. Documentação técnica em [Docs/issues/issue_opentabletdriver_wacom_bluetooth.md](Docs/issues/issue_opentabletdriver_wacom_bluetooth.md).
+### 2. Periféricos, Ergonomia & Wayland Native
+* **Patch Binário Cirúrgico de Cedilha & Aspas no Electron/Chromium:**
+  * Sob Wayland nativo (`--ozone-platform=wayland`), motores Chromium/Electron utilizam tabelas estáticas onde `' + c` resultava em `ć` (U+0107) e pressionar `"` (<kbd>Shift</kbd>+<kbd>'</kbd>) duas vezes gerava o trema `¨` (U+00A8).
+  * O utilitário `/usr/local/bin/patch-cedilla-electron` ([scripts/daemons/patch_cedilla_electron.py](scripts/daemons/patch_cedilla_electron.py)) aplica substituição atômica de bytes em **Google Antigravity IDE**, **VS Code**, **Google Chrome** e **Brave**:
+    * <kbd>'</kbd> + <kbd>c</kbd> = **`ç`** e <kbd>'</kbd> + <kbd>C</kbd> = **`Ç`**
+    * <kbd>"</kbd> 2x = **`"`** (em vez de `¨`)
+    * <kbd>'</kbd> 2x = **`'`** (em vez de `´`)
+  * **APT Post-Invoke Hook** (`/etc/apt/apt.conf.d/99-patch-cedilla-electron`) garantindo reaplicação transparente em qualquer atualização do sistema ([Docs/issues/issue_chromium_electron_cedilha_wayland.md](Docs/issues/issue_chromium_electron_cedilha_wayland.md)).
+* **NumLock no Boot & Sincronização de LED:**
+  * Layout XKB do COSMIC configurado com `options: Some("numpad:mac")` e script evdev/uinput `/usr/local/bin/numlock-on` para acender o LED físico do teclado no login ([Docs/issues/issue_cosmic_numlock_boot.md](Docs/issues/issue_cosmic_numlock_boot.md)).
+* **Alt Codes do Windows no Teclado Numérico (Wayland Native):**
+  * Daemon de usuário gerenciado pelo systemd (`alt-numpad.service`) capturando eventos de tecla via evdev/uinput:
+    * <kbd>Alt</kbd> + <kbd>1</kbd><kbd>6</kbd><kbd>7</kbd> = **`º`** | <kbd>Alt</kbd> + <kbd>1</kbd><kbd>6</kbd><kbd>6</kbd> = **`ª`**
+    * <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>6</kbd><kbd>7</kbd> = **`§`** | <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>7</kbd><kbd>6</kbd> = **`°`**
+    * <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>5</kbd><kbd>3</kbd> = **`™`** | <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>6</kbd><kbd>9</kbd> = **`©`** | <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>7</kbd><kbd>4</kbd> = **`®`**
+    * <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>5</kbd><kbd>1</kbd> = **`—`** | <kbd>Alt</kbd> + <kbd>0</kbd><kbd>1</kbd><kbd>4</kbd><kbd>9</kbd> = **`•`**
+    * <kbd>Alt</kbd> + <kbd>8</kbd><kbd>8</kbd> = **`⭡`** | <kbd>Alt</kbd> + <kbd>6</kbd><kbd>6</kbd> = **`⭢`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>2</kbd> = **`⭣`** | <kbd>Alt</kbd> + <kbd>4</kbd><kbd>4</kbd> = **`⭠`**
+    * <kbd>Alt</kbd> + <kbd>2</kbd><kbd>4</kbd> = **`↑`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>6</kbd> = **`→`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>5</kbd> = **`↓`** | <kbd>Alt</kbd> + <kbd>2</kbd><kbd>7</kbd> = **`←`**
+* **Mouse Gamer Logitech G502 X:**
+  * Polling rate em 1000Hz, perfil plano linear `flat` 1:1 sem aceleração de ponteiro via `ratbagctl`.
+  * Gravação onboard na EEPROM do mouse: Botão 3 = Colar, Botão 4 = Gatilho do Kando (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F10</kbd>), Botão 5 = Copiar, Botões 6 e 7 = Rolagem horizontal (Tilt Wheel).
+* **Mesa Digitalizadora Wacom Intuos Pro S (PTH-460):**
+  * Driver nativo do kernel `wacom.ko` com permissões udev e pareamento Bluetooth confiável.
+  * Mapeamento de proporção ultrawide (DP-1), Modo Canhoto 180° configurado nativamente no compositor COSMIC.
+  * Daemon de ExpressKeys e Touch Ring em Python/uinput com zoom in/out e atalhos configurados.
 
-### 3. Produtividade, Automação & Workflows
-*   **Espanso v2.4.1 (Wayland Edition):**
-    *   Text expander moderno em Rust integrado com repositório privado de snippets [`espanso-automacoes-sti`](https://github.com/rezendepauloh/espanso-automacoes-sti) em `~/.config/espanso`.
-    *   Execução estável via backend `EVDEV` com permissões `cap_dac_override`.
-    *   Formulários gráficos interativos em Python/GTK3 ([scripts/daemons/form_runner.py](scripts/daemons/form_runner.py)), com injeção de foco e keycodes X11 (`Control_L` + `v`) via `kando-cosmic-helper`. Documentação da resolução da issue em [Docs/issues/issue_edf_espanso_kando_cosmic.md](Docs/issues/issue_edf_espanso_kando_cosmic.md).
-    *   **Ícone Nativo na Bandeja do Painel COSMIC (StatusNotifierItem):** Daemon dedicado [scripts/daemons/espanso-indicator.py](scripts/daemons/espanso-indicator.py) gerenciado por serviço systemd (`espanso-indicator.service`), trazendo menu interativo (Buscar Snippets, Pausar/Retomar, Abrir Configurações e Reiniciar) e eliminando a micro-janela fantasma X11 de 1 pixel na tela. Documentação e relatório para upstream em [Docs/issues/issue_espanso_wayland_tray_cosmic.md](Docs/issues/issue_espanso_wayland_tray_cosmic.md).
-*   **Kando v3.0.0 (Pie Menu):**
-    *   Menu radial circular moderno com atalho global <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F10</kbd> e acionamento no botão de gatilho do mouse G502 X.
-    *   Wrapper de compatibilidade gráfica Wayland/X11 e conversão automática de atalhos e aplicativos do Windows para apps nativos Linux Pop!_OS e Flatpak.
-*   **CopyQ:** Gerenciador avançado de área de transferência com histórico, abas e integração com o barramento `StatusNotifierWatcher` no painel superior.
-*   **Google Antigravity IDE & VS Code:** Instalação oficial com aceleração gráfica Wayland nativa, perfil do AppArmor para sandboxing irrestrito, restauração sincronizada de dotfiles e configurações (`settings.json`, `keybindings.json`, `snippets`) a partir do Google Drive, e colar com botão direito no terminal integrado.
-*   **Terminal Moderno (ZSH + Powerlevel10k):** Shell Zsh padrão, tema Powerlevel10k com fontes oficiais `MesloLGS NF` instaladas automaticamente, suporte a `Ctrl+V` nativo no prompt e `ESC` para limpar a linha.
+### 3. Suíte ArtCraft & Produtividade Office
+* **ArtCraft Suite como Padrão do Sistema Operacional:**
+  * **WordCraft (`ai.storyteller.wordcraft`)**: Editor de texto moderno e padrão para documentos `.docx`, `.doc`, `.odt`, `.rtf` e templates.
+  * **GridCraft (`ai.storyteller.gridcraft`)**: Planilha eletrônica de alta produtividade padrão para planilhas `.xlsx`, `.xls`, `.ods`, `.csv` e `.tsv`.
+  * **DeckCraft (`ai.storyteller.deckcraft`)**: Apresentador moderno padrão para `.pptx`, `.ppt`, `.odp` e slides.
+  * **ArtCraft Launcher**: Central unificada de atualizações e inicialização dos aplicativos.
+  * Sincronização automatizada em `~/.config/mimeapps.list` e `~/.config/cosmic-mimeapps.list`.
 
-### 4. Armazenamento, Nuvem & Rede Local
-*   **Discos Físicos & Montagens Fixas (`/etc/fstab`):**
-    *   SSD NVMe 01 (Sistema): `/`
-    *   SSD NVMe 02 (Jogos): `/mnt/nvme_01`
-    *   HD Storage 930: `/mnt/storage_930`
-    *   HD Storage 700: `/mnt/storage_700` (com ancoragem automática da pasta `~/Downloads`)
-*   **Nuvens Sincronizadas (Rclone VFS):**
-    *   Google Drive Pessoal (`~/GoogleDrive_Pessoal`), OneDrive Pessoal (`~/OneDrive_Pessoal`) e MEGA Pessoal (`~/MEGA_Pessoal`) montados como serviços systemd com cache VFS sob demanda e proteção contra travamentos no gerenciador de arquivos.
-*   **Servidor Samba Local (`/mnt/storage_700/samba`):**
-    *   Compartilhamento local na rede (`192.168.0.0/24`) com o share `[Storage700]`, permissões idênticas às do ecossistema UmbrelOS/Homelab e portas liberadas no firewall UFW.
-*   **Tailscale (Mesh VPN WireGuard):** VPN segura ponto a ponto entre dispositivos, com IP forwarding ativado e integração gráfica.
-*   **Backup & Restauração de Dispositivos Android via ADB ([util/backup_android.sh](util/backup_android.sh) e [util/restore_android.sh](util/restore_android.sh)):**
-    *   Extração em alta velocidade de fotos, documentos, mídias do WhatsApp/Telegram, geração de inventário e extração em lote dos `.apk` instalados, com restauração assistida e reindexação instantânea do MediaScanner. Documentação em [Docs/guias/como-fazer-backup-android.md](Docs/guias/como-fazer-backup-android.md).
+### 4. Ferramentas Avançadas de PDF
+* **Stirling-PDF (Self-Hosted Docker WebApp):**
+  * Servidor web local de ferramentas completas para PDF (mesclagem, compressão, divisão, conversão, OCR, assinatura e remoção de senhas) executando sob demanda em contêiner Docker (`frooodle/s-pdf`).
+  * Lançador integrado no menu COSMIC em janela de aplicativo nativo (PWA) via script `~/.local/bin/stirling-pdf-launcher`.
+* **PDFsam (Basic & Visual):**
+  * Divisão, junção, rotação e reorganização visual de páginas de documentos PDF integrada ao menu de produtividade.
+* **Master PDF Editor 5 & Okular:**
+  * Leitura técnica com marcadores complexos (Okular) e edição direta de texto, campos e assinaturas em PDFs (Master PDF Editor 5).
 
-### 5. Jogos, Streaming & Mídia
-*   **Steam, Gamemode & MangoHud:** Aceleração máxima de jogos e monitoramento de desempenho.
-*   **Sunshine Game Streamer (Host GameStream):** Servidor de streaming de jogos com permissões uinput/udev, aceleração por hardware e regras de firewall UFW configuradas.
-*   **Streaming para Smart TV Samsung (Moonlight Tizen):** Alternância automática de resolução (Ultrawide 21:9 para 16:9 na TV) e guia completo de instalação via Apps2Samsung documentado em [Docs/guias/como-parear-sunshine-moonlight-samsung-tv.md](Docs/guias/como-parear-sunshine-moonlight-samsung-tv.md).
-*   **VLC Media Player:** Perfil completo customizado com fix de tema escuro universal em Qt Style Sheets ([Docs/guias/tema_escuro_botoes_vlc.md](Docs/guias/tema_escuro_botoes_vlc.md)).
-*   **GIMP com PhotoGIMP:** Interface gráfica e atalhos de teclado espelhados no Adobe Photoshop.
-*   **Gravador de Tela Nativo (Kooha):** Gravação de tela em MP4/WebM com áudio interno e microfone via atalho <kbd>Ctrl</kbd> + <kbd>Print</kbd> e integração com o Kando ([Docs/guias/gravacao_de_tela_cosmic_kooha.md](Docs/guias/gravacao_de_tela_cosmic_kooha.md)).
+### 5. Automações de Digitação, Clipboard & Kando
+* **Espanso v2.4.1 (Wayland Edition):**
+  * Text expander moderno integrado com repositório privado de snippets (`espanso-automacoes-sti`), backend `EVDEV` nativo e formulários gráficos interativos GTK3 ([scripts/daemons/form_runner.py](scripts/daemons/form_runner.py)).
+  * **Indicador Nativo no Painel COSMIC (StatusNotifierItem):** Daemon dedicado [scripts/daemons/espanso-indicator.py](scripts/daemons/espanso-indicator.py) trazendo menu interativo (Buscar Snippets, Pausar/Retomar, Abrir Configurações e Reiniciar) sem criar janelas fantasmas.
+* **Kando v3.0.0 (Pie Menu):**
+  * Menu circular radial ativado via <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F10</kbd> e botão de polegar do mouse G502 X.
+  * Modo centrado desativado (`useFixedPosition: false`), abrindo diretamente sob o ponteiro do mouse na tela ultrawide.
+* **CopyQ:** Gerenciador avançado de área de transferência com histórico, abas e integração com o barramento `StatusNotifierWatcher`.
 
-### 6. Trabalho Remoto (MPMS) & WinApps
-*   **VPN Aberta MPMS (openfortivpn):** Conexão SSL-VPN corporativa com autenticação de dois fatores (2FA/OTP), sem dependência do cliente proprietário pago EMS.
-*   **Cliente RDP Remmina:** Perfil pré-configurado com áudio remoto e sincronização de área de transferência.
-*   **Microsoft 365 Web Apps (PWAs):** Word, Excel, PowerPoint, Outlook e Portal configurados como aplicativos independentes com ícones SVG oficiais.
-*   **WinApps (Ambiente Windows KVM/Docker):** Provisionamento de contêiner Windows com FreeRDP seamless e integração do OneDrive corporativo ao gerenciador de arquivos via SMB ([Docs/guias/onedrive_winapps_mpms_guia.md](Docs/guias/onedrive_winapps_mpms_guia.md)).
+### 6. Armazenamento, Nuvem & Rede Local
+* **Pontos de Montagem Fixos (`/etc/fstab`):**
+  * SSD NVMe 01 (Sistema): `/`
+  * SSD NVMe 02 (Jogos): `/mnt/nvme_01`
+  * HD Storage 930: `/mnt/storage_930`
+  * HD Storage 700: `/mnt/storage_700` (com ancoragem automática da pasta `~/Downloads`)
+* **Nuvens Sincronizadas (Rclone VFS):**
+  * Google Drive Pessoal (`~/GoogleDrive_Pessoal`), OneDrive Pessoal (`~/OneDrive_Pessoal`) e MEGA Pessoal (`~/MEGA_Pessoal`) montados como serviços systemd com cache VFS sob demanda.
+* **Servidor Samba Local (`/mnt/storage_700/samba`):**
+  * Compartilhamento de rede (`192.168.0.0/24`) com o share `[Storage700]` compatível com a rede do UmbrelOS.
+* **Tailscale (Mesh VPN WireGuard):** VPN ponto a ponto segura entre computadores, celulares e servidores.
+* **Backup & Restauração de Dispositivos Android via ADB ([util/backup_android.sh](util/backup_android.sh) e [util/restore_android.sh](util/restore_android.sh)):**
+  * Extração e restauração em alta velocidade de fotos, documentos, mídias e aplicativos instalados com reindexação imediata no Android.
+
+### 7. Trabalho Remoto (MPMS), WinApps & OneDrive Integrado
+* **OneDrive Corporativo (MPMS) Acessível Nativamente no Linux:**
+  * Acesso direto aos arquivos corporativos através do Nautilus e do gerenciador de arquivos via montagem local SMB/GVFS, sem precisar abrir a VM Windows.
+  * **Indicador de Bandeja Oficial:** Daemon [scripts/daemons/onedrive-indicator.py](scripts/daemons/onedrive-indicator.py) (`onedrive-indicator.service`) com ícone oficial SVG na barra de status superior do COSMIC e menu com atalhos rápidos para abrir pasta local, sincronização, web SharePoint e máquina virtual.
+  * Overrides Flatpak aplicados para permitir que aplicativos isolados (como o ZapZap) acessem e anexem arquivos diretamente da montagem do OneDrive.
+* **WinApps & Windows 11 KVM:**
+  * Provisionamento de contêiner Windows com aceleração KVM (`dockurr/windows`) e integração de aplicativos via FreeRDP 3 com login automático transparente (AutoLogon).
+  * Conexão RDP salva e integrada ao Remmina para suporte e manutenção da VM com um clique.
+* **VPN Corporativa MPMS (openfortivpn):**
+  * Conexão SSL-VPN com autenticação em dois fatores (2FA/OTP) sem clientes proprietários pesados.
+
+### 8. Jogos, Streaming & Mídia
+* **Epic Games Launcher & Heroic:** Lançador da Epic Games integrado à categoria "Jogos" da COSMIC App Library com prefixo Proton inicializado.
+* **Steam, Gamemode & MangoHud:** Aceleração máxima de jogos e monitoramento de FPS e métricas de hardware.
+* **Sunshine Game Streamer (Host GameStream):** Servidor de streaming self-hosted de baixíssima latência pareado com Smart TVs Samsung (Moonlight Tizen) com alternância automática entre 21:9 e 16:9 ([Docs/guias/como-parear-sunshine-moonlight-samsung-tv.md](Docs/guias/como-parear-sunshine-moonlight-samsung-tv.md)).
+* **VLC Media Player:** Perfil customizado com tema escuro e correção de botões em Qt Style Sheets ([Docs/guias/tema_escuro_botoes_vlc.md](Docs/guias/tema_escuro_botoes_vlc.md)).
+* **GIMP com PhotoGIMP:** Interface gráfica espelhada no Adobe Photoshop com todos os atalhos clássicos.
+* **Gravador de Tela Nativo (Kooha):** Captura em alta taxa de quadros (MP4/WebM) via atalho global e integração com Kando.
 
 ---
 
 ## 🏗️ Estrutura do Repositório & Módulos
 
-```
+```text
 .
 ├── AGENTS.md                           # Diretrizes para Agentes de IA & Engenharia Autônoma
-├── setup_popos_v2.sh                   # Orquestrador Central Modular
+├── setup_popos.sh                      # Orquestrador Central Modular (--list, --test, --force, --repair-ides)
+├── Dockerfile                          # Ambiente de testes e sandbox headless
+├── config/                             # Arquivos de Configuração Centralizados
+│   ├── rclone/                         # Perfis e credenciais do Rclone
+│   ├── ssl/                            # Certificados CA corporativos (MPMS)
+│   └── systemd/                        # Drop-ins e configurações adicionais do systemd
 ├── scripts/                            # Módulos de Provisionamento Independentes
-│   ├── 00_comum.sh                     # Biblioteca base (logs, checkpoints, usuário real)
-│   ├── 01_otimizacao_sistema.sh        # Swappiness, inotify e DNS local (~pk.local)
-│   ├── 02_teclado_cedilha_numlock.sh   # Layout US-Intl, Cedilha ('+c = ç) e NumLock
+│   ├── 00_comum.sh                     # Biblioteca base (cores, checkpoints, REAL_USER e funções utilitárias)
+│   ├── 01_otimizacao_sistema.sh        # Swappiness=10, inotify=524288 e DNS local (~pk.local)
+│   ├── 02_teclado_cedilha_numlock.sh   # Layout US-Intl, Cedilha ('+c = ç) e NumLock permanente
 │   ├── 03_atualizacao_sistema.sh       # Atualização APT, Pop Recovery e firmware
-│   ├── 04_pacotes_base_dev.sh          # Utilitários CLI, compiladores, NVM e Rust
+│   ├── 04_pacotes_base_dev.sh          # CLI tools, compiladores, NVM, Node.js e Rust
 │   ├── 05_rclone_storage.sh            # Montagens FUSE do Rclone (GDrive, OneDrive, MEGA)
-│   ├── 06_softwares_workflow.sh        # Apps essenciais, Espanso v2.4.1 e Kando v3.0.0
-│   ├── 07_powershell7.sh               # Microsoft PowerShell 7 (pwsh) oficial
-│   ├── 08_antigravity_ide.sh           # Google Antigravity IDE (AppArmor, Wayland flags)
-│   ├── 09_onlyoffice_padrao.sh         # OnlyOffice e Nautilus como aplicativos padrão
-│   ├── 10_cosmic_applets_custom.sh      # Applets COSMIC (Now Playing, Minimon, Clima)
-│   ├── 11_mouse_gaming.sh              # Logitech G502 X (DPIs, 1000Hz, macros físicas)
-│   ├── 12_wacom_tablet.sh              # Driver nativo kernel wacom.ko, Modo Canhoto e UInput
-│   ├── 13_kando_restore.sh             # Restauração e conversão de menus Kando v3
-│   ├── 14_cosmic_theme_restore.sh      # Temas COSMIC/GTK/Qt, janelas flutuantes e fix VLC
-│   ├── 15_cosmic_menu_dock.sh          # Categorias inteligentes da App Library e Dock
-│   ├── 16_ide_config_restore.sh        # Sincronização de configurações VS Code e Antigravity
-│   ├── 17_zsh_p10k_setup.sh            # Zsh, Oh-My-Zsh, Powerlevel10k e fontes Meslo
-│   ├── 18_jogos_performance.sh         # Steam, Heroic Launcher e Sunshine Game Streamer
-│   ├── 19_flatpak_permissions.sh       # Overrides de sistema de arquivos e D-Bus para Flatpaks
+│   ├── 06_softwares_workflow.sh        # Apps essenciais, Espanso v2.4.1, Kando v3.0.0 e Flatpaks
+│   ├── 07_powershell7.sh               # Microsoft PowerShell 7 (pwsh) oficial e Oh My Posh
+│   ├── 08_antigravity_ide.sh           # Google Antigravity IDE (AppArmor, Wayland flags e atalhos)
+│   ├── 09_onlyoffice_padrao.sh         # ArtCraft Suite (WordCraft, GridCraft, DeckCraft) como padrão
+│   ├── 10_cosmic_applets_custom.sh     # Applets COSMIC (Now Playing, Minimon, Clima)
+│   ├── 11_mouse_gaming.sh              # Logitech G502 X (1000Hz, perfil flat, macros onboard)
+│   ├── 12_wacom_tablet.sh              # Driver kernel wacom.ko, Modo Canhoto e daemon de ExpressKeys
+│   ├── 13_kando_restore.sh             # Restauração e conversão de menus Kando v3 (modo sob cursor)
+│   ├── 14_cosmic_theme_restore.sh      # Temas COSMIC/GTK/Qt, regras de janelas flutuantes e fix VLC
+│   ├── 15_cosmic_menu_dock.sh          # Categorias inteligentes da App Library e itens fixados na Dock
+│   ├── 16_ide_config_restore.sh        # Sincronização de configurações do VS Code e Antigravity
+│   ├── 17_zsh_p10k_setup.sh            # Zsh, Oh-My-Zsh, Powerlevel10k e fontes MesloLGS NF
+│   ├── 18_jogos_performance.sh         # Steam, Heroic, Epic Games, Gamemode, MangoHud e Sunshine
+│   ├── 19_flatpak_permissions.sh       # Overrides de sistema de arquivos (/run/user/gvfs) e D-Bus
 │   ├── 20_manutencao_ssds.sh           # Ativação do fstrim.timer semanal
 │   ├── 21_autostart_config.sh          # Gerenciamento de autostart escalonado no login
 │   ├── 22_openrgb_iluminacao.sh        # OpenRGB e regras udev para ASUS Aura
 │   ├── 23_trabalho_remoto_vpn_rdp.sh   # VPN MPMS (openfortivpn 2FA), Remmina e PWAs Office
-│   ├── 24_pdf_editors.sh               # Master PDF Editor e Okular
+│   ├── 24_pdf_editors.sh               # Master PDF Editor 5 e Okular
 │   ├── 25_samba_storage.sh             # Servidor Samba local (/mnt/storage_700/samba)
-│   ├── 26_winapps_office.sh            # WinApps (Windows KVM acelerado com FreeRDP)
+│   ├── 26_winapps_office.sh            # WinApps (Windows KVM acelerado, FreeRDP 3 e OneDrive SMB)
 │   ├── 27_tailscale.sh                 # Mesh VPN Tailscale (WireGuard)
-│   ├── 28_limpeza_otimizacao.sh        # Limpeza, Docker socket, latência PipeWire e backups
+│   ├── 28_limpeza_otimizacao.sh        # Limpeza, Docker socket on-demand, latência PipeWire e backups
 │   └── daemons/                        # Daemons e Utilitários em Python (Background Services)
-│       ├── alt-numpad-daemon.py        # Daemon Python de Alt Codes do Windows (Wayland)
+│       ├── alt-numpad-daemon.py        # Daemon de Alt Codes do Windows sob Wayland (evdev/uinput)
 │       ├── espanso-indicator.py        # Tray Indicator nativo StatusNotifierItem para Espanso
-│       ├── onedrive-indicator.py       # Indicador de bandeja StatusNotifierItem para Microsoft OneDrive (MPMS)
-│       ├── patch_cedilla_electron.py   # Patch cirúrgico de cedilha em binários Electron
-│       └── wacom-expresskeys-daemon.py # Daemon de atalhos e anel de zoom da Wacom (UInput)
+│       ├── form_runner.py              # Formulários gráficos GTK3 com injeção de foco para Espanso
+│       ├── onedrive-indicator.py       # Indicador de bandeja com menu oficial para o OneDrive corporativo
+│       ├── patch_cedilla_electron.py   # Patch de cedilha e aspas em binários Chromium/Electron
+│       └── wacom-expresskeys-daemon.py # Daemon de ExpressKeys e Touch Ring da Wacom Intuos Pro S
 ├── tests/                              # Suíte de Testes Automatizados (Unitários & Integração)
 │   ├── run_all.py                      # Executor unificado com relatório colorido ANSI
+│   ├── test_in_docker.sh               # Sandbox completo em container Docker com mocks
 │   ├── unit/                           # Testes de sintaxe Bash/Python, 00_comum.sh e daemons
 │   └── integration/                    # Testes do orquestrador CLI e regras de módulos
 ├── util/                               # Utilitários de Manutenção e Hardware
@@ -140,6 +190,8 @@ Script de automação, provisionamento idempotente e infraestrutura como código
 │       ├── otimizar_winapps_vm.cmd     # Launcher com elevação automática de Administrador
 │       ├── otimizar_winapps_vm.ps1     # Script de remoção de telemetria, bloatware e serviços
 │       └── setup_autologon.bat         # Configuração de AutoLogon e bypass de tela de bloqueio
+├── Logs/                               # Logs de Execução e Checkpoints do Setup
+│   └── .setup_progress.log             # Histórico de módulos concluídos
 └── Docs/                               # Relatórios Técnicos e Manuais Especializados
     ├── guias/                          # Manuais Práticos e Guias de Configuração
     │   ├── como-fazer-backup-android.md
@@ -151,6 +203,7 @@ Script de automação, provisionamento idempotente e infraestrutura como código
     │   └── tema_escuro_botoes_vlc.md
     ├── issues/                         # Diagnósticos e Soluções de Bugs (Wayland/Hardware/Upstream)
     │   ├── issue_alt_codes_numpad_wayland.md
+    │   ├── issue_antigravity_dock_cosmic_launch.md
     │   ├── issue_chromium_electron_cedilha_wayland.md
     │   ├── issue_cosmic_files_fuse_freeze.md
     │   ├── issue_cosmic_numlock_boot.md
@@ -171,25 +224,25 @@ Script de automação, provisionamento idempotente e infraestrutura como código
 ### 🚀 Execução Completa Automatizada:
 Executa todos os módulos de forma sequencial e idempotente, pulando automaticamente o que já estiver concluído:
 ```bash
-sudo ./setup_popos_v2.sh
+sudo ./setup_popos.sh
 ```
 
 ### 📋 Listar Todos os Módulos:
 ```bash
-./setup_popos_v2.sh --list
+./setup_popos.sh --list
 ```
 
 ### 🧪 Executar a Suíte de Testes Automatizados:
-Valida sintaxe de todos os scripts Bash e daemons Python, biblioteca de idempotência, patches binários e coerência dos módulos:
+Valida sintaxe de todos os scripts Bash e daemons Python, biblioteca de idempotência, patches binários e coerência dos módulos (executado em ~0.4s):
 ```bash
-./setup_popos_v2.sh --test
+./setup_popos.sh --test
 ```
 
 ### 🎯 Executar um Módulo Isolado:
 ```bash
 # Pelo número ou nome via orquestrador:
-sudo ./setup_popos_v2.sh 06
-sudo ./setup_popos_v2.sh 12
+sudo ./setup_popos.sh 06
+sudo ./setup_popos.sh 12
 
 # Ou chamando o script diretamente:
 sudo ./scripts/06_softwares_workflow.sh
@@ -198,26 +251,34 @@ sudo ./scripts/12_wacom_tablet.sh
 
 ### 🔄 Forçar Reexecução (Limpar Checkpoints):
 ```bash
-sudo ./setup_popos_v2.sh --force
+sudo ./setup_popos.sh --force
 ```
 
 ### 🔧 Reparo Rápido de IDEs (Google Antigravity & VS Code):
 Limpa travas residuais (`code.lock`), caches corrompidos de GPU/Dawn do Wayland e reaplica flags de estabilidade:
 ```bash
-./setup_popos_v2.sh --repair-ides
+./setup_popos.sh --repair-ides
 ```
 
 ---
 
 ## 🌟 Créditos & Projetos de Código Aberto
 
-Este ecossistema de provisionamento é construído sobre projetos de código aberto e da comunidade Linux. Registramos nossos agradecimentos e referências aos autores originais:
+Este ecossistema de provisionamento é construído sobre projetos de código aberto de excelência e da comunidade Linux. Registramos nossos agradecimentos aos autores originais:
 
 | Software / Projeto | Descrição / Uso no Setup | Repositório / Link Oficial |
 | :--- | :--- | :--- |
 | **System76 COSMIC Desktop** | Ambiente de desktop de próxima geração em Rust (`cosmic-comp`, `cosmic-settings`, `cosmic-panel`, `cosmic-files`) | [pop-os/cosmic-epoch](https://github.com/pop-os/cosmic-epoch) |
+| **ArtCraft Suite** | Suíte moderna de produtividade documental (WordCraft, GridCraft, DeckCraft e Launcher) | [ArtCraft Suite](https://artcraft.ai) |
+| **Stirling-PDF** | Central robusta self-hosted para manipulação, conversão, OCR e assinatura de PDFs | [Stirling-Tools/Stirling-PDF](https://github.com/Stirling-Tools/Stirling-PDF) |
+| **PDFsam (Basic & Visual)** | Divisão, mesclagem e rotação visual intuitiva de páginas em documentos PDF | [torakiki/pdfsam](https://github.com/torakiki/pdfsam) |
+| **Master PDF Editor** | Editor avançado para criação e modificação direta de conteúdo e anotações em PDFs | [Code Industry Master PDF](https://code-industry.net/masterpdfeditor/) |
+| **Okular** | Leitor de documentos universal da comunidade KDE com suporte avançado a marcadores | [KDE/okular](https://invent.kde.org/graphics/okular) |
 | **Espanso** | Text expander em Rust focado em privacidade utilizado para automações de digitação | [espanso/espanso](https://github.com/espanso/espanso) |
 | **Kando** | Menu circular (pie menu) cross-platform de alta performance | [kando-menu/kando](https://github.com/kando-menu/kando) |
+| **WinApps** | Execução de aplicativos Windows (Microsoft 365) via contêiner KVM acelerado com FreeRDP | [winapps-org/winapps](https://github.com/winapps-org/winapps) |
+| **Dockurr Windows** | Imagem Docker para virtualização Windows no Linux com suporte a KVM | [dockur/windows](https://github.com/dockur/windows) |
+| **FreeRDP 3** | Implementação de código aberto de alta velocidade do protocolo RDP | [FreeRDP/FreeRDP](https://github.com/FreeRDP/FreeRDP) |
 | **Sunshine Game Streamer** | Servidor de streaming self-hosted de baixa latência para Moonlight | [LizardByte/Sunshine](https://github.com/LizardByte/Sunshine) |
 | **Moonlight Game Streaming** | Cliente de streaming de jogos de alto desempenho | [moonlight-stream/moonlight-qt](https://github.com/moonlight-stream/moonlight-qt) |
 | **Moonlight Tizen** | Port do cliente Moonlight para TVs Samsung Tizen OS | [brightcraft/moonlight-tizen](https://github.com/brightcraft/moonlight-tizen) |
@@ -226,12 +287,10 @@ Este ecossistema de provisionamento é construído sobre projetos de código abe
 | **Rclone** | Utilitário definitivo para sincronização e montagem FUSE de nuvens | [rclone/rclone](https://github.com/rclone/rclone) |
 | **PhotoGIMP** | Patch de customização do GIMP para interface similar ao Adobe Photoshop | [Diolinux/PhotoGIMP](https://github.com/Diolinux/PhotoGIMP) |
 | **Kooha** | Gravador de tela moderno, elegante e nativo para Wayland | [SeaDve/Kooha](https://github.com/SeaDve/Kooha) |
-| **OnlyOffice Desktop Editors** | Suíte de escritório completa com compatibilidade com formatos MS Office | [ONLYOFFICE/DesktopEditors](https://github.com/ONLYOFFICE/DesktopEditors) |
 | **LocalSend** | Compartilhamento local de arquivos cross-platform via Wi-Fi | [localsend/localsend](https://github.com/localsend/localsend) |
 | **Jellyfin Desktop** | Cliente desktop para streaming do media center Jellyfin | [jellyfin/jellyfin-media-player](https://github.com/jellyfin/jellyfin-media-player) |
 | **Libratbag & Piper** | Configuração de hardware e gravação de memória interna de mouses gaming (G502 X) | [libratbag/libratbag](https://github.com/libratbag/libratbag) |
 | **Libwacom & Linux Wacom** | Drivers nativos e bibliotecas de identificação de mesas digitalizadoras Wacom | [linuxwacom/libwacom](https://github.com/linuxwacom/libwacom) |
-| **WinApps** | Execução de aplicativos Windows (Microsoft 365) via contêiner KVM acelerado | [winapps-org/winapps](https://github.com/winapps-org/winapps) |
 | **OpenFortiVPN** | Cliente de código aberto para conexões SSL-VPN Fortinet com 2FA | [adrienverge/openfortivpn](https://github.com/adrienverge/openfortivpn) |
 | **Remmina** | Cliente completo de Remote Desktop (RDP, VNC, SSH) para Linux | [FreeRDP/Remmina](https://github.com/FreeRDP/Remmina) |
 | **OpenRGB** | Controle e sincronização universal de iluminação RGB de hardware | [CalcProgrammer1/OpenRGB](https://gitlab.com/CalcProgrammer1/OpenRGB) |
@@ -244,4 +303,4 @@ Este ecossistema de provisionamento é construído sobre projetos de código abe
 
 ## 📄 Licença & Isenção de Responsabilidade
 
-Este projeto é disponibilizado sob a licença **MIT**. Todos os scripts foram projetados com foco em idempotência, preservação de dados e compatibilidade nativa com o Pop!_OS 24.04 LTS e o ecossistema COSMIC Desktop.
+Este projeto é disponibilizado sob a licença **MIT**. Todos os scripts foram projetados com foco em idempotência, integridade de dados e compatibilidade com o Pop!_OS 24.04 LTS sob o ecossistema COSMIC Desktop.

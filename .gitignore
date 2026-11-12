@@ -4,6 +4,8 @@
 
 # Arquivos de Configuração Sensíveis e Credenciais (CRÍTICO)
 rclone.conf
+config/rclone/
+!config/rclone/*.example
 *.conf.bak
 .env
 .env.*

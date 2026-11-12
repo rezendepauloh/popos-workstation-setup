@@ -16,7 +16,8 @@ fi
 
 log_msg "HEADER" "5. CONFIGURAÇÃO DO RCLONE E SERVIÇOS SYSTEMD"
 
-RCLONE_CONF_SRC="$BASE_DIR/rclone.conf"
+RCLONE_CONF_SRC="$BASE_DIR/config/rclone/rclone.conf"
+[ ! -f "$RCLONE_CONF_SRC" ] && [ -f "$BASE_DIR/rclone.conf" ] && RCLONE_CONF_SRC="$BASE_DIR/rclone.conf"
 RCLONE_CONF_DST="$REAL_HOME/.config/rclone/rclone.conf"
 
 if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then

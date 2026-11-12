@@ -37,6 +37,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
             include: [
                 "steam",
                 "com.heroicgameslauncher.hgl",
+                "epic-games-launcher",
                 "jstest-gtk",
                 "io.github.antimicrox.antimicrox",
                 "sunshine",

@@ -147,7 +147,7 @@ No ambiente XWayland sobre monitores Ultrawide / alta resolução com o composit
 Para validar a aplicação:
 ```bash
 # Executa a restauração do módulo 14:
-sudo ./setup_popos_v2.sh 14 --force
+sudo ./setup_popos.sh 14 --force
 
 # Abre o VLC com os botões estilizados:
 vlc

@@ -19,10 +19,10 @@ class TestSyntaxValidation(unittest.TestCase):
     """Garante que nenhum script Bash ou daemon Python possua erros de sintaxe."""
 
     def test_01_all_bash_scripts_syntax_valid(self):
-        """Valida 'bash -n' em setup_popos_v2.sh, test_in_docker.sh, scripts/*.sh e util/*.sh."""
+        """Valida 'bash -n' em setup_popos.sh, tests/test_in_docker.sh, scripts/*.sh e util/*.sh."""
         bash_files = [
-            os.path.join(ROOT_DIR, 'setup_popos_v2.sh'),
-            os.path.join(ROOT_DIR, 'test_in_docker.sh'),
+            os.path.join(ROOT_DIR, 'setup_popos.sh'),
+            os.path.join(ROOT_DIR, 'tests', 'test_in_docker.sh'),
         ]
         bash_files.extend(sorted(glob.glob(os.path.join(SCRIPTS_DIR, '*.sh'))))
         bash_files.extend(sorted(glob.glob(os.path.join(UTIL_DIR, '*.sh'))))

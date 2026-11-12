@@ -2,6 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Se não estiver rodando dentro do container, executa o build e roda via docker no host
 if [ "$1" != "--inside" ] && [ ! -f "/.dockerenv" ]; then
@@ -9,7 +10,7 @@ if [ "$1" != "--inside" ] && [ ! -f "/.dockerenv" ]; then
     echo "🐳 [HOST WSL] Construindo e executando container de teste..."
     echo "============================================================"
     
-    docker build -t popos-provision-test -f "$SCRIPT_DIR/Dockerfile" "$SCRIPT_DIR"
+    docker build -t popos-provision-test -f "$ROOT_DIR/Dockerfile" "$ROOT_DIR"
     
     CA_MOUNT=""
     if [ -d "/usr/local/share/ca-certificates" ]; then
@@ -17,8 +18,8 @@ if [ "$1" != "--inside" ] && [ ! -f "/.dockerenv" ]; then
     fi
     
     echo ""
-    echo "🚀 [HOST WSL] Iniciando testes do setup_popos_v2.sh no container..."
-    docker run --rm $CA_MOUNT -v "$SCRIPT_DIR:/workspace" popos-provision-test /bin/bash /workspace/test_in_docker.sh --inside
+    echo "🚀 [HOST WSL] Iniciando testes do setup_popos.sh no container..."
+    docker run --rm $CA_MOUNT -v "$ROOT_DIR:/workspace" popos-provision-test /bin/bash /workspace/tests/test_in_docker.sh --inside
     exit 0
 fi
 
@@ -141,19 +142,19 @@ fi
 
 chown -R paulogoncalves:paulogoncalves /home/paulogoncalves
 
-# 5. Criar cópia de trabalho do setup_popos_v2.sh e scripts/ para o teste
+# 5. Criar cópia de trabalho do setup_popos.sh e scripts/ para o teste
 TEST_SCRIPT_DIR="/home/paulogoncalves/test_run"
 mkdir -p "$TEST_SCRIPT_DIR"
-cp /workspace/setup_popos_v2.sh "$TEST_SCRIPT_DIR/setup_popos_v2.sh"
+cp /workspace/setup_popos.sh "$TEST_SCRIPT_DIR/setup_popos.sh"
 cp -r /workspace/scripts "$TEST_SCRIPT_DIR/scripts"
 chown -R paulogoncalves:paulogoncalves "$TEST_SCRIPT_DIR"
-chmod +x "$TEST_SCRIPT_DIR/setup_popos_v2.sh" "$TEST_SCRIPT_DIR"/scripts/*.sh
+chmod +x "$TEST_SCRIPT_DIR/setup_popos.sh" "$TEST_SCRIPT_DIR"/scripts/*.sh
 
 echo "============================================================"
-echo "▶️ [CONTAINER] Executando setup_popos_v2.sh como paulogoncalves..."
+echo "▶️ [CONTAINER] Executando setup_popos.sh como paulogoncalves..."
 echo "============================================================"
 
-su - paulogoncalves -c "export PATH=/usr/local/mock-bin:\$PATH; export DEBIAN_FRONTEND=noninteractive; sudo /home/paulogoncalves/test_run/setup_popos_v2.sh"
+su - paulogoncalves -c "export PATH=/usr/local/mock-bin:\$PATH; export DEBIAN_FRONTEND=noninteractive; sudo /home/paulogoncalves/test_run/setup_popos.sh"
 
 echo ""
 echo "============================================================"
@@ -223,7 +224,8 @@ else
 fi
 
 # Validar Flags de Estado
-STATE_FILE="/home/paulogoncalves/.setup_progress.log"
+STATE_FILE="/home/paulogoncalves/test_run/Logs/.setup_progress.log"
+[ ! -f "$STATE_FILE" ] && STATE_FILE="/home/paulogoncalves/.setup_progress.log"
 if [ -f "$STATE_FILE" ]; then
     echo "  ✅ Arquivo de estado gerado: $STATE_FILE"
     cat "$STATE_FILE"

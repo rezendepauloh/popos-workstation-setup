@@ -25,7 +25,7 @@ Nas sessões anteriores, resolvemos de forma definitiva e estruturada:
     - Ícones oficiais SVG baixados da CDN da Microsoft e organizados na categoria **"Escritório & Trabalho Remoto"** do COSMIC App Library ([`scripts/15_cosmic_menu_dock.sh`](scripts/15_cosmic_menu_dock.sh)), mantendo o OnlyOffice como editor local padrão.
 11. **WinApps & Microsoft 365 (Word, Excel, PowerPoint, OneDrive MPMS Oficial):**
     - Módulo [`scripts/26_winapps_office.sh`](scripts/26_winapps_office.sh) criado com stack Docker KVM acelerada (`dockurr/windows`), FreeRDP e helper de controle `winapps-vm`.
-    - Script de limpeza e hardening renomeado de forma transparente para [`scripts/27_limpeza_otimizacao.sh`](scripts/27_limpeza_otimizacao.sh) no orquestrador [`setup_popos_v2.sh`](setup_popos_v2.sh).
+    - Script de limpeza e hardening renomeado de forma transparente para [`scripts/27_limpeza_otimizacao.sh`](scripts/27_limpeza_otimizacao.sh) no orquestrador [`setup_popos.sh`](setup_popos.sh).
     - Guia detalhado passo a passo de deploy e integração do OneDrive corporativo (Files On-Demand) com o Nautilus documentado em [`Docs/onedrive_winapps_mpms_guia.md`](Docs/onedrive_winapps_mpms_guia.md).
 12. Documentação técnica atualizada em [`Docs/issue_chromium_electron_cedilha_wayland.md`](Docs/issue_chromium_electron_cedilha_wayland.md), [`Docs/issue_alt_codes_numpad_wayland.md`](Docs/issue_alt_codes_numpad_wayland.md), [`Docs/onedrive_winapps_mpms_guia.md`](Docs/onedrive_winapps_mpms_guia.md) e no [`README.md`](README.md).
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Testes de Integração: Orquestrador (setup_popos_v2.sh), Módulos e Configuração do Kando.
+Testes de Integração: Orquestrador (setup_popos.sh), Módulos e Configuração do Kando.
 Verifica a coerência entre a lista MODULES do orquestrador e os arquivos em scripts/,
 flags informativas (--help, --list) e garante as regras de configuração do Kando (como centered: false).
 """
@@ -13,16 +13,16 @@ import subprocess
 import unittest
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-SETUP_SH = os.path.join(ROOT_DIR, 'setup_popos_v2.sh')
+SETUP_SH = os.path.join(ROOT_DIR, 'setup_popos.sh')
 SCRIPTS_DIR = os.path.join(ROOT_DIR, 'scripts')
 DAEMONS_DIR = os.path.join(SCRIPTS_DIR, 'daemons')
 
 
 class TestOrchestratorAndModules(unittest.TestCase):
-    """Testa a integração do setup_popos_v2.sh e regras críticas dos módulos."""
+    """Testa a integração do setup_popos.sh e regras críticas dos módulos."""
 
     def test_01_orchestrator_help_flag_runs_without_sudo(self):
-        """'./setup_popos_v2.sh --help' deve executar sem exigir sudo e exibir instruções de uso."""
+        """'./setup_popos.sh --help' deve executar sem exigir sudo e exibir instruções de uso."""
         res = subprocess.run([SETUP_SH, '--help'], capture_output=True, text=True)
         self.assertEqual(res.returncode, 0)
         self.assertIn("Uso:", res.stdout)
@@ -30,7 +30,7 @@ class TestOrchestratorAndModules(unittest.TestCase):
         self.assertIn("--list", res.stdout)
 
     def test_02_orchestrator_list_flag_lists_all_modules(self):
-        """'./setup_popos_v2.sh --list' deve listar todos os módulos de 01 a 28."""
+        """'./setup_popos.sh --list' deve listar todos os módulos de 01 a 28."""
         res = subprocess.run([SETUP_SH, '--list'], capture_output=True, text=True)
         self.assertEqual(res.returncode, 0)
         for i in range(1, 29):
@@ -38,12 +38,12 @@ class TestOrchestratorAndModules(unittest.TestCase):
             self.assertIn(prefix, res.stdout, f"Módulo {prefix} deve aparecer na saída de --list")
 
     def test_03_orchestrator_modules_array_matches_scripts_directory(self):
-        """Todos os scripts 01..28 em scripts/ devem estar declarados no array MODULES do setup_popos_v2.sh."""
+        """Todos os scripts 01..28 em scripts/ devem estar declarados no array MODULES do setup_popos.sh."""
         with open(SETUP_SH, 'r', encoding='utf-8') as f:
             setup_content = f.read()
 
         match = re.search(r'MODULES=\(\s*(.*?)\s*\)', setup_content, re.DOTALL)
-        self.assertIsNotNone(match, "Array MODULES=(...) não encontrado em setup_popos_v2.sh")
+        self.assertIsNotNone(match, "Array MODULES=(...) não encontrado em setup_popos.sh")
         declared_modules = re.findall(r'"([^"]+\.sh)"', match.group(1))
 
         actual_files = sorted([
@@ -55,7 +55,7 @@ class TestOrchestratorAndModules(unittest.TestCase):
         self.assertEqual(
             declared_modules,
             actual_files,
-            "O array MODULES em setup_popos_v2.sh deve corresponder 1:1 aos arquivos 01..28 em scripts/"
+            "O array MODULES em setup_popos.sh deve corresponder 1:1 aos arquivos 01..28 em scripts/"
         )
 
     def test_04_all_numbered_modules_source_00_comum_and_check_flag(self):

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Script de Provisionamento & Pós-Instalação: Pop!_OS 24.04 LTS (COSMIC) - V2
+# Script de Provisionamento & Pós-Instalação: Pop!_OS 24.04 LTS (COSMIC)
 # Orquestrador Modular Desacoplado
 # ==============================================================================
 
@@ -13,7 +13,7 @@ source "$SCRIPT_DIR/scripts/00_comum.sh"
 echo -e "${C_CYAN}${C_BOLD}"
 cat << "EOF"
 ================================================================================
-          🚀 POP!_OS 24.04 LTS (COSMIC) - POST-INSTALL SETUP V2 🚀
+           🚀 POP!_OS 24.04 LTS (COSMIC) - POST-INSTALL SETUP 🚀
                      Automação Modular & Desacoplada
 ================================================================================
 EOF
@@ -22,12 +22,12 @@ echo -e "${C_RESET}"
 # Tratamento de Flags Informativas (sem necessidade de sudo)
 if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
     echo -e "${C_BOLD}Uso:${C_RESET}"
-    echo "  sudo ./setup_popos_v2.sh            # Executa todo o provisionamento sequencialmente"
-    echo "  sudo ./setup_popos_v2.sh --force    # Limpa checkpoints e força reexecução completa"
-    echo "  ./setup_popos_v2.sh --list          # Lista todos os módulos disponíveis"
-    echo "  ./setup_popos_v2.sh --test          # Executa a suíte de testes automatizados (tests/run_all.py)"
-    echo "  sudo ./setup_popos_v2.sh <modulo>   # Executa apenas um módulo específico (ex: 02 ou 16)"
-    echo "  ./setup_popos_v2.sh --repair-ides   # Repara IDEs (Antigravity e VS Code), limpa locks/caches e ajusta Wayland"
+    echo "  sudo ./setup_popos.sh            # Executa todo o provisionamento sequencialmente"
+    echo "  sudo ./setup_popos.sh --force    # Limpa checkpoints e força reexecução completa"
+    echo "  ./setup_popos.sh --list          # Lista todos os módulos disponíveis"
+    echo "  ./setup_popos.sh --test          # Executa a suíte de testes automatizados (tests/run_all.py)"
+    echo "  sudo ./setup_popos.sh <modulo>   # Executa apenas um módulo específico (ex: 02 ou 16)"
+    echo "  ./setup_popos.sh --repair-ides   # Repara IDEs (Antigravity e VS Code), limpa locks/caches e ajusta Wayland"
     echo ""
     exit 0
 fi
@@ -65,7 +65,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 if [ "$1" == "--force" ] || [ "$1" == "-f" ]; then
-    log_msg "WARN" "Limpando arquivo de progresso (.setup_progress.log) para reexecução completa..."
+    log_msg "WARN" "Limpando arquivo de progresso (Logs/.setup_progress.log) para reexecução completa..."
     rm -f "$PROGRESS_LOG"
     shift
 fi
@@ -87,7 +87,7 @@ if [ -n "$1" ]; then
         bash "$MATCHED_SCRIPT"
         exit 0
     else
-        log_msg "ERROR" "Módulo '$TARGET_MOD' não encontrado. Use './setup_popos_v2.sh --list' para ver as opções."
+        log_msg "ERROR" "Módulo '$TARGET_MOD' não encontrado. Use './setup_popos.sh --list' para ver as opções."
         exit 1
     fi
 fi

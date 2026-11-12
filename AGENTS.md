@@ -19,7 +19,7 @@ Pilares fundamentais:
 
 ```text
 .
-├── setup_popos_v2.sh                   # Orquestrador central (--list, --force, --test, --repair-ides, <módulo>)
+├── setup_popos.sh                      # Orquestrador central (--list, --force, --test, --repair-ides, <módulo>)
 ├── scripts/
 │   ├── 00_comum.sh                     # Biblioteca compartilhada (cores, log_msg, check_flag, set_flag, REAL_USER/REAL_HOME)
 │   ├── 01_otimizacao_sistema.sh        # Kernel sysctl (swappiness=10, inotify=524288) e DNS local (192.168.0.8 / ~pk.local)
@@ -57,10 +57,10 @@ Pilares fundamentais:
 │       ├── patch_cedilla_electron.py   # Patch binário idempotente (ui::CharacterComposer) para ' + c = ç e aspas
 │       └── wacom-expresskeys-daemon.py # Daemon evdev/uinput para ExpressKeys e Touch Ring da Wacom Intuos Pro S
 ├── tests/                              # Suíte de Testes Automatizados (Unitários & Integração)
-│   ├── run_all.py                      # Executor unificado com relatório colorido ANSI (./setup_popos_v2.sh --test)
+│   ├── run_all.py                      # Executor unificado com relatório colorido ANSI (./setup_popos.sh --test)
+│   ├── test_in_docker.sh               # Sandbox completo em container Docker com binários de hardware mockados
 │   ├── unit/                           # Testes de sintaxe Bash/Python, 00_comum.sh e lógica dos daemons/patches
 │   └── integration/                    # Testes do orquestrador CLI, coerência de módulos e transformações JSON/RON
-├── test_in_docker.sh                   # Sandbox completo em container Docker com binários de hardware mockados
 ├── util/                               # Utilitários standalone (backup_android.sh e restore_android.sh via ADB)
 └── Docs/                               # Documentação técnica profunda, guias e relatórios de issues upstream
 ```
@@ -72,8 +72,8 @@ Pilares fundamentais:
 1. **Padrão de Cabeçalho e Idempotência em `scripts/XX_*.sh`**:
    - Todo módulo numerado **DEVE** iniciar com `#!/bin/bash`, `set -e`, carregar `source "$SCRIPT_DIR/00_comum.sh"`, definir um `FLAG_NAME` único, verificar `if check_flag "$FLAG_NAME" "$@"; then ... exit 0; fi` no início e chamar `set_flag "$FLAG_NAME"` no final.
    - Nota: Ao usar `source "$SCRIPT_DIR/00_comum.sh"`, lembre-se de que `00_comum.sh` redefine `SCRIPT_DIR` para a pasta `scripts/` e define `BASE_DIR` como a raiz do repositório.
-2. **Sincronização do Orquestrador (`setup_popos_v2.sh`)**:
-   - Se um novo módulo `XX_nome.sh` for adicionado, renomeado ou reordenado em `scripts/`, o array `MODULES=(...)` em `setup_popos_v2.sh` **DEVE** ser atualizado imediatamente (há um teste automatizado que falha caso divergirem).
+2. **Sincronização do Orquestrador (`setup_popos.sh`)**:
+   - Se um novo módulo `XX_nome.sh` for adicionado, renomeado ou reordenado em `scripts/`, o array `MODULES=(...)` em `setup_popos.sh` **DEVE** ser atualizado imediatamente (há um teste automatizado que falha caso divergirem).
 3. **Peculiaridades de Software já Resolvidas (Não Reverta)**:
    - **Kando (`13_kando_restore.sh` & PR #1535)**: No COSMIC Wayland (com `kando-cosmic-helper` e `wp_pointer_warp_v1`), o menu **NÃO** deve usar modo centralizado fixo. Mantenha sempre `.menus[0].centered = false | .menus[0].useFixedPosition = false` para que o menu abra sob o cursor sem puxar o mouse para o centro da tela ultrawide.
    - **Cedilha no Electron/Chromium (`02_teclado_cedilha_numlock.sh` & `patch_cedilla_electron.py`)**: Sob Wayland nativo (`--ozone-platform=wayland`), o Chromium ignora `GTK_IM_MODULE=cedilla`. O patch binário em `ui::CharacterComposer` converte `' + c -> ç`, `' + C -> Ç`, `"" -> "` e `'' -> '` preservando cópia `.orig`.
@@ -86,7 +86,7 @@ Pilares fundamentais:
 Antes de concluir qualquer resposta onde houve alteração de código ou configuração, o agente **DEVE obrigatoriamente** seguir este protocolo:
 
 1. **Executar a Suíte de Testes Automatizados (Obrigatório)**:
-   - Sempre rode `./setup_popos_v2.sh --test` (ou `python3 tests/run_all.py`).
+   - Sempre rode `./setup_popos.sh --test` (ou `python3 tests/run_all.py`).
    - Se criar um novo script, daemon ou regra de configuração importante, **adicione um teste correspondente** em `tests/unit/` ou `tests/integration/`.
    - **Nenhuma alteração deve ser entregue com testes falhando.**
 2. **Validar Sintaxe e Permissões**:
@@ -101,20 +101,20 @@ Antes de concluir qualquer resposta onde houve alteração de código ou configu
 
 ```bash
 # 1. Rodar a suíte rápida de testes automatizados (Unitários + Integração - ~0.4s)
-./setup_popos_v2.sh --test
+./setup_popos.sh --test
 # ou diretamente:
 python3 tests/run_all.py
 
 # 2. Listar todos os módulos de provisionamento disponíveis
-./setup_popos_v2.sh --list
+./setup_popos.sh --list
 
 # 3. Executar um módulo específico forçando reexecução (ignorando checkpoint)
 sudo ./scripts/13_kando_restore.sh --force
 
 # 4. Reparar locks e caches Wayland/GPU das IDEs (Antigravity & VS Code)
-./setup_popos_v2.sh --repair-ides
+./setup_popos.sh --repair-ides
 
 # 5. Executar teste end-to-end completo em container Docker isolado (com mocks)
-./test_in_docker.sh
+./tests/test_in_docker.sh
 ```
 

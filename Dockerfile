@@ -46,4 +46,4 @@ ENV PATH="/usr/local/mock-bin:${PATH}"
 
 WORKDIR /workspace
 
-CMD ["/bin/bash", "/workspace/test_in_docker.sh", "--inside"]
+CMD ["/bin/bash", "/workspace/tests/test_in_docker.sh", "--inside"]

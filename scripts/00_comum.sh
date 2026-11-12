@@ -19,7 +19,8 @@ C_BOLD='\033[1m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SCRIPTS_DIR="$BASE_DIR/scripts"
-PROGRESS_LOG="$BASE_DIR/.setup_progress.log"
+mkdir -p "$BASE_DIR/Logs"
+PROGRESS_LOG="$BASE_DIR/Logs/.setup_progress.log"
 
 # Carrega variáveis de ambiente do .env se existir
 if [ -f "$BASE_DIR/.env" ]; then
