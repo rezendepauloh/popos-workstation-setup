@@ -16,6 +16,10 @@ fi
 
 log_msg "HEADER" "7. INSTALAÇÃO DO ANTIGRAVITY IDE"
 
+WORK_TMP=$(mktemp -d /tmp/popos_agy_XXXXXX)
+chmod 700 "$WORK_TMP"
+trap 'rm -rf "$WORK_TMP"' EXIT
+
 ANTIGRAVITY_FALLBACK_VER="2.6.0"
 ANTIGRAVITY_FALLBACK_EXEC="5526304964083712"
 
@@ -35,10 +39,10 @@ fi
 
 ANTIGRAVITY_URL="https://edgedl.me.gvt1.com/edgedl/release2/j0qc3/antigravity/stable/${ANTIGRAVITY_VER}-${ANTIGRAVITY_EXEC}/linux-x64/Antigravity%20IDE.tar.gz"
 log_msg "INFO" "Baixando Antigravity IDE v${ANTIGRAVITY_VER}..."
-wget -qO /tmp/antigravity.tar.gz "$ANTIGRAVITY_URL"
+wget -qO "$WORK_TMP/antigravity.tar.gz" "$ANTIGRAVITY_URL"
 
 sudo mkdir -p /opt/antigravity
-sudo tar -xzf /tmp/antigravity.tar.gz -C /opt/antigravity --strip-components=1
+sudo tar -xzf "$WORK_TMP/antigravity.tar.gz" -C /opt/antigravity --strip-components=1
 sudo chmod -R 755 /opt/antigravity
 sudo chmod +x /opt/antigravity/antigravity-ide /opt/antigravity/bin/antigravity-ide 2>/dev/null || true
 
@@ -148,7 +152,7 @@ chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/share/applications/antigravity"
 sudo update-desktop-database /usr/share/applications 2>/dev/null || true
 update-desktop-database "$REAL_HOME/.local/share/applications" 2>/dev/null || true
 
-rm -f /tmp/antigravity.tar.gz
+rm -rf "$WORK_TMP"
 
 set_flag "$FLAG_NAME"
 log_msg "SUCCESS" "Antigravity IDE instalado e integrado ao sistema com sucesso."

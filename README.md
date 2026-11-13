@@ -136,6 +136,7 @@
 ├── AGENTS.md                           # Diretrizes para Agentes de IA & Engenharia Autônoma
 ├── setup_popos.sh                      # Orquestrador Central Modular (--list, --test, --force, --repair-ides)
 ├── Dockerfile                          # Ambiente de testes e sandbox headless
+├── .dockerignore                       # Exclusão de segredos (.env, rclone.conf, chaves) do build Docker
 ├── config/                             # Arquivos de Configuração Centralizados
 │   ├── rclone/                         # Perfis e credenciais do Rclone
 │   ├── ssl/                            # Certificados CA corporativos (MPMS)
@@ -214,7 +215,8 @@
     │   └── issue_opentabletdriver_wacom_bluetooth.md
     ├── planejamento/                   # Roadmaps e Melhorias Futuras
     │   └── melhorias_futuras_workstation.md
-    └── relatorios/                     # Históricos de Sessão e Contexto
+    └── relatorios/                     # Históricos de Sessão, Auditorias e Contexto
+        ├── auditoria_seguranca_workstation.md
         └── contexto_proxima_conversa.md
 ```
 

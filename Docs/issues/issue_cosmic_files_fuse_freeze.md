@@ -33,7 +33,7 @@ O COSMIC Files consulta o status de todos os sistemas de arquivos montados no si
 
 ## 🛠️ 3. Otimizações Aplicadas no Sistema
 
-1. **Cache Agressivo de Atributos FUSE ([`scripts/05_rclone_storage.sh`](file:///home/rezendepauloh/Documentos/Scripts/scripts/05_rclone_storage.sh)):**
+1. **Cache Agressivo de Atributos FUSE ([`scripts/05_rclone_storage.sh`](../../scripts/05_rclone_storage.sh)):**
    * Aumentamos o tempo de cache de atributos de `1s` para `10m` (`--attr-timeout 10m`).
    * Adicionamos `--vfs-fast-fingerprint` e `--dir-cache-time 72h`.
    * **Resultado:** O kernel Linux responde instantaneamente (em 0.001ms) às consultas de metadados do COSMIC Files com os dados em cache local na RAM, eliminando o bloqueio de rede.

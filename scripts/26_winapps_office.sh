@@ -17,13 +17,6 @@ fi
 
 log_msg "HEADER" "26. CONFIGURAÇÃO DO WINAPPS (MICROSOFT 365 & WINDOWS SEAMLESS)"
 
-# Carregar variáveis de ambiente se existirem
-if [ -f "$BASE_DIR/.env" ]; then
-    set -a
-    source "$BASE_DIR/.env"
-    set +a
-fi
-
 WINAPPS_USER="${WINAPPS_RDP_USER:-winapps}"
 WINAPPS_PASS="${WINAPPS_RDP_PASSWORD:-winapps}"
 WINAPPS_IP="${WINAPPS_RDP_IP:-127.0.0.1}"
@@ -114,9 +107,9 @@ services:
     cap_add:
       - NET_ADMIN
     ports:
-      - "8006:8006"
-      - "3389:3389/tcp"
-      - "3389:3389/udp"
+      - "127.0.0.1:8006:8006"
+      - "127.0.0.1:3389:3389/tcp"
+      - "127.0.0.1:3389:3389/udp"
     volumes:
       - ./data:/storage
       - $REAL_HOME/Compartilhado_VM:/shared
@@ -124,6 +117,7 @@ services:
     stop_grace_period: 2m
 EOF
 
+chmod 600 "$WINAPPS_COMPOSE_DIR/docker-compose.yml"
 chown -R "$REAL_USER:$REAL_USER" "$WINAPPS_COMPOSE_DIR"
 
 # Criar pasta compartilhada bidirecional host <-> guest
@@ -179,7 +173,7 @@ echo [%DATE% %TIME%] AutoLogon configurado com sucesso! >> "%LOG_FILE%"
 exit /b 0
 EOF
 
-chmod +x "$REAL_HOME/Compartilhado_VM/setup_autologon.bat"
+chmod 600 "$REAL_HOME/Compartilhado_VM/setup_autologon.bat"
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/Compartilhado_VM"
 
 # ------------------------------------------------------------------------------
@@ -241,9 +235,13 @@ case "$1" in
             source "$HOME/.config/winapps/winapps.conf"
         fi
         USER_RDP="${RDP_USER:-winapps}"
-        PASS_RDP="${RDP_PASS:-M!n0t@ur0}"
+        PASS_RDP="${RDP_PASS:-}"
         IP_RDP="${RDP_IP:-127.0.0.1}"
         PORT_RDP="${RDP_PORT:-3389}"
+        if [ -z "$PASS_RDP" ]; then
+            echo "❌ Erro: RDP_PASS não definido em ~/.config/winapps/winapps.conf" >&2
+            exit 1
+        fi
         xfreerdp3 /cert:ignore /u:"$USER_RDP" /p:"$PASS_RDP" /app:program:"C:\\Windows\\System32\\cmd.exe",cmd:"/C \\\\host.lan\\Data\\setup_autologon.bat" /v:"$IP_RDP":"$PORT_RDP" &>/dev/null &
         echo "Comando enviado para a VM. Log disponível em ~/Compartilhado_VM/autologon_result.log"
         ;;
@@ -411,24 +409,25 @@ fi
 if [ -f /usr/share/icons/hicolor/index.theme ] && [ ! -f "$REAL_HOME/.local/share/icons/hicolor/index.theme" ]; then
     cp -f /usr/share/icons/hicolor/index.theme "$REAL_HOME/.local/share/icons/hicolor/index.theme" 2>/dev/null || true
 fi
-python3 -c "
-import os, gi
-gi.require_version('Rsvg', '2.0')
+python3 -c '
+import os, sys, gi
+gi.require_version("Rsvg", "2.0")
 from gi.repository import Rsvg
 import cairo
-svg_path = '$ICON_DIR/onedrive.svg'
+svg_path = sys.argv[1]
+hicolor_base = sys.argv[2]
 if os.path.exists(svg_path):
     handle = Rsvg.Handle.new_from_file(svg_path)
     for sz in [16, 24, 32, 48, 64, 128, 256]:
-        sz_dir = '$REAL_HOME/.local/share/icons/hicolor/' + str(sz) + 'x' + str(sz) + '/apps'
+        sz_dir = os.path.join(hicolor_base, f"{sz}x{sz}", "apps")
         os.makedirs(sz_dir, exist_ok=True)
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, sz, sz)
         ctx = cairo.Context(surface)
         ctx.scale(sz / 32.0, sz / 32.0)
         handle.render_cairo(ctx)
-        surface.write_to_png(os.path.join(sz_dir, 'onedrive.png'))
-        surface.write_to_png(os.path.join(sz_dir, 'microsoft-onedrive.png'))
-" 2>/dev/null || true
+        surface.write_to_png(os.path.join(sz_dir, "onedrive.png"))
+        surface.write_to_png(os.path.join(sz_dir, "microsoft-onedrive.png"))
+' "$ICON_DIR/onedrive.svg" "$REAL_HOME/.local/share/icons/hicolor" 2>/dev/null || true
 
 cp -f "$REAL_HOME/.local/share/icons/hicolor/48x48/apps/onedrive.png" /usr/share/pixmaps/onedrive.png 2>/dev/null || true
 gtk-update-icon-cache -f "$REAL_HOME/.local/share/icons/hicolor" 2>/dev/null || true
@@ -565,7 +564,7 @@ group=WinApps
 protocol=RDP
 server=127.0.0.1:3389
 username=$WINAPPS_USER
-password=1gm8OsVmtyC/GZ9btOJlzA==
+password=.
 colordepth=32
 quality=9
 sound=local

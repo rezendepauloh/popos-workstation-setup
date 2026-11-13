@@ -15,9 +15,26 @@ from dbus.mainloop.glib import DBusGMainLoop
 import gi
 from gi.repository import GLib
 
-TARGET_DEVICE_MAC = "84:AC:60:05:50:19"
-TARGET_DEVICE_NAME = "QCY H3S"
+TARGET_DEVICE_MAC = os.environ.get("MAC_QCY_H3S", "").strip()
+TARGET_DEVICE_NAME = os.environ.get("BT_AUDIO_DEVICE_NAME", "QCY H3S").strip()
 FALLBACK_SINK = "alsa_output.pci-0000_00_1f.3.analog-stereo"
+
+def is_target_bluez_device(bus, path, dev_props=None):
+    if TARGET_DEVICE_MAC:
+        mac_path = TARGET_DEVICE_MAC.replace(":", "_").lower()
+        if mac_path in path.lower():
+            return True
+    try:
+        if dev_props is None:
+            obj = bus.get_object("org.bluez", path)
+            props_iface = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
+            dev_props = props_iface.GetAll("org.bluez.Device1")
+        name = str(dev_props.get("Name", "") or dev_props.get("Alias", ""))
+        if TARGET_DEVICE_NAME and TARGET_DEVICE_NAME.lower() in name.lower():
+            return True
+    except Exception:
+        pass
+    return False
 
 def get_current_default_sink():
     try:
@@ -59,10 +76,11 @@ def on_device_connected():
     for _ in range(20):
         time.sleep(0.5)
         sinks = list_sinks()
-        # Procura por sink bluez com o MAC correspondente
-        mac_clean = TARGET_DEVICE_MAC.replace(":", "_")
+        # Procura por sink bluez com o MAC ou nome correspondente
+        mac_clean = TARGET_DEVICE_MAC.replace(":", "_") if TARGET_DEVICE_MAC else ""
+        name_token = TARGET_DEVICE_NAME.lower().replace(" ", "_")
         for s in sinks:
-            if "bluez" in s and (mac_clean in s or TARGET_DEVICE_NAME.lower().replace(" ", "_") in s.lower()):
+            if "bluez" in s and ((mac_clean and mac_clean.lower() in s.lower()) or name_token in s.lower()):
                 print(f"[bt-audio-switcher] Sink Bluetooth detectado: {s}. Definindo como padrão...", flush=True)
                 set_default_sink(s)
                 return
@@ -88,9 +106,8 @@ def properties_changed(interface, changed_properties, invalidated_properties, pa
         return
     if "Connected" in changed_properties:
         is_connected = bool(changed_properties["Connected"])
-        # Verifica se é o nosso dispositivo
-        mac_path = TARGET_DEVICE_MAC.replace(":", "_")
-        if mac_path.lower() in path.lower():
+        bus = dbus.SystemBus()
+        if is_target_bluez_device(bus, path):
             if is_connected:
                 on_device_connected()
             else:
@@ -100,16 +117,16 @@ def check_initial_state(bus):
     try:
         manager = dbus.Interface(bus.get_object('org.bluez', '/'), 'org.freedesktop.DBus.ObjectManager')
         objects = manager.GetManagedObjects()
-        mac_path = TARGET_DEVICE_MAC.replace(":", "_")
         for path, interfaces in objects.items():
-            if 'org.bluez.Device1' in interfaces and mac_path.lower() in path.lower():
+            if 'org.bluez.Device1' in interfaces:
                 dev = interfaces['org.bluez.Device1']
-                if dev.get('Connected', False):
-                    print(f"[bt-audio-switcher] Inicial: {TARGET_DEVICE_NAME} já está conectado.", flush=True)
-                    on_device_connected()
-                else:
-                    print(f"[bt-audio-switcher] Inicial: {TARGET_DEVICE_NAME} desconectado.", flush=True)
-                break
+                if is_target_bluez_device(bus, path, dev):
+                    if dev.get('Connected', False):
+                        print(f"[bt-audio-switcher] Inicial: {TARGET_DEVICE_NAME} já está conectado.", flush=True)
+                        on_device_connected()
+                    else:
+                        print(f"[bt-audio-switcher] Inicial: {TARGET_DEVICE_NAME} desconectado.", flush=True)
+                    break
     except Exception as e:
         print(f"[bt-audio-switcher] Erro ao checar estado inicial: {e}", file=sys.stderr)
 

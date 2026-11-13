@@ -16,6 +16,10 @@ fi
 
 log_msg "HEADER" "6. INSTALAÇÃO DE SOFTWARES DE WORKFLOW"
 
+WORK_TMP=$(mktemp -d /tmp/popos_workflow_XXXXXX)
+chmod 700 "$WORK_TMP"
+trap 'rm -rf "$WORK_TMP"' EXIT
+
 # 1. Repositório Oficial e Instalação do VS Code
 log_msg "INFO" "Configurando repositório oficial do VS Code..."
 sudo mkdir -p /etc/apt/keyrings
@@ -62,9 +66,9 @@ sudo apt autoremove -y 2>/dev/null || true
 # Configura repositório oficial do Google Chrome caso não instalado
 if ! command -v google-chrome >/dev/null 2>&1; then
     log_msg "INFO" "Configurando repositório e instalando Google Chrome..."
-    wget -q -O /tmp/google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-    sudo apt install -y /tmp/google-chrome.deb || sudo dpkg -i /tmp/google-chrome.deb || true
-    rm -f /tmp/google-chrome.deb
+    wget -q -O "$WORK_TMP/google-chrome.deb" https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    sudo apt install -y "$WORK_TMP/google-chrome.deb" || sudo dpkg -i "$WORK_TMP/google-chrome.deb" || true
+    rm -f "$WORK_TMP/google-chrome.deb"
 fi
 
 # Configura repositório oficial do Brave Browser caso não instalado
@@ -112,8 +116,7 @@ log_msg "INFO" "Configurando patch do PhotoGIMP para interface e atalhos estilo 
 GIMP_FLATPAK_CONFIG="$REAL_HOME/.var/app/org.gimp.GIMP/config/GIMP"
 mkdir -p "$GIMP_FLATPAK_CONFIG"
 
-PHOTOGIMP_TMP="/tmp/photogimp_download"
-rm -rf "$PHOTOGIMP_TMP"
+PHOTOGIMP_TMP="$WORK_TMP/photogimp_download"
 mkdir -p "$PHOTOGIMP_TMP"
 
 log_msg "INFO" "Baixando arquivos do PhotoGIMP..."
@@ -159,9 +162,9 @@ if ! command -v apps2samsung >/dev/null 2>&1 && [ ! -f /usr/local/bin/apps2samsu
     APPS2SAMS_URL=$(curl -sL https://api.github.com/repos/Apps2Samsung/Apps2Samsung/releases/latest | jq -r '.assets[] | select(.name | endswith("linux-x64.deb")) | .browser_download_url' | head -n 1)
     if [ -n "$APPS2SAMS_URL" ] && [ "$APPS2SAMS_URL" != "null" ]; then
         log_msg "INFO" "Baixando Apps2Samsung: $APPS2SAMS_URL..."
-        wget -qO /tmp/apps2samsung.deb "$APPS2SAMS_URL"
-        sudo apt install -y /tmp/apps2samsung.deb || sudo dpkg -i /tmp/apps2samsung.deb || true
-        rm -f /tmp/apps2samsung.deb
+        wget -qO "$WORK_TMP/apps2samsung.deb" "$APPS2SAMS_URL"
+        sudo apt install -y "$WORK_TMP/apps2samsung.deb" || sudo dpkg -i "$WORK_TMP/apps2samsung.deb" || true
+        rm -f "$WORK_TMP/apps2samsung.deb"
         log_msg "SUCCESS" "Apps2Samsung instalado com sucesso."
     else
         log_msg "WARN" "Não foi possível obter o release do Apps2Samsung via GitHub API."
@@ -170,20 +173,22 @@ fi
 
 # 3. Espanso (Wayland Edition) e bibliotecas wxWidgets 3.0 no Ubuntu/Pop!_OS 24.04 (noble)
 log_msg "INFO" "Baixando e instalando Espanso (Wayland)..."
-wget -qO /tmp/espanso.deb https://github.com/espanso/espanso/releases/download/v2.4.1/espanso-debian-wayland-amd64.deb
-sudo apt install -y /tmp/espanso.deb
+wget -qO "$WORK_TMP/espanso.deb" https://github.com/espanso/espanso/releases/download/v2.4.1/espanso-debian-wayland-amd64.deb
+sudo apt install -y "$WORK_TMP/espanso.deb"
 
 sudo mkdir -p /usr/local/lib/espanso
-sudo rm -rf /tmp/libwx*.deb /tmp/wx_extract
 if [ ! -f /usr/local/lib/espanso/libwx_gtk3u_core-3.0.so.0 ]; then
-    wget -qO /tmp/libwxbase3.0.deb http://archive.ubuntu.com/ubuntu/pool/universe/w/wxwidgets3.0/libwxbase3.0-0v5_3.0.5.1+dfsg-4_amd64.deb || true
-    wget -qO /tmp/libwxgtk3.0.deb http://archive.ubuntu.com/ubuntu/pool/universe/w/wxwidgets3.0/libwxgtk3.0-gtk3-0v5_3.0.5.1+dfsg-4_amd64.deb || true
-    if [ -f /tmp/libwxbase3.0.deb ] && [ -f /tmp/libwxgtk3.0.deb ]; then
-        mkdir -p /tmp/wx_extract
-        dpkg-deb -x /tmp/libwxbase3.0.deb /tmp/wx_extract
-        dpkg-deb -x /tmp/libwxgtk3.0.deb /tmp/wx_extract
-        sudo cp -rn /tmp/wx_extract/usr/lib/x86_64-linux-gnu/* /usr/local/lib/espanso/
-        rm -rf /tmp/wx_extract /tmp/libwx*.deb
+    WX_MIRROR="https://mirrors.kernel.org/ubuntu/pool/universe/w/wxwidgets3.0"
+    wget -qO "$WORK_TMP/libwxbase3.0.deb" "$WX_MIRROR/libwxbase3.0-0v5_3.0.5.1+dfsg-4_amd64.deb" || true
+    wget -qO "$WORK_TMP/libwxgtk3.0.deb" "$WX_MIRROR/libwxgtk3.0-gtk3-0v5_3.0.5.1+dfsg-4_amd64.deb" || true
+    if [ -s "$WORK_TMP/libwxbase3.0.deb" ] && [ -s "$WORK_TMP/libwxgtk3.0.deb" ] && \
+       dpkg-deb --info "$WORK_TMP/libwxbase3.0.deb" >/dev/null 2>&1 && \
+       dpkg-deb --info "$WORK_TMP/libwxgtk3.0.deb" >/dev/null 2>&1; then
+        mkdir -p "$WORK_TMP/wx_extract"
+        dpkg-deb -x "$WORK_TMP/libwxbase3.0.deb" "$WORK_TMP/wx_extract"
+        dpkg-deb -x "$WORK_TMP/libwxgtk3.0.deb" "$WORK_TMP/wx_extract"
+        sudo cp -rn "$WORK_TMP/wx_extract/usr/lib/x86_64-linux-gnu/"* /usr/local/lib/espanso/
+        rm -rf "$WORK_TMP/wx_extract" "$WORK_TMP"/libwx*.deb
     fi
 fi
 if [ -f /usr/lib/x86_64-linux-gnu/libtiff.so.6 ]; then
@@ -203,7 +208,7 @@ if [ -n "$ESPANSO_BIN" ]; then
 fi
 
 ESPANSO_CONFIG_DIR="$REAL_HOME/.config/espanso"
-ESPANSO_REPO_URL="https://github.com/rezendepauloh/espanso-automacoes-sti.git"
+ESPANSO_REPO_URL="${ESPANSO_REPO_URL:-https://github.com/rezendepauloh/espanso-automacoes-sti.git}"
 
 log_msg "INFO" "Sincronizando repositório de automações do Espanso (espanso-automacoes-sti)..."
 if [ ! -d "$ESPANSO_CONFIG_DIR/.git" ]; then
@@ -235,17 +240,17 @@ restore_clipboard: true
 EOF
 
 # Ajusta caminhos do Windows para Linux nos arquivos de match
-python3 -c "
-import os, glob
-match_dir = '$ESPANSO_CONFIG_DIR/match'
-for yml in glob.glob(f'{match_dir}/*.yml'):
+python3 - "$ESPANSO_CONFIG_DIR/match" << 'PYEOF' 2>/dev/null || true
+import os, sys, glob
+match_dir = sys.argv[1]
+for yml in glob.glob(os.path.join(match_dir, '*.yml')):
     with open(yml, 'r', encoding='utf-8') as f:
         content = f.read()
-    content = content.replace('%CONFIG%\\\\', '\$CONFIG/').replace('%CONFIG%\\', '\$CONFIG/').replace('\\\\', '/')
+    content = content.replace('%CONFIG%\\\\', '$CONFIG/').replace('%CONFIG%\\', '$CONFIG/').replace('\\\\', '/')
     content = content.replace('- python\n', '- python3\n')
     with open(yml, 'w', encoding='utf-8') as f:
         f.write(content)
-" 2>/dev/null || true
+PYEOF
 
 # Instala/Atualiza o executor nativo de formulários no Linux a partir de scripts/daemons/form_runner.py
 mkdir -p "$ESPANSO_CONFIG_DIR/scripts/lib"
@@ -253,19 +258,20 @@ cp -f "$SCRIPT_DIR/daemons/form_runner.py" "$ESPANSO_CONFIG_DIR/scripts/lib/form
 chmod +x "$ESPANSO_CONFIG_DIR/scripts/lib/form_runner.py"
 
 # Atualiza utils.py para suportar uinput e lazy loading de spacy
-python3 -c "
-utils_path = '$ESPANSO_CONFIG_DIR/scripts/lib/utils.py'
+python3 - "$ESPANSO_CONFIG_DIR/scripts/lib/utils.py" << 'PYEOF' 2>/dev/null || true
+import os, sys
+utils_path = sys.argv[1]
 if os.path.exists(utils_path):
     with open(utils_path, 'r', encoding='utf-8') as f:
         code = f.read()
     code = code.replace('import spacy\n', '')
     if 'def paste_text():' in code:
-        code = code.replace('def paste_text():\n    os.system(\x27powershell -NoProfile', 'def paste_text():\n    if sys.platform.startswith(\"win\"): return\n    # Linux paste\n    os.system(\x27#\x27')
+        code = code.replace("def paste_text():\n    os.system('powershell -NoProfile", "def paste_text():\n    if sys.platform.startswith(\"win\"): return\n    # Linux paste\n    os.system('#'")
     if 'run_gui_form' not in code:
         code = code.replace('if not os.path.exists(edf_path):', 'if not os.path.exists(edf_path):\n        from lib.form_runner import run_gui_form\n        return run_gui_form(form_config_to_run)')
     with open(utils_path, 'w', encoding='utf-8') as f:
         f.write(code)
-" 2>/dev/null || true
+PYEOF
 
 chown -R "$REAL_USER:$REAL_USER" "$ESPANSO_CONFIG_DIR" 2>/dev/null || true
 
@@ -293,8 +299,8 @@ fi
 # 4. Kando (Menu Circular / Pie Menu)
 log_msg "INFO" "Baixando e instalando Kando (Pie Menu)..."
 KANDO_URL=$(curl -s https://api.github.com/repos/kando-menu/kando/releases/latest | jq -r '.assets[] | select(.name | endswith("amd64.deb")) | .browser_download_url')
-wget -qO /tmp/kando.deb "$KANDO_URL"
-sudo apt install -y /tmp/kando.deb
+wget -qO "$WORK_TMP/kando.deb" "$KANDO_URL"
+sudo apt install -y "$WORK_TMP/kando.deb"
 
 # Wrapper de compatibilidade do Kando para COSMIC Desktop / Wayland (XWayland)
 cat << 'EOF' | sudo tee /usr/local/bin/kando > /dev/null
@@ -317,13 +323,13 @@ fi
 # 5. Espanso Dynamic Forms (EDF) e assistente chamar_espanso_acao
 log_msg "INFO" "Instalando Espanso Dynamic Forms (EDF) e assistente de workflow..."
 EDF_URL="https://github.com/lumetrium/espanso-dynamic-forms/releases/download/v1.6.13/Espanso-Dynamic-Forms-Linux.deb"
-wget -qO /tmp/edf.deb "$EDF_URL" || true
-if [ -f /tmp/edf.deb ]; then
+wget -qO "$WORK_TMP/edf.deb" "$EDF_URL" || true
+if [ -f "$WORK_TMP/edf.deb" ]; then
     EDF_OPT_DIR="$REAL_HOME/.local/opt/espanso-dynamic-forms"
     mkdir -p "$EDF_OPT_DIR"
-    dpkg-deb -x /tmp/edf.deb /tmp/edf_extracted || true
-    if [ -d /tmp/edf_extracted/opt/espanso-dynamic-forms ]; then
-        cp -rn /tmp/edf_extracted/opt/espanso-dynamic-forms/* "$EDF_OPT_DIR/" 2>/dev/null || true
+    dpkg-deb -x "$WORK_TMP/edf.deb" "$WORK_TMP/edf_extracted" || true
+    if [ -d "$WORK_TMP/edf_extracted/opt/espanso-dynamic-forms" ]; then
+        cp -rn "$WORK_TMP/edf_extracted/opt/espanso-dynamic-forms/"* "$EDF_OPT_DIR/" 2>/dev/null || true
         # Renomeia binário original para edf-bin se necessário
         if [ -f "$EDF_OPT_DIR/edf" ] && [ ! -f "$EDF_OPT_DIR/edf-bin" ]; then
             mv "$EDF_OPT_DIR/edf" "$EDF_OPT_DIR/edf-bin"
@@ -338,7 +344,7 @@ EOF
         chmod +x "$REAL_HOME/.local/bin/edf"
         chown -R "$REAL_USER:$REAL_USER" "$EDF_OPT_DIR" "$REAL_HOME/.local/bin/edf" 2>/dev/null || true
     fi
-    rm -rf /tmp/edf_extracted /tmp/edf.deb
+    rm -rf "$WORK_TMP/edf_extracted" "$WORK_TMP/edf.deb"
 fi
 
 # Assistente centralizado para acionamento das ações do Espanso via Kando Pie Menu
@@ -346,14 +352,14 @@ cat << 'EOF' > "$REAL_HOME/.local/bin/chamar_espanso_acao"
 #!/bin/bash
 # ==============================================================================
 # Executa ação de formulário do Espanso, copia o resultado para a área de transferência
-# e simula Ctrl+V na aplicação ativa sob o COSMIC Wayland
-# ==============================================================================
-# Executa ação de formulário do Espanso, copia o resultado para a área de transferência
 # e restaura o foco da aplicação chamadora para colar via COSMIC Wayland
 # ==============================================================================
+umask 077
 ACAO="$1"
 CONFIG_DIR="$HOME/.config/espanso"
-LOG_FILE="/tmp/chamar_espanso_acao.log"
+LOG_DIR="${XDG_RUNTIME_DIR:-$HOME/.cache}"
+mkdir -p "$LOG_DIR" 2>/dev/null || true
+LOG_FILE="$LOG_DIR/chamar_espanso_acao.log"
 
 run_and_paste() {
     local SCRIPT="$1"
@@ -373,7 +379,7 @@ run_and_paste() {
         if [ -n "$FOCUSED_RAW" ]; then
             TARGET_APP=$(echo "$FOCUSED_RAW" | awk -F'\t' '{print $1}' | tr -d '"')
             TARGET_TITLE=$(echo "$FOCUSED_RAW" | awk -F'\t' '{print $2}' | tr -d '"')
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Janela ativa detectada: app='$TARGET_APP', title='$TARGET_TITLE'" >> "$LOG_FILE"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Janela ativa detectada: app='$TARGET_APP'" >> "$LOG_FILE"
         fi
     fi
     
@@ -398,13 +404,13 @@ run_and_paste() {
             echo -n "$OUTPUT" | wl-copy --type text/html 2>/dev/null || true
         fi
         
-        # 5. Restaura o foco na aplicação original e injeta Ctrl+V
-        python3 -c "
-import time, subprocess, evdev
+        # 5. Restaura o foco na aplicação original e injeta Ctrl+V (sem interpolação de código!)
+        python3 - "$TARGET_APP" "$TARGET_TITLE" << 'PYEOF' 2>> "$LOG_FILE" || true
+import sys, time, subprocess, evdev
 from evdev import ecodes, UInput
 
-target_app = '''$TARGET_APP'''
-target_title = '''$TARGET_TITLE'''
+target_app = sys.argv[1] if len(sys.argv) > 1 else ""
+target_title = sys.argv[2] if len(sys.argv) > 2 else ""
 
 if target_app:
     try:
@@ -439,7 +445,7 @@ if not simulated:
         ui.close()
     except Exception:
         pass
-" 2>> "$LOG_FILE" || true
+PYEOF
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Injeção de colagem concluída com sucesso." >> "$LOG_FILE"
 
     else
@@ -507,15 +513,15 @@ chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/chamar_espanso_acao" 2>/dev
 log_msg "INFO" "Baixando e instalando Balena Etcher..."
 ETCHER_URL=$(curl -sL https://api.github.com/repos/balena-io/etcher/releases/latest | jq -r '.assets[] | select(.name | endswith("amd64.deb")) | .browser_download_url' | head -n 1)
 if [ -n "$ETCHER_URL" ] && [ "$ETCHER_URL" != "null" ]; then
-    wget -qO /tmp/balena-etcher.deb "$ETCHER_URL"
-    sudo apt install -y /tmp/balena-etcher.deb
-    rm -f /tmp/balena-etcher.deb
+    wget -qO "$WORK_TMP/balena-etcher.deb" "$ETCHER_URL"
+    sudo apt install -y "$WORK_TMP/balena-etcher.deb"
+    rm -f "$WORK_TMP/balena-etcher.deb"
 else
     log_msg "WARN" "Não foi possível obter o link do deb do Balena Etcher via API do GitHub. Tentando repositório ou ignorando..."
 fi
 
 # Limpeza
-rm -f /tmp/espanso.deb /tmp/kando.deb /tmp/balena-etcher.deb
+rm -rf "$WORK_TMP"
 
 set_flag "$FLAG_NAME"
 log_msg "SUCCESS" "Softwares de workflow instalados e configurados com sucesso."

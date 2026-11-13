@@ -46,16 +46,18 @@ log_msg "INFO" "Verificando miniaplicativo Minimon (Monitor do Sistema)..."
 sudo apt install -y lm-sensors sysstat
 
 if ! command -v cosmic-ext-applet-minimon >/dev/null 2>&1 && [ ! -f /usr/share/applications/io.github.cosmic_utils.minimon-applet.desktop ]; then
-    TEMP_MINIMON_DEB=$(mktemp /tmp/minimon_XXXXXX.deb)
+    WORK_TMP=$(mktemp -d /tmp/popos_minimon_XXXXXX)
+    chmod 700 "$WORK_TMP"
+    trap 'rm -rf "$WORK_TMP"' EXIT
+    TEMP_MINIMON_DEB="$WORK_TMP/minimon.deb"
     MINIMON_URL="https://github.com/cosmic-utils/minimon-applet/releases/download/v1.2.0/cosmic-ext-applet-minimon_1.2.0_amd64.deb"
 
     log_msg "INFO" "Baixando pacote oficial do Minimon Applet da cosmic-utils..."
-    rm -f "$TEMP_MINIMON_DEB"
     curl -fSL --progress-bar "$MINIMON_URL" -o "$TEMP_MINIMON_DEB"
 
     log_msg "INFO" "Instalando pacote Minimon no sistema..."
     sudo apt install -y "$TEMP_MINIMON_DEB" || sudo apt-get install -f -y
-    rm -f "$TEMP_MINIMON_DEB"
+    rm -rf "$WORK_TMP"
     log_msg "SUCCESS" "Minimon System Monitor Applet instalado com sucesso."
 else
     log_msg "INFO" "Minimon Applet já instalado."

@@ -71,7 +71,6 @@ ExecStart=/usr/bin/rclone mount gdrive_pessoal: %h/GoogleDrive_Pessoal \
     --dir-cache-time 72h \
     --poll-interval 15s \
     --attr-timeout 10m \
-    --allow-other \
     --log-level INFO
 ExecStop=/bin/fusermount -u -z %h/GoogleDrive_Pessoal
 Restart=on-failure
@@ -101,7 +100,6 @@ ExecStart=/usr/bin/rclone mount onedrive_pessoal: %h/OneDrive_Pessoal \
     --dir-cache-time 72h \
     --poll-interval 15s \
     --attr-timeout 10m \
-    --allow-other \
     --log-level INFO
 ExecStop=/bin/fusermount -u -z %h/OneDrive_Pessoal
 Restart=on-failure
@@ -131,7 +129,6 @@ ExecStart=/usr/bin/rclone mount mega_pessoal: %h/Mega_Pessoal \
     --dir-cache-time 72h \
     --poll-interval 15s \
     --attr-timeout 10m \
-    --allow-other \
     --log-level INFO
 ExecStop=/bin/fusermount -u -z %h/Mega_Pessoal
 Restart=on-failure
@@ -142,11 +139,6 @@ WantedBy=default.target
 EOF
 
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/systemd" 2>/dev/null || true
-
-# Habilita allow_other no /etc/fuse.conf
-if [ -f /etc/fuse.conf ]; then
-    sudo sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
-fi
 
 # Inicia os serviços se executado em sessão ativa
 if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
@@ -199,7 +191,7 @@ cat << 'EOF' > "$USER_APPS_DIR/rclone-webui.desktop"
 [Desktop Entry]
 Name=Rclone Web Dashboard
 Comment=Painel Gráfico do Rclone com Monitoramento de Upload/Download em Tempo Real
-Exec=sh -c "rclone rcd --rc-web-gui --rc-web-gui-no-open-browser & sleep 2 && xdg-open http://127.0.0.1:5572"
+Exec=sh -c "rclone rcd --rc-web-gui --rc-addr 127.0.0.1:5572 --rc-web-gui-no-open-browser & sleep 2 && xdg-open http://127.0.0.1:5572"
 Icon=folder-remote
 Terminal=false
 Type=Application

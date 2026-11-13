@@ -7,6 +7,7 @@
 # ==============================================================================
 
 set -eo pipefail
+umask 077
 
 C_RESET='\033[0m'
 C_CYAN='\033[1;36m'
@@ -42,33 +43,33 @@ exec > >(tee -a "$RESTORE_LOG_FILE") 2>&1
 # Funções auxiliares para formatação de dados em grandezas humanas (GB, MB, KB, bytes)
 format_human_size() {
     local raw="$1"
-    python3 -c "
+    python3 -c '
 import sys, re
-s = '''$raw'''.strip()
-m = re.match(r'^([\d,\.]+)\s*([KMGTkmgt])(?:[iI]?[bB])?$', s)
+s = sys.argv[1].strip()
+m = re.match(r"^([\d,\.]+)\s*([KMGTkmgt])(?:[iI]?[bB])?$", s)
 if m:
-    print(f'{m.group(1)} {m.group(2).upper()}B')
+    print(f"{m.group(1)} {m.group(2).upper()}B")
 else:
     print(s)
-" 2>/dev/null || echo "$raw"
+' "$raw" 2>/dev/null || echo "$raw"
 }
 
 format_adb_output() {
     local text="$1"
-    python3 -c "
+    python3 -c '
 import sys, re
-line = '''$text'''
+line = sys.argv[1]
 def repl_bytes(m):
     b = float(m.group(1))
     sec = m.group(2)
-    for u in ['bytes', 'KB', 'MB', 'GB', 'TB']:
-        if b < 1024.0 or u == 'TB':
-            if u == 'bytes':
-                return f'({int(b)} bytes in {sec}s)'
-            return f'({b:.1f} {u} in {sec}s)'
+    for u in ["bytes", "KB", "MB", "GB", "TB"]:
+        if b < 1024.0 or u == "TB":
+            if u == "bytes":
+                return f"({int(b)} bytes in {sec}s)"
+            return f"({b:.1f} {u} in {sec}s)"
         b /= 1024.0
-print(re.sub(r'\((\d+)\s+bytes\s+in\s+([\d\.]+)s\)', repl_bytes, line))
-" 2>/dev/null || echo "$text"
+print(re.sub(r"\((\d+)\s+bytes\s+in\s+([\d\.]+)s\)", repl_bytes, line))
+' "$text" 2>/dev/null || echo "$text"
 }
 
 BACKUP_BASE_DIR=""
@@ -164,7 +165,8 @@ run_push_with_progress_monitor() {
     # do Android falhe ao tentar criar arquivos dentro de pastas inexistentes
     find "$src_folder" -mindepth 1 -type d 2>/dev/null | while read -r local_sub; do
         rel_sub="${local_sub#$src_folder/}"
-        adb shell mkdir -p "$dest_target/$rel_sub" >/dev/null 2>&1 || true
+        safe_remote_dir=$(printf "%q" "$dest_target/$rel_sub")
+        adb shell "mkdir -p $safe_remote_dir" >/dev/null 2>&1 || true
     done
 
     # Executa o comando adb push em segundo plano gravando saída em log
@@ -280,7 +282,11 @@ fi
 # 6. Força o Android Media Scanner a reindexar todo o armazenamento interno
 echo -e "${C_BOLD}🔄 Atualizando a Galeria de fotos, biblioteca de músicas e arquivos do Android...${C_RESET}"
 adb shell "find /sdcard/ -maxdepth 2 -type d 2>/dev/null" | while read -r dir; do
-    [ -n "$dir" ] && adb shell "am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file://$dir" >/dev/null 2>&1 || true
+    dir_clean="${dir//[$'\r\n']/}"
+    if [ -n "$dir_clean" ]; then
+        safe_uri=$(printf "%q" "file://$dir_clean")
+        adb shell "am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d $safe_uri" >/dev/null 2>&1 || true
+    fi
 done
 
 echo -e "${C_GREEN}${C_BOLD}"

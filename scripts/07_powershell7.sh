@@ -17,6 +17,10 @@ fi
 
 log_msg "HEADER" "7. INSTALAÇÃO DO MICROSOFT POWERSHELL 7 E RESTAURAÇÃO DE PERFIL"
 
+WORK_TMP=$(mktemp -d /tmp/popos_pwsh_XXXXXX)
+chmod 700 "$WORK_TMP"
+trap 'rm -rf "$WORK_TMP"' EXIT
+
 # 1. Instalação de Utilitários de Terminal Complementares (fzf, zoxide)
 log_msg "INFO" "Instalando utilitários complementares (fzf, zoxide)..."
 sudo apt update
@@ -31,7 +35,7 @@ fi
 
 # 3. Configuração do Repositório Microsoft e Instalação do PowerShell 7
 log_msg "INFO" "Configurando repositório oficial da Microsoft (APT)..."
-MS_REPO_DEB="/tmp/packages-microsoft-prod.deb"
+MS_REPO_DEB="$WORK_TMP/packages-microsoft-prod.deb"
 wget -qO "$MS_REPO_DEB" "https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb"
 sudo dpkg -i "$MS_REPO_DEB" 2>/dev/null || true
 rm -f "$MS_REPO_DEB"
@@ -44,9 +48,9 @@ if ! sudo apt install -y powershell; then
     if [ -z "$PWSH_DEB_URL" ]; then
         PWSH_DEB_URL="https://github.com/PowerShell/PowerShell/releases/download/v7.6.5/powershell_7.6.5-1.deb_amd64.deb"
     fi
-    wget -qO /tmp/powershell.deb "$PWSH_DEB_URL"
-    sudo apt install -y /tmp/powershell.deb
-    rm -f /tmp/powershell.deb
+    wget -qO "$WORK_TMP/powershell.deb" "$PWSH_DEB_URL"
+    sudo apt install -y "$WORK_TMP/powershell.deb"
+    rm -f "$WORK_TMP/powershell.deb"
 fi
 
 # Adiciona o binário do pwsh em /etc/shells se necessário
@@ -88,7 +92,7 @@ Set-PSRepository -Name 'PSGallery' -InstallationPolicy Trusted -ErrorAction Sile
 \$modules = @('posh-git', 'PSReadLine', 'Terminal-Icons', 'PSFzf')
 foreach (\$mod in \$modules) {
     Write-Host \"Instalando módulo: \$mod...\"
-    Install-Module -Name \$mod -Scope CurrentUser -Force -AllowClobber -SkipPublisherCheck -ErrorAction SilentlyContinue
+    Install-Module -Name \$mod -Scope CurrentUser -Force -AllowClobber -ErrorAction SilentlyContinue
 }
 "
 

@@ -74,23 +74,20 @@ if [ -d "$IDE_BACKUP_DIR" ]; then
     fi
 
     # 3. Garante que 'keyboard.dispatch: keyCode' está configurado para Cedilha nativo em Wayland
-    python3 -c "
-import os
-for p in [
-    '$VSCODE_USER_DIR/settings.json',
-    '$ANTIGRAVITY_USER_DIR/settings.json'
-]:
+    python3 - "$VSCODE_USER_DIR/settings.json" "$ANTIGRAVITY_USER_DIR/settings.json" << 'PYEOF' 2>/dev/null || true
+import os, sys
+for p in sys.argv[1:]:
     if os.path.exists(p):
         with open(p, 'r', encoding='utf-8') as f:
             lines = f.readlines()
         if not any('keyboard.dispatch' in l for l in lines):
             for i, line in enumerate(lines):
                 if '{' in line:
-                    lines.insert(i + 1, '  \"keyboard.dispatch\": \"keyCode\",\n')
+                    lines.insert(i + 1, '  "keyboard.dispatch": "keyCode",\n')
                     break
             with open(p, 'w', encoding='utf-8') as f:
                 f.writelines(lines)
-" 2>/dev/null || true
+PYEOF
 
     # 4. Garante lançador local do Antigravity IDE compatível com Wayland
     if [ -f /usr/local/bin/antigravity ]; then

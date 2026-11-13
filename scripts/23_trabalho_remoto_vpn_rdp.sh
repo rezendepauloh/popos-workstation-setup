@@ -57,12 +57,12 @@ VPN_USERNAME="${VPN_USERNAME:-}"
 VPN_PASSWORD="${VPN_PASSWORD:-}"
 VPN_TRUSTED_CERT="${VPN_TRUSTED_CERT:-}"
 
-# Tenta obter automaticamente o hash SHA256 atualizado do certificado do Gateway MPMS
-if [ -n "$VPN_HOST" ]; then
+# Respeita o certificado fixado (Certificate Pinning) no .env; apenas faz descoberta TOFU se ausente
+if [ -n "$VPN_HOST" ] && { [ -z "$VPN_TRUSTED_CERT" ] || [ "$VPN_TRUSTED_CERT" = "certificado_aqui" ]; }; then
     LIVE_CERT=$(echo | timeout 5 openssl s_client -connect "${VPN_HOST}:${VPN_PORT:-443}" 2>/dev/null | openssl x509 -noout -fingerprint -sha256 2>/dev/null | cut -d'=' -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')
     if [[ "$LIVE_CERT" =~ ^[0-9a-f]{64}$ ]]; then
         VPN_TRUSTED_CERT="$LIVE_CERT"
-        log_msg "INFO" "Certificado SSL do Gateway detectado dinamicamente: $VPN_TRUSTED_CERT"
+        log_msg "INFO" "Certificado SSL do Gateway detectado (TOFU): $VPN_TRUSTED_CERT"
     fi
 fi
 
@@ -80,10 +80,56 @@ pppd-use-peerdns = 1
 pppd-accept-remote = 1
 EOF
 
+VPN_HAS_SAVED_PASS="0"
 if [ -n "$VPN_PASSWORD" ]; then
     echo "password = ${VPN_PASSWORD}" | sudo tee -a /etc/openfortivpn/mpms.conf > /dev/null
+    VPN_HAS_SAVED_PASS="1"
 fi
+sudo chown root:root /etc/openfortivpn/mpms.conf
 sudo chmod 600 /etc/openfortivpn/mpms.conf
+
+# Cria wrapper privilegiado seguro (/usr/local/sbin/openfortivpn-mpms-helper)
+# Impede escalação de privilégio via flags arbitrárias (--pppd-plugin / -c) e oculta OTP/Senha de ps aux
+sudo tee /usr/local/sbin/openfortivpn-mpms-helper > /dev/null << 'EOF'
+#!/bin/bash
+set -euo pipefail
+umask 077
+
+BASE_CONF="/etc/openfortivpn/mpms.conf"
+if [ ! -f "$BASE_CONF" ]; then
+    echo "ERROR: Arquivo $BASE_CONF não encontrado." >&2
+    exit 1
+fi
+
+IFS= read -r VPN_OTP_STDIN || VPN_OTP_STDIN=""
+IFS= read -r VPN_PASS_STDIN || VPN_PASS_STDIN=""
+
+# Sanitiza eventuais quebras de linha ou caracteres de controle
+VPN_OTP_STDIN="${VPN_OTP_STDIN//[$'\r\n']/}"
+VPN_PASS_STDIN="${VPN_PASS_STDIN//[$'\r\n']/}"
+
+RUNTIME_CONF=$(mktemp /run/openfortivpn-mpms.XXXXXX.conf)
+chmod 600 "$RUNTIME_CONF"
+trap 'rm -f "$RUNTIME_CONF"' EXIT INT TERM
+
+cp "$BASE_CONF" "$RUNTIME_CONF"
+
+if [ -n "$VPN_PASS_STDIN" ]; then
+    sed -i '/^password\s*=/d' "$RUNTIME_CONF"
+    printf "password = %s\n" "$VPN_PASS_STDIN" >> "$RUNTIME_CONF"
+fi
+
+if [ -n "$VPN_OTP_STDIN" ]; then
+    sed -i '/^otp\s*=/d' "$RUNTIME_CONF"
+    printf "otp = %s\n" "$VPN_OTP_STDIN" >> "$RUNTIME_CONF"
+fi
+
+unset VPN_OTP_STDIN VPN_PASS_STDIN
+
+exec /usr/bin/openfortivpn -c "$RUNTIME_CONF" --pppd-accept-remote=1
+EOF
+sudo chown root:root /usr/local/sbin/openfortivpn-mpms-helper
+sudo chmod 750 /usr/local/sbin/openfortivpn-mpms-helper
 
 # Cria binário global /usr/local/bin/vpn-mpms
 sudo tee /usr/local/bin/vpn-mpms > /dev/null << EOF
@@ -92,6 +138,7 @@ VPN_HOST="${VPN_HOST}"
 VPN_PORT="${VPN_PORT}"
 VPN_USERNAME="${VPN_USERNAME}"
 VPN_TRUSTED_CERT="${VPN_TRUSTED_CERT}"
+VPN_HAS_SAVED_PASS="${VPN_HAS_SAVED_PASS}"
 EOF
 
 sudo tee -a /usr/local/bin/vpn-mpms > /dev/null << 'EOF'
@@ -113,8 +160,8 @@ echo -e " ${C_YELLOW}➜${C_RESET} Para ${C_RED}desconectar${C_RESET} a qualquer
 echo -e "${C_CYAN}-------------------------------------------------------${C_RESET}"
 echo ""
 
-# Solicita a Senha apenas se não estiver previamente salva em /etc/openfortivpn/mpms.conf
-if ! sudo grep -q "^password\s*=" /etc/openfortivpn/mpms.conf 2>/dev/null; then
+VPN_INPUT_PASS=""
+if [ "${VPN_HAS_SAVED_PASS:-0}" != "1" ]; then
     echo -ne " ${C_CYAN}🔑 Digite sua Senha do MPMS:${C_RESET} "
     read -r -s VPN_INPUT_PASS
     echo ""
@@ -123,36 +170,6 @@ fi
 echo -ne " ${C_CYAN}📱 Digite o código Token / OTP 2FA:${C_RESET} "
 read -r VPN_INPUT_OTP
 echo ""
-
-# Captura dinamicamente o hash SHA256 atual do certificado do Gateway MPMS (caso tenha sido renovado)
-LIVE_CERT=$(echo | timeout 4 openssl s_client -connect "${VPN_HOST}:${VPN_PORT}" 2>/dev/null | openssl x509 -noout -fingerprint -sha256 2>/dev/null | cut -d'=' -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')
-
-EXTRA_ARGS=("--pppd-accept-remote=1")
-if [[ "$LIVE_CERT" =~ ^[0-9a-f]{64}$ ]]; then
-    EXTRA_ARGS+=("--trusted-cert" "$LIVE_CERT")
-fi
-if [ -n "$VPN_INPUT_OTP" ]; then
-    EXTRA_ARGS+=("-o" "$VPN_INPUT_OTP")
-fi
-
-CONF_TO_USE="/etc/openfortivpn/mpms.conf"
-if [ -n "${VPN_INPUT_PASS:-}" ]; then
-    RUNTIME_CONF="/dev/shm/openfortivpn-mpms-$$.conf"
-    trap 'rm -f "$RUNTIME_CONF"' EXIT INT TERM
-    cat << CONF_EOF > "$RUNTIME_CONF"
-host = ${VPN_HOST}
-port = ${VPN_PORT}
-username = ${VPN_USERNAME}
-trusted-cert = ${LIVE_CERT:-$VPN_TRUSTED_CERT}
-set-dns = 1
-pppd-use-peerdns = 1
-pppd-accept-remote = 1
-password = ${VPN_INPUT_PASS}
-CONF_EOF
-    chmod 600 "$RUNTIME_CONF"
-    CONF_TO_USE="$RUNTIME_CONF"
-fi
-unset VPN_INPUT_PASS VPN_INPUT_OTP
 
 echo -e " ${C_GREEN}Iniciando túnel seguro...${C_RESET}"
 
@@ -200,9 +217,9 @@ while IFS= read -r line; do
             echo -e " ${C_RED}✖ ${line}${C_RESET}"
             ;;
     esac
-done < <(sudo openfortivpn -c "$CONF_TO_USE" "${EXTRA_ARGS[@]}" 2>&1)
+done < <(printf "%s\n%s\n" "${VPN_INPUT_OTP:-}" "${VPN_INPUT_PASS:-}" | sudo /usr/local/sbin/openfortivpn-mpms-helper 2>&1)
 
-[ -n "${RUNTIME_CONF:-}" ] && rm -f "$RUNTIME_CONF"
+unset VPN_INPUT_PASS VPN_INPUT_OTP
 
 echo ""
 echo -e "${C_YELLOW}🔌 VPN Desconectada com segurança.${C_RESET}"
@@ -210,9 +227,9 @@ read -n 1 -s -r -p "Pressione qualquer tecla para fechar esta janela..."
 EOF
 sudo chmod +x /usr/local/bin/vpn-mpms
 
-# Permite ao usuário rodar 'sudo openfortivpn' sem solicitar senha sudo
+# Permite ao usuário executar apenas o wrapper restrito (sem argumentos arbitrários)
 sudo tee /etc/sudoers.d/openfortivpn-mpms > /dev/null << EOF
-$REAL_USER ALL=(ALL) NOPASSWD: /usr/bin/openfortivpn
+$REAL_USER ALL=(root) NOPASSWD: /usr/local/sbin/openfortivpn-mpms-helper
 EOF
 sudo chmod 440 /etc/sudoers.d/openfortivpn-mpms
 
@@ -236,10 +253,11 @@ if [ -n "$RDP_SERVER" ]; then
     ENCRYPTED_RDP_PASS="."
     if [ -n "$RDP_PASSWORD" ]; then
         REAL_UID=$(id -u "$REAL_USER")
-        ENCRYPTED_RDP_PASS=$(sudo -u "$REAL_USER" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${REAL_UID}/bus" python3 - "$REAL_HOME/.config/remmina/remmina.pref" "$REMMINA_PROFILE" "$RDP_PASSWORD" << 'PYEOF'
+        ENCRYPTED_RDP_PASS=$(sudo -u "$REAL_USER" RDP_PASSWORD_ENV="$RDP_PASSWORD" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/${REAL_UID}/bus" python3 - "$REAL_HOME/.config/remmina/remmina.pref" "$REMMINA_PROFILE" << 'PYEOF'
 import sys, os, base64, ctypes
 
-pref_file, profile_path, password = sys.argv[1], sys.argv[2], sys.argv[3]
+pref_file, profile_path = sys.argv[1], sys.argv[2]
+password = os.environ.get("RDP_PASSWORD_ENV", "")
 
 # 1. Tenta armazenar no GNOME Keyring (formato nativo do remmina-plugin-secret)
 try:

@@ -110,23 +110,20 @@ done
 chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/"*-flags.conf 2>/dev/null || true
 
 # Configura keyboard.dispatch nos editores para mapear keycodes nativos
-python3 -c "
-import json, os
-for p in [
-    os.path.expanduser('~/.config/Antigravity IDE/User/settings.json'),
-    os.path.expanduser('~/.config/Code/User/settings.json')
-]:
+python3 - "$REAL_HOME/.config/Antigravity IDE/User/settings.json" "$REAL_HOME/.config/Code/User/settings.json" << 'PYEOF' 2>/dev/null || true
+import os, sys
+for p in sys.argv[1:]:
     if os.path.exists(p):
         with open(p, 'r', encoding='utf-8') as f:
             lines = f.readlines()
         if not any('keyboard.dispatch' in l for l in lines):
             for i, line in enumerate(lines):
                 if '{' in line:
-                    lines.insert(i + 1, '  \"keyboard.dispatch\": \"keyCode\",\n')
+                    lines.insert(i + 1, '  "keyboard.dispatch": "keyCode",\n')
                     break
             with open(p, 'w', encoding='utf-8') as f:
                 f.writelines(lines)
-" 2>/dev/null || true
+PYEOF
 
 # 6. Instalação do utilitário global patch-cedilla-electron e Hook do APT
 log_msg "INFO" "Instalando utilitário global patch-cedilla-electron e Hook de persistência do APT..."
@@ -165,7 +162,7 @@ sudo systemctl enable numlock.service
 sudo systemctl start numlock.service 2>/dev/null || true
 
 cat << 'EOF' | sudo tee /etc/udev/rules.d/99-numlock.rules > /dev/null
-ACTION=="add|change", SUBSYSTEM=="leds", KERNEL=="*::numlock", ATTR{brightness}="1", MODE="0666"
+ACTION=="add|change", SUBSYSTEM=="leds", KERNEL=="*::numlock", ATTR{brightness}="1", TAG+="uaccess", GROUP="input", MODE="0664"
 EOF
 sudo udevadm control --reload-rules 2>/dev/null || true
 sudo udevadm trigger --subsystem-match=leds 2>/dev/null || true

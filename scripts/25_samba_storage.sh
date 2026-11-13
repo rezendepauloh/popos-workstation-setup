@@ -81,9 +81,8 @@ else
             sudo smbpasswd -a "$REAL_USER"
             sudo smbpasswd -e "$REAL_USER" >/dev/null 2>&1 || true
         else
-            log_msg "WARN" "Ambiente não interativo e SAMBA_PASSWORD vazia. Habilitando usuário sem senha provisória..."
-            sudo smbpasswd -a -n "$REAL_USER" 2>/dev/null || true
-            sudo smbpasswd -e "$REAL_USER" >/dev/null 2>&1 || true
+            log_msg "WARN" "Ambiente não interativo e SAMBA_PASSWORD vazia. Por segurança, a conta Samba NÃO foi criada sem senha."
+            log_msg "INFO" "Defina SAMBA_PASSWORD no arquivo .env ou execute manualmente: sudo smbpasswd -a $REAL_USER"
         fi
     fi
 fi

@@ -10,7 +10,7 @@
 - **Dispositivo:** Wacom Intuos Pro Small (Modelo: PTH-460)
   - **VID:PID via USB:** `056a:0392`
   - **VID:PID via Bluetooth:** `056a:0393`
-  - **MAC Bluetooth:** `E0:9F:2A:20:BC:DD`
+  - **MAC Bluetooth:** `00:11:22:33:44:55` (configurável via `MAC_WACOM_INTUOS` no `.env`)
 
 ---
 

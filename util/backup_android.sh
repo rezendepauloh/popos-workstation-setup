@@ -11,6 +11,7 @@
 # ==============================================================================
 
 set -eo pipefail
+umask 077
 
 C_RESET='\033[0m'
 C_CYAN='\033[1;36m'
@@ -58,33 +59,33 @@ exec > >(tee -a "$BACKUP_LOG_FILE") 2>&1
 # Funções auxiliares para formatação de dados em grandezas humanas (GB, MB, KB, bytes)
 format_human_size() {
     local raw="$1"
-    python3 -c "
+    python3 -c '
 import sys, re
-s = '''$raw'''.strip()
-m = re.match(r'^([\d,\.]+)\s*([KMGTkmgt])(?:[iI]?[bB])?$', s)
+s = sys.argv[1].strip()
+m = re.match(r"^([\d,\.]+)\s*([KMGTkmgt])(?:[iI]?[bB])?$", s)
 if m:
-    print(f'{m.group(1)} {m.group(2).upper()}B')
+    print(f"{m.group(1)} {m.group(2).upper()}B")
 else:
     print(s)
-" 2>/dev/null || echo "$raw"
+' "$raw" 2>/dev/null || echo "$raw"
 }
 
 format_adb_output() {
     local text="$1"
-    python3 -c "
+    python3 -c '
 import sys, re
-line = '''$text'''
+line = sys.argv[1]
 def repl_bytes(m):
     b = float(m.group(1))
     sec = m.group(2)
-    for u in ['bytes', 'KB', 'MB', 'GB', 'TB']:
-        if b < 1024.0 or u == 'TB':
-            if u == 'bytes':
-                return f'({int(b)} bytes in {sec}s)'
-            return f'({b:.1f} {u} in {sec}s)'
+    for u in ["bytes", "KB", "MB", "GB", "TB"]:
+        if b < 1024.0 or u == "TB":
+            if u == "bytes":
+                return f"({int(b)} bytes in {sec}s)"
+            return f"({b:.1f} {u} in {sec}s)"
         b /= 1024.0
-print(re.sub(r'\((\d+)\s+bytes\s+in\s+([\d\.]+)s\)', repl_bytes, line))
-" 2>/dev/null || echo "$text"
+print(re.sub(r"\((\d+)\s+bytes\s+in\s+([\d\.]+)s\)", repl_bytes, line))
+' "$text" 2>/dev/null || echo "$text"
 }
 
 echo -e "${C_CYAN}📁 Destino do Backup:${C_RESET} ${C_BOLD}$TARGET_DIR${C_RESET}"
@@ -220,7 +221,8 @@ for SRC in "${FOLDERS_TO_BACKUP[@]}"; do
     echo -e "\n${C_BOLD}[$CURRENT_STEP/$TOTAL_STEPS] Processando: $SRC...${C_RESET}"
     
     # Verifica se o diretório existe no celular antes de tentar o pull
-    CHECK_EXISTS=$(adb shell "[ -d '$SRC' ] && echo 'SIM' || echo 'NAO'" | tr -d '\r\n')
+    SAFE_SRC=$(printf "%q" "$SRC")
+    CHECK_EXISTS=$(adb shell "[ -d $SAFE_SRC ] && echo 'SIM' || echo 'NAO'" | tr -d '\r\n')
     
     if [ "$CHECK_EXISTS" = "SIM" ]; then
         DEST_SUBDIR="$TARGET_DIR"
@@ -274,10 +276,12 @@ if [[ "$EXTRACT_APKS" =~ ^[sS]$ ]]; then
         IDX=$((IDX + 1))
         echo -ne "  [${IDX}/${TOTAL_APPS}] Extraindo $pkg... \r"
         
-        # Obtém o caminho do base.apk
-        APK_PATH=$(adb shell pm path "$pkg" 2>/dev/null | head -n 1 | sed 's/^package://' | tr -d '\r')
-        if [ -n "$APK_PATH" ]; then
-            adb pull "$APK_PATH" "$APK_DIR/${pkg}.apk" >/dev/null 2>&1 || true
+        # Obtém o caminho do base.apk validando nome do pacote
+        if [[ "$pkg" =~ ^[a-zA-Z0-9._]+$ ]]; then
+            APK_PATH=$(adb shell pm path "$pkg" 2>/dev/null | head -n 1 | sed 's/^package://' | tr -d '\r')
+            if [ -n "$APK_PATH" ]; then
+                adb pull "$APK_PATH" "$APK_DIR/${pkg}.apk" >/dev/null 2>&1 || true
+            fi
         fi
     done <<< "$PACKAGES"
     echo -e "\n${C_GREEN}[✓] Extração de APKs concluída com sucesso em: $APK_DIR${C_RESET}"

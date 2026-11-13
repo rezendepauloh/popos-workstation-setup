@@ -189,12 +189,13 @@ QLabel {
 EOF
 
 # Injeta a folha de estilos no qt5ct.conf de forma idempotente
-python3 - << PYEOF
+python3 - "$REAL_HOME/.config/qt5ct/qt5ct.conf" "$REAL_HOME/.config/qt5ct/qss/vlc-dark-fix.qss" << 'PYEOF'
 import configparser
 import os
+import sys
 
-qt5ct_conf = os.path.expanduser("$REAL_HOME/.config/qt5ct/qt5ct.conf")
-qss_file = os.path.expanduser("$REAL_HOME/.config/qt5ct/qss/vlc-dark-fix.qss")
+qt5ct_conf = sys.argv[1]
+qss_file = sys.argv[2]
 
 config = configparser.ConfigParser()
 if os.path.exists(qt5ct_conf):
@@ -275,6 +276,7 @@ elif flatpak info org.videolan.VLC >/dev/null 2>&1; then
     exec flatpak run org.videolan.VLC "$@"
 fi
 EOF
+chmod +x "$REAL_HOME/.local/bin/vlc"
 # 7. Tema de Cursores Moderno (Bibata Modern Classic)
 log_msg "INFO" "Configurando tema de cursores Bibata Modern Classic..."
 sudo apt install -y bibata-cursor-theme 2>/dev/null || true

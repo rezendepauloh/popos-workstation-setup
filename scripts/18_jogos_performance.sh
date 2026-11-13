@@ -80,9 +80,12 @@ if ! command -v sunshine >/dev/null 2>&1; then
 
     if [ -n "$SUNSHINE_DEB_URL" ] && [ "$SUNSHINE_DEB_URL" != "null" ]; then
         log_msg "INFO" "Baixando Sunshine: $SUNSHINE_DEB_URL..."
-        wget -qO /tmp/sunshine.deb "$SUNSHINE_DEB_URL"
-        sudo apt install -y /tmp/sunshine.deb
-        rm -f /tmp/sunshine.deb
+        WORK_TMP=$(mktemp -d /tmp/popos_sunshine_XXXXXX)
+        chmod 700 "$WORK_TMP"
+        trap 'rm -rf "$WORK_TMP"' EXIT
+        wget -qO "$WORK_TMP/sunshine.deb" "$SUNSHINE_DEB_URL"
+        sudo apt install -y "$WORK_TMP/sunshine.deb"
+        rm -rf "$WORK_TMP"
         log_msg "SUCCESS" "Sunshine instalado com sucesso via .deb oficial."
     else
         log_msg "WARN" "Não foi possível localizar o .deb dinamicamente via GitHub API. Tentando fallback ou repositório..."

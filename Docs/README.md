@@ -31,7 +31,8 @@ Docs/
 │   ├── issue_cosmic_files_fuse_freeze.md             # Prevenção de travamentos FUSE no Rclone e mitigação no cosmic-files
 │   └── issue_cursor_blurry_gtk4_wayland.md           # Resolução de cursor borrado em apps GTK4 sob Wayland fracionário
 │
-├── 📋 relatorios/                                    # Linha do tempo, histórico de sessões e checkpoints
+├── 📋 relatorios/                                    # Linha do tempo, auditorias de segurança e checkpoints
+│   ├── auditoria_seguranca_workstation.md            # Dossiê completo de auditoria de segurança (SAST & Hardening)
 │   └── contexto_proxima_conversa.md                  # Resumo do estado operacional, decisões e histórico recente
 │
 └── 🗺️ planejamento/                                 # Roadmaps técnicos e melhorias futuras

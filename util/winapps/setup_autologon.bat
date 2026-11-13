@@ -11,11 +11,13 @@ echo [%DATE% %TIME%] Iniciando configuracao de AutoLogon... > "%LOG_FILE%"
 set "RDP_USER=%~1"
 set "RDP_PASS=%~2"
 if "%RDP_USER%"=="" set "RDP_USER=winapps"
-if "%RDP_PASS%"=="" set "RDP_PASS=M!n0t@ur0"
+if "%RDP_PASS%"=="" set "RDP_PASS=%WINAPPS_RDP_PASSWORD%"
 
 :: 1. Credenciais no Winlogon para RDP transparente
 reg.exe add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v "DefaultUserName" /t REG_SZ /d "%RDP_USER%" /f >> "%LOG_FILE%" 2>&1
-reg.exe add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v "DefaultPassword" /t REG_SZ /d "%RDP_PASS%" /f >> "%LOG_FILE%" 2>&1
+if not "%RDP_PASS%"=="" (
+    reg.exe add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v "DefaultPassword" /t REG_SZ /d "%RDP_PASS%" /f >> "%LOG_FILE%" 2>&1
+)
 reg.exe add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v "DefaultDomainName" /t REG_SZ /d "" /f >> "%LOG_FILE%" 2>&1
 reg.exe delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v "ForceAutoLogon" /f >> "%LOG_FILE%" 2>&1
 reg.exe add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v "AutoAdminLogon" /t REG_SZ /d "0" /f >> "%LOG_FILE%" 2>&1

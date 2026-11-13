@@ -16,10 +16,13 @@ fi
 
 log_msg "HEADER" "12. CONFIGURAÇÃO DA MESA WACOM (DRIVER NATIVO KERNEL + COSMIC WAYLAND)"
 
-# Variáveis do ambiente (.env)
+# Variáveis do ambiente (.env) - sem endereço MAC pessoal hardcoded no código-fonte
 WACOM_USB_ID="${USB_ID_WACOM_PTH460_USB:-056a:0392}"
 WACOM_BT_ID="${USB_ID_WACOM_PTH460_BT:-056a:0393}"
-WACOM_MAC="${MAC_WACOM_INTUOS:-E0:9F:2A:20:BC:DD}"
+WACOM_MAC="${MAC_WACOM_INTUOS:-}"
+if [ -z "$WACOM_MAC" ] || [ "$WACOM_MAC" = "00:11:22:33:44:55" ]; then
+    WACOM_MAC=$(bluetoothctl devices 2>/dev/null | grep -iE 'wacom|intuos' | awk '{print $2}' | head -n 1 || true)
+fi
 
 # 1. Limpeza de daemons legados e desativação do OpenTabletDriver
 log_msg "INFO" "Desativando daemons legados de terceiros (OpenTabletDriver)..."

@@ -1,0 +1,34 @@
+# ==============================================================================
+# DockerIgnore: Isolamento de Segredos, Credenciais e Artefatos Locais
+# ==============================================================================
+
+# Credenciais e Variáveis de Ambiente (CRÍTICO)
+.env
+.env.*
+!.env.example
+rclone.conf
+config/rclone/
+*.conf.bak
+
+# Certificados e Chaves Privadas
+*.key
+*.pem
+*.pfx
+*.cer
+config/ssl/*.key
+config/ssl/mpms_ca.crt
+
+# Diretórios de Estado, Logs, Temporários e Git
+.git/
+Logs/
+Olds/
+temp/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.log
+*.bak
+*.tmp
+*.deb
+*.iso
+

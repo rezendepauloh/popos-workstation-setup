@@ -82,31 +82,28 @@ if command -v ufw >/dev/null 2>&1; then
     sudo ufw default deny incoming >/dev/null 2>&1 || true
     sudo ufw default allow outgoing >/dev/null 2>&1 || true
 
-    # Regras locais: KDE Connect e portas comuns de desenvolvimento
-    log_msg "INFO" "Configurando firewall UFW KDE Connect..."
-    sudo ufw allow 1714:1764/udp comment 'KDE Connect' >/dev/null 2>&1 || true
-    sudo ufw allow 1714:1764/tcp comment 'KDE Connect' >/dev/null 2>&1 || true
+    # Regras restritas à sub-rede LAN (192.168.0.0/24) aplicando Princípio do Menor Privilégio
+    log_msg "INFO" "Configurando firewall UFW KDE Connect (restrito à LAN)..."
+    sudo ufw allow from 192.168.0.0/24 to any port 1714:1764 proto udp comment 'KDE Connect' >/dev/null 2>&1 || true
+    sudo ufw allow from 192.168.0.0/24 to any port 1714:1764 proto tcp comment 'KDE Connect' >/dev/null 2>&1 || true
 
-    log_msg "INFO" "Configurando firewall UFW LocalSend..."
-    sudo ufw allow 53317/tcp comment 'LocalSend' >/dev/null 2>&1 || true
-    sudo ufw allow 53317/udp comment 'LocalSend' >/dev/null 2>&1 || true
+    log_msg "INFO" "Configurando firewall UFW LocalSend (restrito à LAN)..."
+    sudo ufw allow from 192.168.0.0/24 to any port 53317 proto tcp comment 'LocalSend' >/dev/null 2>&1 || true
+    sudo ufw allow from 192.168.0.0/24 to any port 53317 proto udp comment 'LocalSend' >/dev/null 2>&1 || true
 
-    log_msg "INFO" "Configurando firewall UFW Sunshine..."
-    sudo ufw allow 47984:47990/tcp comment 'Sunshine Web/Handshake' >/dev/null 2>&1 || true
-    sudo ufw allow 48010/tcp comment 'Sunshine RTSP Handshake' >/dev/null 2>&1 || true
-    sudo ufw allow 47998:48010/udp comment 'Sunshine Video/Audio/Control' >/dev/null 2>&1 || true
+    log_msg "INFO" "Configurando firewall UFW Sunshine (restrito à LAN)..."
+    sudo ufw allow from 192.168.0.0/24 to any port 47984:47990 proto tcp comment 'Sunshine Web/Handshake' >/dev/null 2>&1 || true
+    sudo ufw allow from 192.168.0.0/24 to any port 48010 proto tcp comment 'Sunshine RTSP Handshake' >/dev/null 2>&1 || true
+    sudo ufw allow from 192.168.0.0/24 to any port 47998:48010 proto udp comment 'Sunshine Video/Audio/Control' >/dev/null 2>&1 || true
 
-    log_msg "INFO" "Configurando firewall UFW Rede Local (Home/Streaming)..."
-    sudo ufw allow from 192.168.0.0/24 comment 'Rede Local Home' >/dev/null 2>&1 || true
+    log_msg "INFO" "Configurando firewall UFW Dev Web (React/Node - restrito à LAN)..."
+    sudo ufw allow from 192.168.0.0/24 to any port 3000:3010 proto tcp comment 'Dev Web (React/Node)' >/dev/null 2>&1 || true
 
-    log_msg "INFO" "Configurando firewall UFW Dev Web (React/Node)..."
-    sudo ufw allow 3000:3010/tcp comment 'Dev Web (React/Node)' >/dev/null 2>&1 || true
+    log_msg "INFO" "Configurando firewall UFW Vite Dev Server (restrito à LAN)..."
+    sudo ufw allow from 192.168.0.0/24 to any port 5173 proto tcp comment 'Vite Dev Server' >/dev/null 2>&1 || true
 
-    log_msg "INFO" "Configurando firewall UFW Vite Dev Server..."
-    sudo ufw allow 5173/tcp comment 'Vite Dev Server' >/dev/null 2>&1 || true
-
-    log_msg "INFO" "Configurando firewall UFW APIs locais / Backend..."
-    sudo ufw allow 8000:8080/tcp comment 'APIs locais / Backend' >/dev/null 2>&1 || true
+    log_msg "INFO" "Configurando firewall UFW APIs locais / Backend (restrito à LAN)..."
+    sudo ufw allow from 192.168.0.0/24 to any port 8000:8080 proto tcp comment 'APIs locais / Backend' >/dev/null 2>&1 || true
 
     log_msg "INFO" "Configurando firewall UFW DNS Umbrel..."
     sudo ufw allow out to 192.168.0.0/24 port 53 proto udp comment 'DNS Umbrel' >/dev/null 2>&1 || true
@@ -115,10 +112,10 @@ if command -v ufw >/dev/null 2>&1; then
     log_msg "INFO" "Configurando firewall UFW Dozzle Agent Homelab..."
     sudo ufw allow from 192.168.0.0/24 to any port 7007 proto tcp comment 'Dozzle Agent Homelab' >/dev/null 2>&1 || true
 
-    log_msg "INFO" "Configurando firewall UFW Syncthing..."
-    sudo ufw allow 22000/tcp comment 'Syncthing Transferencia TCP' >/dev/null 2>&1 || true
-    sudo ufw allow 22000/udp comment 'Syncthing Transferencia UDP' >/dev/null 2>&1 || true
-    sudo ufw allow 21027/udp comment 'Syncthing Descoberta Local UDP' >/dev/null 2>&1 || true
+    log_msg "INFO" "Configurando firewall UFW Syncthing (restrito à LAN)..."
+    sudo ufw allow from 192.168.0.0/24 to any port 22000 proto tcp comment 'Syncthing Transferencia TCP' >/dev/null 2>&1 || true
+    sudo ufw allow from 192.168.0.0/24 to any port 22000 proto udp comment 'Syncthing Transferencia UDP' >/dev/null 2>&1 || true
+    sudo ufw allow from 192.168.0.0/24 to any port 21027 proto udp comment 'Syncthing Descoberta Local UDP' >/dev/null 2>&1 || true
 
     log_msg "INFO" "Configurando firewall UFW Servidor Samba..."
     sudo ufw allow from 192.168.0.0/24 to any port 137,138 proto udp comment 'Samba NetBIOS UDP' >/dev/null 2>&1 || true
@@ -193,19 +190,21 @@ log_msg "INFO" "Criando script utilitário de backup de dotfiles e automações.
 sudo tee /usr/local/bin/backup-workstation > /dev/null << 'EOF'
 #!/bin/bash
 set -e
+umask 077
 
 BACKUP_USER="$(whoami)"
 BACKUP_HOME="$HOME"
 TIMESTAMP="$(date +'%Y%m%d_%H%M%S')"
 BACKUP_DEST="$BACKUP_HOME/GoogleDrive_Pessoal/Backups_Workstation"
 
-# Fallback para disco secundário se a nuvem não estiver montada
+# Fallback seguro para disco secundário ou diretório privado no HOME (nunca em /tmp público)
 if [ ! -d "$BACKUP_DEST" ]; then
     BACKUP_DEST="/mnt/storage_930/Backups_Workstation"
-    mkdir -p "$BACKUP_DEST" 2>/dev/null || BACKUP_DEST="/tmp/Backups_Workstation"
+    mkdir -p "$BACKUP_DEST" 2>/dev/null || BACKUP_DEST="$BACKUP_HOME/.local/share/Backups_Workstation"
 fi
 
 mkdir -p "$BACKUP_DEST"
+chmod 700 "$BACKUP_DEST" 2>/dev/null || true
 ARCHIVE_NAME="dotfiles_backup_${TIMESTAMP}.tar.gz"
 
 echo "[$(date)] Iniciando backup das configurações do usuário $BACKUP_USER..."
@@ -215,6 +214,9 @@ tar -czf "$BACKUP_DEST/$ARCHIVE_NAME" \
     --exclude="$BACKUP_HOME/.config/BraveSoftware" \
     --exclude="$BACKUP_HOME/.config/Slack" \
     --exclude="$BACKUP_HOME/.config/discord" \
+    --exclude='.ssh/id_*' \
+    --exclude='.ssh/*.pem' \
+    --exclude='.ssh/*.key' \
     -C "$BACKUP_HOME" \
     .config/espanso \
     .config/copyq \
@@ -225,6 +227,8 @@ tar -czf "$BACKUP_DEST/$ARCHIVE_NAME" \
     .ssh \
     Documentos/Scripts \
     2>/dev/null || true
+
+chmod 600 "$BACKUP_DEST/$ARCHIVE_NAME" 2>/dev/null || true
 
 # Mantém apenas os últimos 5 backups para não inflar o armazenamento
 ls -1t "$BACKUP_DEST"/dotfiles_backup_*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f --

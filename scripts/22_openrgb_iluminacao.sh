@@ -45,12 +45,12 @@ if [ -n "$RULES_SOURCE" ] && [ -s "$RULES_SOURCE" ]; then
     log_msg "SUCCESS" "Regras Udev oficiais do OpenRGB copiadas para /etc/udev/rules.d/60-openrgb.rules."
 else
     cat << 'EOF' | sudo tee /etc/udev/rules.d/60-openrgb.rules > /dev/null
-# ASUS Aura LED Controller
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="0b05", ATTRS{idProduct}=="19af", TAG+="uaccess", MODE="0666"
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="0b05", ATTRS{idProduct}=="18f3", TAG+="uaccess", MODE="0666"
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="0b05", ATTRS{idProduct}=="1872", TAG+="uaccess", MODE="0666"
-SUBSYSTEM=="i2c-dev", TAG+="uaccess", MODE="0666"
-KERNEL=="i2c-[0-9]*", TAG+="uaccess", MODE="0666"
+# ASUS Aura LED Controller (Acesso restrito ao usuário da sessão ativa via uaccess + grupo plugdev/i2c)
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0b05", ATTRS{idProduct}=="19af", TAG+="uaccess", GROUP="plugdev", MODE="0660"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0b05", ATTRS{idProduct}=="18f3", TAG+="uaccess", GROUP="plugdev", MODE="0660"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0b05", ATTRS{idProduct}=="1872", TAG+="uaccess", GROUP="plugdev", MODE="0660"
+SUBSYSTEM=="i2c-dev", TAG+="uaccess", GROUP="i2c", MODE="0660"
+KERNEL=="i2c-[0-9]*", TAG+="uaccess", GROUP="i2c", MODE="0660"
 EOF
 fi
 

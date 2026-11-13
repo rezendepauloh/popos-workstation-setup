@@ -30,12 +30,15 @@ sudo apt install -y okular okular-extra-backends
 log_msg "INFO" "Verificando instalação do Master PDF Editor..."
 
 if ! command -v masterpdfeditor5 >/dev/null 2>&1; then
-    TEMP_DEB=$(mktemp /tmp/masterpdf_XXXXXX.deb)
+    WORK_TMP=$(mktemp -d /tmp/popos_pdf_XXXXXX)
+    chmod 700 "$WORK_TMP"
+    trap 'rm -rf "$WORK_TMP"' EXIT
+    TEMP_DEB="$WORK_TMP/master-pdf-editor.deb"
     MASTER_PDF_URL="https://code-industry.net/public/master-pdf-editor-5.9.99-qt5.x86_64.deb"
 
     log_msg "INFO" "Baixando pacote oficial do Master PDF Editor 5 (Qt5)..."
-    rm -f "$TEMP_DEB"
     curl -fSL --progress-bar "$MASTER_PDF_URL" -o "$TEMP_DEB"
+    dpkg-deb --info "$TEMP_DEB" >/dev/null 2>&1
 
     log_msg "INFO" "Instalando pacote Master PDF Editor e dependências..."
     sudo apt install -y "$TEMP_DEB" libqt5svg5 libqt5gui5 libqt5network5 libqt5printsupport5 || sudo apt-get install -f -y

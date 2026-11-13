@@ -175,7 +175,7 @@ Para evitar ter que abrir a VM ou janelas do Windows apenas para acessar arquivo
      - 📂 **Abrir Pasta Local (`~/OneDrive_MPMS`)** no Nautilus
      - 🔄 **Remontar / Sincronizar Compartilhamento SMB**
      - 🌐 **Abrir OneDrive na Web (M365 Corporativo):** utiliza a URL oficial SSO multi-tenant `https://www.office.com/launch/onedrive?auth=2`, evitando falhas de locatário Azure AD do SharePoint.
-     - 🖥️ **Abrir Windows 11 no Remmina:** conecta diretamente pelo perfil salvo `winapps_windows11.remmina` (Console VNC ou RDP), com a mesma praticidade do perfil corporativo MPE-80703.
+     - 🖥️ **Abrir Windows 11 no Remmina:** conecta diretamente pelo perfil salvo `winapps_windows11.remmina` (Console VNC ou RDP), com a mesma praticidade do perfil corporativo RDP configurado no `.env`.
      - 🖥️ **Abrir Console Web da VM (`:8006`):** acesso rápido via navegador ao painel do container.
      - ⚙️ **Reiniciar Container Windows**
 3. **Perfis Nativos Salvos no Remmina (`~/.local/share/remmina`):**

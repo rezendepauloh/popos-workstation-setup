@@ -80,7 +80,7 @@ São sugestões de alto valor prático para serem avaliadas e implementadas futu
 
 ## 📊 6. Tabela Resumo de Implementação
 
-Todas as melhorias abaixo foram integradas de forma nativa e declarativa no módulo [`scripts/22_limpeza_otimizacao.sh`](file:///home/rezendepauloh/Documentos/Scripts/scripts/22_limpeza_otimizacao.sh):
+Todas as melhorias abaixo foram integradas de forma nativa e declarativa no módulo [`scripts/28_limpeza_otimizacao.sh`](../../scripts/28_limpeza_otimizacao.sh):
 
 | Melhoria Implementada | Status | Local da Configuração |
 | :--- | :---: | :--- |

@@ -47,6 +47,6 @@ Para garantir que o NumLock inicie ativado **desde a tela de login** e permaneç
 
 ## 📎 Arquivos de Configuração Relacionados no Setup
 
-* [`scripts/02_teclado_cedilha_numlock.sh`](file:///home/rezendepauloh/Documentos/Scripts/scripts/02_teclado_cedilha_numlock.sh)
-* [`scripts/21_autostart_config.sh`](file:///home/rezendepauloh/Documentos/Scripts/scripts/21_autostart_config.sh)
-* [`README.md`](file:///home/rezendepauloh/Documentos/Scripts/README.md)
+* [`scripts/02_teclado_cedilha_numlock.sh`](../../scripts/02_teclado_cedilha_numlock.sh)
+* [`scripts/21_autostart_config.sh`](../../scripts/21_autostart_config.sh)
+* [`README.md`](../../README.md)

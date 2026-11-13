@@ -28,14 +28,14 @@ if [ -f "$REAL_HOME/Applications/deckcraft-0.18.1-linux-x86_64.AppImage" ]; then
 fi
 
 # 2. Assegurar definições .desktop de GridCraft e DeckCraft com suporte a MIME Types
-cat << 'EOF' > "$REAL_HOME/.local/share/applications/ai.storyteller.gridcraft.desktop"
+cat << EOF > "$REAL_HOME/.local/share/applications/ai.storyteller.gridcraft.desktop"
 [Desktop Entry]
 Type=Application
 Name=GridCraft
 GenericName=Spreadsheet
 Comment=Spreadsheets and data; open and save Excel files
-Exec=/home/rezendepauloh/.local/bin/gridcraft %F
-TryExec=/home/rezendepauloh/.local/bin/gridcraft
+Exec=$REAL_HOME/.local/bin/gridcraft %F
+TryExec=$REAL_HOME/.local/bin/gridcraft
 Icon=ai.storyteller.gridcraft
 Terminal=false
 Categories=Office;Spreadsheet;
@@ -45,14 +45,14 @@ MimeType=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;appli
 X-ArtCraft-Launcher=true
 EOF
 
-cat << 'EOF' > "$REAL_HOME/.local/share/applications/ai.storyteller.deckcraft.desktop"
+cat << EOF > "$REAL_HOME/.local/share/applications/ai.storyteller.deckcraft.desktop"
 [Desktop Entry]
 Type=Application
 Name=DeckCraft
 GenericName=Presentation
 Comment=Presentations and slide shows; open and save PowerPoint files
-Exec=/home/rezendepauloh/.local/bin/deckcraft %F
-TryExec=/home/rezendepauloh/.local/bin/deckcraft
+Exec=$REAL_HOME/.local/bin/deckcraft %F
+TryExec=$REAL_HOME/.local/bin/deckcraft
 Icon=ai.storyteller.deckcraft
 Terminal=false
 Categories=Office;Presentation;

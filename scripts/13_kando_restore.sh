@@ -31,11 +31,11 @@ if [ -f "$KANDO_BACKUP_DIR/general-settings-backup.json" ] && [ -f "$KANDO_BACKU
     jq '.menus[0].shortcut = "Control+Shift+F10" | .menus[0].centered = false | .menus[0].useFixedPosition = false' "$KANDO_BACKUP_DIR/menu-settings-backup.json" > "$KANDO_CONFIG_DIR/menus.json"
     
     # Injeta atalho do gravador de tela Kooha no submenu de Utilitários se ainda não existir
-    python3 -c "
-import json
-path = '$KANDO_CONFIG_DIR/menus.json'
+    python3 - "$KANDO_CONFIG_DIR/menus.json" << 'PYEOF' 2>/dev/null || true
+import json, sys
+path = sys.argv[1]
 try:
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     utils = data['menus'][0]['root']['children'][0]['children'][0]
     names = [item.get('name', '') for item in utils.get('children', [])]
@@ -52,17 +52,17 @@ try:
             'icon': 'video-camera',
             'iconTheme': 'system'
         })
-        with open(path, 'w') as f:
+        with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
 except Exception:
     pass
-" 2>/dev/null || true
+PYEOF
 
     # Higieniza atalhos legados do Windows para comandos nativos do Linux (Pop!_OS / Flatpak)
     # e mapeia ícones nativos (Material Symbols Rounded e Simple Icons) substituindo ícones não resolvidos
-    python3 -c "
-import json
-path = '$KANDO_CONFIG_DIR/menus.json'
+    python3 - "$KANDO_CONFIG_DIR/menus.json" << 'PYEOF' 2>/dev/null || true
+import json, sys
+path = sys.argv[1]
 try:
     with open(path, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -172,15 +172,15 @@ try:
         json.dump(data, f, indent=2, ensure_ascii=False)
 except Exception:
     pass
-" 2>/dev/null || true
+PYEOF
 
     # Registra o atalho global nativo no compositor COSMIC (cosmic-comp)
     log_msg "INFO" "Registrando atalho global Ctrl+Shift+F10 no compositor COSMIC..."
     COSMIC_SHORTCUTS_DIR="$REAL_HOME/.config/cosmic/com.system76.CosmicSettings.Shortcuts/v1"
     mkdir -p "$COSMIC_SHORTCUTS_DIR"
-    python3 -c "
-import os
-path = '$COSMIC_SHORTCUTS_DIR/custom'
+    python3 - "$COSMIC_SHORTCUTS_DIR/custom" << 'PYEOF' 2>/dev/null || true
+import os, sys
+path = sys.argv[1]
 content = ''
 if os.path.exists(path):
     with open(path, 'r', encoding='utf-8') as f:
@@ -192,8 +192,8 @@ if 'kando --menu' not in content:
             Ctrl,
             Shift,
         ],
-        key: \"F10\",
-    ): Spawn(\"/usr/local/bin/kando --menu \\\\\"Menu Paulo\\\\\"\"),\n'''
+        key: "F10",
+    ): Spawn("/usr/local/bin/kando --menu \\"Menu Paulo\\""),\n'''
     if content.strip().endswith('}'):
         idx = content.rfind('}')
         new_content = content[:idx] + entry + '}\n'
@@ -201,7 +201,7 @@ if 'kando --menu' not in content:
         new_content = '{\n' + entry + '}\n'
     with open(path, 'w', encoding='utf-8') as f:
         f.write(new_content)
-" 2>/dev/null || true
+PYEOF
 
     chown -R "$REAL_USER:$REAL_USER" "$KANDO_CONFIG_DIR"
     chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/cosmic" 2>/dev/null || true

@@ -1,7 +1,7 @@
 # 🐞 Issue: Integração Espanso Dynamic Forms (EDF), Kando e Espanso no COSMIC Wayland
 
 > **Status:** Resolvido / Concluído com Sucesso  
-> **Solução Adotada:** Motor nativo de formulários dinâmicos em Python/GTK3 ([scripts/daemons/form_runner.py](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/daemons/form_runner.py)) com restauração de foco e injeção de atalho via `kando-cosmic-helper`  
+> **Solução Adotada:** Motor nativo de formulários dinâmicos em Python/GTK3 ([`scripts/daemons/form_runner.py`](../../scripts/daemons/form_runner.py)) com restauração de foco e injeção de atalho via `kando-cosmic-helper`  
 > **Componentes Afetados:** `espanso-dynamic-forms` (v1.6.13), `kando` (v1.4.x), `espanso` (v2.4.1), `COSMIC Desktop` (`cosmic-comp` / Wayland nativo)
 
 ---
@@ -31,7 +31,7 @@ Substituímos o binário pesado do Electron por uma solução 100% nativa em Pyt
 - **Visual Moderno:** Folha de estilos CSS completa inspirada no tema **Catppuccin Mocha / Pop!_OS Dark** com bordas arredondadas (`8px`), destaque visual nos campos em foco e botões modernos.
 - **Eliminação de Bugs de Menus Suspensos:** Os comboboxes nativos do GTK3 abrem perfeitamente colados no campo correto, eliminando o bug do Tkinter no XWayland em que menus voavam para o canto superior esquerdo `(0, 0)`.
 - **Motor de Regras Dinâmicas (`SHOW/HIDE`):** Parser completo das seções `uischema` do JSON Forms. Campos dependentes (como os itens de material no chamado "Olá") permanecem ocultos e só são exibidos quando a condição é atendida, recalculando o layout em tempo real.
-- **Persistência Segura:** O script foi incorporado em [`scripts/daemons/form_runner.py`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/popos-workstation-setup/scripts/daemons/form_runner.py) e versionado no repositório [`espanso-automacoes-sti`](file:///home/rezendepauloh/Documentos/DevProjects/Bash/espanso-automacoes-sti).
+- **Persistência Segura:** O script foi incorporado em [`scripts/daemons/form_runner.py`](../../scripts/daemons/form_runner.py) e versionado no repositório `espanso-automacoes-sti`.
 
 ### 2. Despachante Inteligente com Restauração de Foco (`~/.local/bin/chamar_espanso_acao`)
 - **Captura da Janela Chamadora:** Antes de abrir o formulário, salva a janela ativa atual via `kando-cosmic-helper focused`.

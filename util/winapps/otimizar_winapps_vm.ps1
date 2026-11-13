@@ -81,8 +81,8 @@ $registryTweaks = @(
     @{ Path = "HKCU:\Control Panel\Desktop\WindowMetrics"; Name = "MinAnimate"; Value = "0"; Type = "String" },
 
     # Configuração de Login Automático Transparente e Sem Tela de Bloqueio (WinApps)
+    # Nota: DefaultPassword é configurada dinamicamente pelo setup_autologon.bat (via .env)
     @{ Path = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"; Name = "DefaultUserName"; Value = "winapps"; Type = "String" },
-    @{ Path = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"; Name = "DefaultPassword"; Value = "M!n0t@ur0"; Type = "String" },
     @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"; Name = "NoLockScreen"; Value = 1; Type = "DWord" },
     @{ Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services"; Name = "fPromptForPassword"; Value = 0; Type = "DWord" },
     @{ Path = "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp"; Name = "fPromptForPassword"; Value = 0; Type = "DWord" },

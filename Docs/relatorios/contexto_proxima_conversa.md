@@ -30,7 +30,7 @@
   - Quando o **QCY H3S** for desligado/desconectado, o sistema de som deve retornar automaticamente para as caixas de som padrão (**Áudio interno Estéreo analógico** ou G733, conforme preferência).
 * **Stack Técnica Atual Identificada via `wpctl` / PipeWire / WirePlumber**:
   - Servidor: **PipeWire 1.6.8** com gerenciador de sessão **WirePlumber 1.6.8**.
-  - Dispositivo Fone Bluetooth: `QCY H3S` (`bluez5`, MAC `84:AC:60:05:50:19`, nó sink `bluez_output.84_AC_60_05_50_19.1`).
+  - Dispositivo Fone Bluetooth: `QCY H3S` (`bluez5`, MAC configurado via `MAC_QCY_H3S` no `.env`, nó sink `bluez_output.<MAC>.1`).
   - Dispositivo Caixas de Som: `Áudio interno Estéreo analógico` (alsa sink node `alsa_output.pci-0000_00_1f.3.analog-stereo`).
   - Outros sinks presentes: `G733 Gaming Headset`, `HDA NVidia HDMI`.
 * **Abordagem Planejada**:

@@ -22,17 +22,23 @@ SCRIPTS_DIR="$BASE_DIR/scripts"
 mkdir -p "$BASE_DIR/Logs"
 PROGRESS_LOG="$BASE_DIR/Logs/.setup_progress.log"
 
-# Carrega variáveis de ambiente do .env se existir
-if [ -f "$BASE_DIR/.env" ]; then
-    set -a
-    # shellcheck disable=SC1091
-    source "$BASE_DIR/.env"
-    set +a
-fi
-
 REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 REAL_UID=$(id -u "$REAL_USER" 2>/dev/null || echo 1000)
+
+# Carrega variáveis de ambiente do .env se existir (com validação de segurança e permissão 0600)
+if [ -f "$BASE_DIR/.env" ] && [ ! -L "$BASE_DIR/.env" ]; then
+    ENV_OWNER_UID=$(stat -c '%u' "$BASE_DIR/.env" 2>/dev/null || echo "")
+    if [ "$ENV_OWNER_UID" = "0" ] || [ "$ENV_OWNER_UID" = "$REAL_UID" ] || [ "$ENV_OWNER_UID" = "$(id -u)" ]; then
+        chmod 600 "$BASE_DIR/.env" 2>/dev/null || true
+        set -a
+        # shellcheck disable=SC1091
+        source "$BASE_DIR/.env"
+        set +a
+    else
+        echo -e "${C_RED}[SECURITY WARN]${C_RESET} Arquivo .env pertence a UID não confiável ($ENV_OWNER_UID). Carregamento bloqueado." >&2
+    fi
+fi
 
 # Função de Log Formatado
 log_msg() {
