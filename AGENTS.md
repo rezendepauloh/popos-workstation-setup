@@ -62,7 +62,7 @@ Pilares fundamentais:
 │   ├── test_in_docker.sh               # Sandbox completo em container Docker com binários de hardware mockados
 │   ├── unit/                           # Testes de sintaxe Bash/Python, 00_comum.sh e lógica dos daemons/patches
 │   └── integration/                    # Testes do orquestrador CLI, coerência de módulos e transformações JSON/RON
-├── util/                               # Utilitários standalone (backup_android.sh e restore_android.sh via ADB)
+├── util/                               # Utilitários standalone (android-backup/ e docker-update/)
 └── Docs/                               # Documentação técnica profunda, guias e relatórios de issues upstream
 ```
 

@@ -105,7 +105,7 @@
 * **Servidor Samba Local (`/mnt/storage_700/samba`):**
   * Compartilhamento de rede (`192.168.0.0/24`) com o share `[Storage700]` compatível com a rede do UmbrelOS.
 * **Tailscale (Mesh VPN WireGuard):** VPN ponto a ponto segura entre computadores, celulares e servidores.
-* **Backup & Restauração de Dispositivos Android via ADB ([util/backup_android.sh](util/backup_android.sh) e [util/restore_android.sh](util/restore_android.sh)):**
+* **Backup & Restauração de Dispositivos Android via ADB ([util/android-backup/backup_android.sh](util/android-backup/backup_android.sh) e [util/android-backup/restore_android.sh](util/android-backup/restore_android.sh)):**
   * Extração e restauração em alta velocidade de fotos, documentos, mídias e aplicativos instalados com reindexação imediata no Android.
 
 ### 7. Trabalho Remoto (MPMS), WinApps & OneDrive Integrado
@@ -185,8 +185,11 @@
 │   ├── unit/                           # Testes de sintaxe Bash/Python, 00_comum.sh e daemons
 │   └── integration/                    # Testes do orquestrador CLI e regras de módulos
 ├── util/                               # Utilitários de Manutenção e Hardware
-│   ├── backup_android.sh               # Backup automatizado de celular Android via ADB
-│   ├── restore_android.sh              # Restauração assistida no celular formatado via ADB
+│   ├── android-backup/
+│   │   ├── backup_android.sh           # Backup automatizado de celular Android via ADB
+│   │   └── restore_android.sh          # Restauração assistida no celular formatado via ADB
+│   └── docker-update/
+│       └── update_containers.sh        # Atualização automatizada de containers Docker (Compose & Standalone)
 │   └── winapps/                        # Scripts de debloat e otimização para VM Windows (WinApps)
 │       ├── onedrive.svg                # Ícone oficial em vetor do Microsoft OneDrive
 │       ├── otimizar_winapps_vm.cmd     # Launcher com elevação automática de Administrador
@@ -197,6 +200,7 @@
 └── Docs/                               # Relatórios Técnicos e Manuais Especializados
     ├── guias/                          # Manuais Práticos e Guias de Configuração
     │   ├── como-fazer-backup-android.md
+    │   ├── como-atualizar-containers-docker.md
     │   ├── como-parear-sunshine-moonlight-samsung-tv.md
     │   ├── gravacao_de_tela_cosmic_kooha.md
     │   ├── nautilus_gerenciador_arquivos_padrao.md

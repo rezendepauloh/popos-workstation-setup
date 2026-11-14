@@ -1,6 +1,6 @@
 ### 📱 Guia de Backup e Restauração de Dispositivos Android via ADB
 
-Este guia detalha o fluxo prático e seguro para realizar o backup completo, formatação (restauração aos padrões de fábrica) e restauração de dados para aparelhos Android (Xiaomi/MIUI, Samsung, Motorola, etc.) utilizando os utilitários [backup_android.sh](util/backup_android.sh) e [restore_android.sh](util/restore_android.sh).
+Este guia detalha o fluxo prático e seguro para realizar o backup completo, formatação (restauração aos padrões de fábrica) e restauração de dados para aparelhos Android (Xiaomi/MIUI, Samsung, Motorola, etc.) utilizando os utilitários [backup_android.sh](util/android-backup/backup_android.sh) e [restore_android.sh](util/android-backup/restore_android.sh).
 
 ---
 
@@ -27,7 +27,7 @@ Este guia detalha o fluxo prático e seguro para realizar o backup completo, for
    * Toque em **Permitir**.
 3. No terminal do Pop!_OS, execute:
    ```bash
-   ./util/backup_android.sh
+   ./util/android-backup/backup_android.sh
    ```
 4. **Comportamento e Recursos do Script de Backup:**
    * **Identificação Automática:** Detecta modelo, fabricante, versão do Android e número de série, gerando o relatório `info_dispositivo.txt`.
@@ -65,7 +65,7 @@ Após iniciar o celular formatado, passar pela configuração inicial do Android
 1. Reative a **Depuração USB** (7 toques na Versão da Build/MIUI).
 2. Conecte ao PC com o cabo USB e execute no Pop!_OS:
    ```bash
-   ./util/restore_android.sh
+   ./util/android-backup/restore_android.sh
    ```
 3. **Recursos do Processo de Restauração:**
    * **Menu Interativo de Backups:** Lista os backups salvos em disco com data, hora e tamanho total formatado em grandezas amigáveis (`GB` / `MB`). Basta pressionar ENTER para selecionar o mais recente.

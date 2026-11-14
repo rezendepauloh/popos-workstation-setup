@@ -368,13 +368,13 @@ fi
 ONEDRIVE_MOUNT_POINT="$REAL_HOME/OneDrive_MPMS"
 GVFS_SMB_DIR="/run/user/${REAL_UID:-1000}/gvfs/smb-share:server=172.20.0.2,share=onedrive-mpms"
 
-if [ -d "$GVFS_SMB_DIR" ]; then
+if sudo -u "$REAL_USER" test -d "$GVFS_SMB_DIR"; then
     if [ -d "$ONEDRIVE_MOUNT_POINT" ] && [ ! -L "$ONEDRIVE_MOUNT_POINT" ]; then
         rmdir "$ONEDRIVE_MOUNT_POINT" 2>/dev/null || true
     fi
-    ln -sfn "$GVFS_SMB_DIR" "$ONEDRIVE_MOUNT_POINT"
-else
-    mkdir -p "$ONEDRIVE_MOUNT_POINT"
+    sudo -u "$REAL_USER" ln -sfn "$GVFS_SMB_DIR" "$ONEDRIVE_MOUNT_POINT"
+elif [ ! -L "$ONEDRIVE_MOUNT_POINT" ]; then
+    sudo -u "$REAL_USER" mkdir -p "$ONEDRIVE_MOUNT_POINT"
 fi
 chown -h "$REAL_USER:$REAL_USER" "$ONEDRIVE_MOUNT_POINT"
 
