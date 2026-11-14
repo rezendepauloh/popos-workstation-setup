@@ -190,6 +190,8 @@
 │   │   └── restore_android.sh          # Restauração assistida no celular formatado via ADB
 │   └── docker-update/
 │       └── update_containers.sh        # Atualização automatizada de containers Docker (Compose & Standalone)
+│   └── update-antigravity/
+│       └── update_antigravity.sh       # Atualização do Google Antigravity IDE com patch de cedilha/Wayland
 │   └── winapps/                        # Scripts de debloat e otimização para VM Windows (WinApps)
 │       ├── onedrive.svg                # Ícone oficial em vetor do Microsoft OneDrive
 │       ├── otimizar_winapps_vm.cmd     # Launcher com elevação automática de Administrador
@@ -201,6 +203,7 @@
     ├── guias/                          # Manuais Práticos e Guias de Configuração
     │   ├── como-fazer-backup-android.md
     │   ├── como-atualizar-containers-docker.md
+    │   ├── como-atualizar-antigravity.md
     │   ├── como-parear-sunshine-moonlight-samsung-tv.md
     │   ├── gravacao_de_tela_cosmic_kooha.md
     │   ├── nautilus_gerenciador_arquivos_padrao.md
