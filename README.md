@@ -100,8 +100,9 @@
   * SSD NVMe 02 (Jogos): `/mnt/nvme_01`
   * HD Storage 930: `/mnt/storage_930`
   * HD Storage 700: `/mnt/storage_700` (com ancoragem automática da pasta `~/Downloads`)
-* **Nuvens Sincronizadas (Rclone VFS):**
-  * Google Drive Pessoal (`~/GoogleDrive_Pessoal`), OneDrive Pessoal (`~/OneDrive_Pessoal`) e MEGA Pessoal (`~/MEGA_Pessoal`) montados como serviços systemd com cache VFS sob demanda.
+* **Nuvens Sincronizadas (Rclone VFS) & Indicadores de Bandeja:**
+  * Google Drive Pessoal (`~/GoogleDrive_Pessoal`), OneDrive Pessoal (`~/OneDrive_Pessoal`) e MEGA Pessoal (`~/Mega_Pessoal`) montados como serviços systemd com cache VFS sob demanda.
+  * **Indicadores Nativos no Painel COSMIC (StatusNotifierItem):** Daemon unificado [scripts/daemons/rclone-cloud-indicator.py](scripts/daemons/rclone-cloud-indicator.py) (`gdrive-indicator.service`, `onedrive-pessoal-indicator.service` e `mega-indicator.service`) com ícones SVG/PNG dedicados, monitoramento em tempo real de montagem/espaço/cache VFS, flush de cache (`SIGHUP`), remontagem de serviço e atalhos para Nautilus e Web ([Docs/guias/indicadores_bandeja_rclone_cosmic.md](Docs/guias/indicadores_bandeja_rclone_cosmic.md)).
 * **Servidor Samba Local (`/mnt/storage_700/samba`):**
   * Compartilhamento de rede (`192.168.0.0/24`) com o share `[Storage700]` compatível com a rede do UmbrelOS.
 * **Tailscale (Mesh VPN WireGuard):** VPN ponto a ponto segura entre computadores, celulares e servidores.
@@ -116,8 +117,10 @@
 * **WinApps & Windows 11 KVM:**
   * Provisionamento de contêiner Windows com aceleração KVM (`dockurr/windows`) e integração de aplicativos via FreeRDP 3 com login automático transparente (AutoLogon).
   * Conexão RDP salva e integrada ao Remmina para suporte e manutenção da VM com um clique.
-* **VPN Corporativa MPMS (openfortivpn):**
+* **VPN Corporativa MPMS (openfortivpn) & Smartcard A3 (SafeNet eToken / PKCS#11):**
   * Conexão SSL-VPN com autenticação em dois fatores (2FA/OTP) sem clientes proprietários pesados.
+  * Infraestrutura completa de Certificado Digital A3 (`pcscd`, `libccid`, `opensc`, `opensc-pkcs11`, `p11-kit-proxy.so` registrado no cofre NSS `~/.pki/nssdb` para Chrome/Brave e suporte opcional a `libeTPkcs11.so` via `config/safenet/`).
+  * Redirecionamento nativo de Smartcard (`sharesmartcard=1`) no perfil RDP do **Remmina** para uso transparente do token USB (`0529:0620` SafeNet Token JC) na estação Windows remota ([Docs/guias/smartcard_safenet_etoken_remmina.md](Docs/guias/smartcard_safenet_etoken_remmina.md)).
 
 ### 8. Jogos, Streaming & Mídia
 * **Epic Games Launcher & Heroic:** Lançador da Epic Games integrado à categoria "Jogos" da COSMIC App Library com prefixo Proton inicializado.
@@ -138,9 +141,10 @@
 ├── Dockerfile                          # Ambiente de testes e sandbox headless
 ├── .dockerignore                       # Exclusão de segredos (.env, rclone.conf, chaves) do build Docker
 ├── config/                             # Arquivos de Configuração Centralizados
+│   ├── icons/                          # Ícones SVG dedicados (Google Drive, OneDrive Pessoal, MEGA)
 │   ├── rclone/                         # Perfis e credenciais do Rclone
 │   ├── ssl/                            # Certificados CA corporativos (MPMS)
-│   └── systemd/                        # Drop-ins e configurações adicionais do systemd
+│   └── systemd/                        # Drop-ins e unidades de usuário do systemd
 ├── scripts/                            # Módulos de Provisionamento Independentes
 │   ├── 00_comum.sh                     # Biblioteca base (cores, checkpoints, REAL_USER e funções utilitárias)
 │   ├── 01_otimizacao_sistema.sh        # Swappiness=10, inotify=524288 e DNS local (~pk.local)
@@ -178,6 +182,7 @@
 │       ├── form_runner.py              # Formulários gráficos GTK3 com injeção de foco para Espanso
 │       ├── onedrive-indicator.py       # Indicador de bandeja com menu oficial para o OneDrive corporativo
 │       ├── patch_cedilla_electron.py   # Patch de cedilha e aspas em binários Chromium/Electron
+│       ├── rclone-cloud-indicator.py   # Indicador de bandeja StatusNotifierItem (GDrive, OneDrive Pessoal, MEGA)
 │       └── wacom-expresskeys-daemon.py # Daemon de ExpressKeys e Touch Ring da Wacom Intuos Pro S
 ├── tests/                              # Suíte de Testes Automatizados (Unitários & Integração)
 │   ├── run_all.py                      # Executor unificado com relatório colorido ANSI
@@ -206,9 +211,11 @@
     │   ├── como-atualizar-antigravity.md
     │   ├── como-parear-sunshine-moonlight-samsung-tv.md
     │   ├── gravacao_de_tela_cosmic_kooha.md
+    │   ├── indicadores_bandeja_rclone_cosmic.md
     │   ├── nautilus_gerenciador_arquivos_padrao.md
     │   ├── onedrive_winapps_mpms_guia.md
     │   ├── otimizacao_debloat_winapps_vm.md
+    │   ├── smartcard_safenet_etoken_remmina.md
     │   └── tema_escuro_botoes_vlc.md
     ├── issues/                         # Diagnósticos e Soluções de Bugs (Wayland/Hardware/Upstream)
     │   ├── issue_alt_codes_numpad_wayland.md

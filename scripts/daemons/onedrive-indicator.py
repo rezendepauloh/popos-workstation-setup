@@ -33,13 +33,16 @@ REMMINA_PROFILE = os.path.expanduser('~/.local/share/remmina/winapps_windows11.r
 
 
 def get_icon_name():
-    """Retorna o nome ou caminho do ícone do OneDrive."""
-    custom_icon = os.path.expanduser('~/.local/share/icons/hicolor/scalable/apps/onedrive.svg')
-    if os.path.exists(custom_icon):
-        return custom_icon
+    """Retorna o nome ou caminho do ícone PNG colorido do OneDrive (evita tinting simbólico de SVG no COSMIC)."""
+    hicolor_png = os.path.expanduser('~/.local/share/icons/hicolor/48x48/apps/onedrive.png')
+    if os.path.exists(hicolor_png):
+        return hicolor_png
     pixmap_icon = '/usr/share/pixmaps/onedrive.png'
     if os.path.exists(pixmap_icon):
         return pixmap_icon
+    custom_icon = os.path.expanduser('~/.local/share/icons/hicolor/scalable/apps/onedrive.svg')
+    if os.path.exists(custom_icon):
+        return custom_icon
     return 'onedrive'
 
 

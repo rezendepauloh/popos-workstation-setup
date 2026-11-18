@@ -1,0 +1,13 @@
+[Unit]
+Description=MEGA Pessoal System Tray Indicator (Wayland / COSMIC)
+After=graphical-session.target mega-pessoal.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/rclone-cloud-indicator.py --profile mega-pessoal
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

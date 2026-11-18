@@ -155,6 +155,64 @@ class TestOrchestratorAndModules(unittest.TestCase):
             dock_content = f.read()
         self.assertIn('onedrive-x86', dock_content)
 
+    def test_08_rclone_cloud_indicators_and_icons_configured(self):
+        """Valida ícones dedicados, daemon unificado e serviços systemd dos indicadores Rclone."""
+        for icon_name in ('google-drive.svg', 'onedrive-pessoal.svg', 'mega.svg'):
+            svg_path = os.path.join(ROOT_DIR, 'config', 'icons', icon_name)
+            self.assertTrue(os.path.isfile(svg_path), f"config/icons/{icon_name} deve existir")
+            with open(svg_path, 'r', encoding='utf-8') as f:
+                svg_content = f.read()
+            self.assertIn('<svg', svg_content)
+
+        indicator_script = os.path.join(DAEMONS_DIR, 'rclone-cloud-indicator.py')
+        self.assertTrue(os.path.isfile(indicator_script), "scripts/daemons/rclone-cloud-indicator.py deve existir")
+        self.assertTrue(os.access(indicator_script, os.X_OK), "rclone-cloud-indicator.py deve ter permissão +x")
+
+        expected_services = {
+            'gdrive-indicator.service': '--profile gdrive-pessoal',
+            'onedrive-pessoal-indicator.service': '--profile onedrive-pessoal',
+            'mega-indicator.service': '--profile mega-pessoal',
+        }
+        for svc_name, expected_flag in expected_services.items():
+            svc_path = os.path.join(ROOT_DIR, 'config', 'systemd', 'user', svc_name)
+            self.assertTrue(os.path.isfile(svc_path), f"config/systemd/user/{svc_name} deve existir")
+            with open(svc_path, 'r', encoding='utf-8') as f:
+                svc_content = f.read()
+            self.assertIn('rclone-cloud-indicator.py', svc_content)
+            self.assertIn(expected_flag, svc_content)
+            self.assertIn('WantedBy=default.target', svc_content)
+
+        rclone_script = os.path.join(SCRIPTS_DIR, '05_rclone_storage.sh')
+        with open(rclone_script, 'r', encoding='utf-8') as f:
+            rclone_content = f.read()
+        self.assertIn('rclone-cloud-indicator.py', rclone_content)
+        for svc_name in expected_services:
+            self.assertIn(svc_name, rclone_content)
+        for icon_base in ('google-drive', 'onedrive-pessoal', 'mega'):
+            self.assertIn(icon_base, rclone_content)
+
+    def test_09_smartcard_pkcs11_and_remmina_redirection_configured(self):
+        """Valida suporte PC/SC, PKCS#11 (SafeNet/OpenSC/NSS) e redirecionamento Smartcard no Remmina."""
+        mod23_path = os.path.join(SCRIPTS_DIR, '23_trabalho_remoto_vpn_rdp.sh')
+        with open(mod23_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        for pkg in ('pcscd', 'pcsc-tools', 'libccid', 'opensc', 'opensc-pkcs11', 'libnss3-tools', 'p11-kit'):
+            self.assertIn(pkg, content, f"Módulo 23 deve instalar o pacote {pkg}")
+
+        self.assertIn('pcscd.socket', content)
+        self.assertIn('p11-kit-proxy.so', content)
+        self.assertIn('modutil', content)
+        self.assertIn('sharesmartcard=1', content)
+        self.assertNotIn('sharesmartcard=0', content)
+        self.assertIn('libeTPkcs11.so', content)
+        self.assertIn('safenet-etoken.module', content)
+
+        mod19_path = os.path.join(SCRIPTS_DIR, '19_flatpak_permissions.sh')
+        with open(mod19_path, 'r', encoding='utf-8') as f:
+            mod19_content = f.read()
+        self.assertIn('--socket=pcsc org.mozilla.firefox', mod19_content)
+
 
 if __name__ == '__main__':
     unittest.main()

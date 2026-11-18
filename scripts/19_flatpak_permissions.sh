@@ -21,10 +21,12 @@ flatpak override --user --filesystem=/mnt/storage_700 org.onlyoffice.desktopedit
 flatpak override --user --filesystem=/mnt/storage_930 org.onlyoffice.desktopeditors 2>/dev/null || true
 flatpak override --user --filesystem=/mnt org.gimp.GIMP 2>/dev/null || true
 
-log_msg "INFO" "Configurando permissões do Firefox Flatpak (Acesso a Downloads e discos secundários)..."
+log_msg "INFO" "Configurando permissões do Firefox Flatpak (Acesso a Downloads, discos secundários e Smartcard PC/SC)..."
 flatpak override --user --filesystem=xdg-download org.mozilla.firefox 2>/dev/null || true
 flatpak override --user --filesystem=/mnt/storage_700 org.mozilla.firefox 2>/dev/null || true
 flatpak override --user --filesystem=/mnt/storage_930 org.mozilla.firefox 2>/dev/null || true
+flatpak override --user --socket=pcsc org.mozilla.firefox 2>/dev/null || true
+flatpak override --user --filesystem=xdg-run/p11-kit/pkcs11 org.mozilla.firefox 2>/dev/null || true
 
 log_msg "INFO" "Liberando barramento StatusNotifierWatcher para o CopyQ..."
 flatpak override --user --talk-name=org.kde.StatusNotifierWatcher --talk-name=org.freedesktop.StatusNotifierWatcher com.github.hluk.copyq 2>/dev/null || true

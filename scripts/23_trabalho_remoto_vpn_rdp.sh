@@ -41,6 +41,121 @@ mkdir -p "$REAL_HOME/.config/remmina"
 chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/share/remmina" "$REAL_HOME/.config/remmina"
 
 # ------------------------------------------------------------------------------
+# 2.1. Suporte a Smartcard / Certificado Digital A3 (SafeNet eToken / PKCS#11)
+# ------------------------------------------------------------------------------
+log_msg "INFO" "Instalando infraestrutura PC/SC, driver CCID, OpenSC e ferramentas NSS/PKCS#11..."
+sudo apt install -y pcscd pcsc-tools libccid opensc opensc-pkcs11 libnss3-tools p11-kit p11-kit-modules
+
+# Habilita socket e serviço PC/SC para detecção hotplug do token USB (ex: 0529:0620 Token JC)
+if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+    sudo systemctl enable --now pcscd.socket 2>/dev/null || true
+    sudo systemctl enable --now pcscd.service 2>/dev/null || true
+fi
+
+run_as_real_user() {
+    if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ]; then
+        sudo -u "$REAL_USER" "$@"
+    else
+        "$@"
+    fi
+}
+
+# Instala SafeNet Authentication Client (.deb opcional colocado em config/safenet/) se ainda não instalado
+SAFENET_DEB_DIR="$BASE_DIR/config/safenet"
+if [ -d "$SAFENET_DEB_DIR" ] && \
+   ! dpkg-query -W -f='${Status}' safenetauthenticationclient 2>/dev/null | grep -q "install ok installed" && \
+   ! dpkg-query -W -f='${Status}' safenetauthenticationclient-core 2>/dev/null | grep -q "install ok installed"; then
+    for sac_deb in "$SAFENET_DEB_DIR"/*.deb; do
+        if [ -f "$sac_deb" ]; then
+            log_msg "INFO" "Instalando SafeNet Authentication Client a partir de $(basename "$sac_deb")..."
+            sudo apt install -y "$sac_deb" || true
+            break
+        fi
+    done
+fi
+
+# Registra biblioteca PKCS#11 proprietária da SafeNet no p11-kit caso instalada no sistema
+SAFENET_P11_LIB=""
+for candidate_lib in /usr/lib/libeTPkcs11.so /usr/lib/x86_64-linux-gnu/libeTPkcs11.so /usr/lib/libeToken.so; do
+    if [ -f "$candidate_lib" ]; then
+        SAFENET_P11_LIB="$candidate_lib"
+        break
+    fi
+done
+
+if [ -n "$SAFENET_P11_LIB" ]; then
+    sudo mkdir -p /etc/pkcs11/modules
+    cat << EOF | sudo tee /etc/pkcs11/modules/safenet-etoken.module > /dev/null
+# Módulo PKCS#11 proprietário SafeNet Authentication Client (eToken 5110 / Token JC)
+module: ${SAFENET_P11_LIB}
+EOF
+    sudo chmod 644 /etc/pkcs11/modules/safenet-etoken.module
+    log_msg "SUCCESS" "Módulo PKCS#11 SafeNet registrado no p11-kit: $SAFENET_P11_LIB"
+fi
+
+# Configura NSS DB (~/.pki/nssdb) para navegadores Chromium/Chrome/Brave via p11-kit-proxy.so
+NSSDB_DIR="$REAL_HOME/.pki/nssdb"
+mkdir -p "$NSSDB_DIR"
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.pki"
+chmod 700 "$NSSDB_DIR"
+
+if [ ! -f "$NSSDB_DIR/cert9.db" ] && command -v certutil >/dev/null 2>&1; then
+    run_as_real_user certutil -N --empty-password -d "sql:$NSSDB_DIR" >/dev/null 2>&1 || true
+fi
+
+P11_PROXY_LIB=""
+for p11_candidate in /usr/lib/x86_64-linux-gnu/p11-kit-proxy.so /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-proxy.so; do
+    if [ -f "$p11_candidate" ]; then
+        P11_PROXY_LIB="$p11_candidate"
+        break
+    fi
+done
+
+if [ -n "$P11_PROXY_LIB" ] && command -v modutil >/dev/null 2>&1 && { [ -f "$NSSDB_DIR/pkcs11.txt" ] || [ -f "$NSSDB_DIR/cert9.db" ]; }; then
+    if ! run_as_real_user modutil -list -dbdir "sql:$NSSDB_DIR" 2>/dev/null | grep -Fq "p11-kit-proxy"; then
+        run_as_real_user modutil -dbdir "sql:$NSSDB_DIR" -add "p11-kit-proxy" -libfile "$P11_PROXY_LIB" -force >/dev/null 2>&1 || true
+        log_msg "SUCCESS" "Módulo p11-kit-proxy registrado no NSS DB (~/.pki/nssdb) para uso em navegadores."
+    fi
+fi
+
+# Garante acesso ao socket PC/SC e p11-kit-server caso Firefox esteja instalado via Flatpak
+if command -v flatpak >/dev/null 2>&1; then
+    run_as_real_user flatpak override --user --socket=pcsc --filesystem=xdg-run/p11-kit/pkcs11 org.mozilla.firefox 2>/dev/null || true
+    if [ "$(id -u)" -eq 0 ] || sudo -n true 2>/dev/null; then
+        sudo flatpak override --socket=pcsc --filesystem=xdg-run/p11-kit/pkcs11 org.mozilla.firefox 2>/dev/null || true
+    fi
+fi
+
+# Instala serviço de usuário p11-kit-server para expor o token a apps Flatpak (ex: Firefox)
+P11_SVC_SRC="$BASE_DIR/config/systemd/user/p11-kit-server.service"
+if [ -f "$P11_SVC_SRC" ]; then
+    mkdir -p "$REAL_HOME/.config/systemd/user"
+    cp -f "$P11_SVC_SRC" "$REAL_HOME/.config/systemd/user/p11-kit-server.service"
+    if [ -z "$SAFENET_P11_LIB" ] && [ -f /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so ]; then
+        sed -i 's|--provider /usr/lib/libeTPkcs11.so|--provider /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so|' "$REAL_HOME/.config/systemd/user/p11-kit-server.service"
+    fi
+    chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/systemd"
+    if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+        run_as_real_user DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user daemon-reload 2>/dev/null || true
+        run_as_real_user DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user enable --now p11-kit-server.service 2>/dev/null || true
+    fi
+fi
+
+# Registra p11-kit-client.so nos perfis do Firefox Flatpak
+FIREFOX_FLATPAK_DIR="$REAL_HOME/.var/app/org.mozilla.firefox/config/mozilla/firefox"
+if command -v modutil >/dev/null 2>&1 && [ -d "$FIREFOX_FLATPAK_DIR" ] && [ -f /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-client.so ]; then
+    for ff_profile in "$FIREFOX_FLATPAK_DIR"/*default*; do
+        if [ -d "$ff_profile" ] && [ -f "$ff_profile/pkcs11.txt" ]; then
+            if ! run_as_real_user modutil -list -dbdir "sql:$ff_profile" 2>/dev/null | grep -Fq "p11-kit-client"; then
+                run_as_real_user modutil -dbdir "sql:$ff_profile" -add "p11-kit-client" -libfile /usr/lib/x86_64-linux-gnu/pkcs11/p11-kit-client.so -force >/dev/null 2>&1 || true
+            fi
+        fi
+    done
+fi
+
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.pki"
+
+# ------------------------------------------------------------------------------
 # 3. Ferramenta Aberta SSL-VPN: openfortivpn (Alta Performance com 2FA)
 # ------------------------------------------------------------------------------
 log_msg "INFO" "Instalando openfortivpn e módulos do NetworkManager..."
@@ -326,7 +441,8 @@ password=${ENCRYPTED_RDP_PASS}
 colordepth=32
 quality=9
 sound=local
-sharesmartcard=0
+sharesmartcard=1
+smartcardname=
 shareprinter=0
 sharefolder=
 disableclipboard=0
@@ -342,8 +458,25 @@ enable-autostart=0
 EOF
     chown "$REAL_USER:$REAL_USER" "$REMMINA_PROFILE"
     chmod 600 "$REMMINA_PROFILE"
-    log_msg "SUCCESS" "Perfil RDP do Remmina configurado com senha salva automaticamente."
+    log_msg "SUCCESS" "Perfil RDP do Remmina configurado com senha salva e redirecionamento de Smartcard ativo."
 fi
+
+# Garante redirecionamento de Smartcard ativo em qualquer perfil RDP do MPMS já existente no Remmina
+for remmina_file in "$REAL_HOME/.local/share/remmina"/*.remmina; do
+    [ -f "$remmina_file" ] || continue
+    if grep -q "^protocol=RDP" "$remmina_file" && grep -q "^group=MPMS" "$remmina_file"; then
+        if grep -q "^sharesmartcard=" "$remmina_file"; then
+            sed -i 's/^sharesmartcard=.*/sharesmartcard=1/' "$remmina_file"
+        else
+            echo "sharesmartcard=1" >> "$remmina_file"
+        fi
+        if ! grep -q "^smartcardname=" "$remmina_file"; then
+            echo "smartcardname=" >> "$remmina_file"
+        fi
+        chown "$REAL_USER:$REAL_USER" "$remmina_file"
+        chmod 600 "$remmina_file"
+    fi
+done
 
 # ------------------------------------------------------------------------------
 # 6. Criar Lançador .desktop para clicar e conectar direto na VPN

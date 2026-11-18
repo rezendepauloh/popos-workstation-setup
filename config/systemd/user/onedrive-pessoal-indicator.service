@@ -1,0 +1,13 @@
+[Unit]
+Description=OneDrive Pessoal System Tray Indicator (Wayland / COSMIC)
+After=graphical-session.target onedrive-pessoal.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/rclone-cloud-indicator.py --profile onedrive-pessoal
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

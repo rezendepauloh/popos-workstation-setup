@@ -201,6 +201,75 @@ EOF
 
 chown -R "$REAL_USER:$REAL_USER" "$USER_APPS_DIR/rclone-webui.desktop" 2>/dev/null || true
 
+# 6. Indicadores Nativos de Bandeja (StatusNotifierItem / AyatanaAppIndicator3)
+log_msg "INFO" "Configurando indicadores nativos de bandeja (Google Drive, OneDrive Pessoal e MEGA)..."
+sudo apt install -y python3-gi gir1.2-ayatanaappindicator3-0.1 gir1.2-rsvg-2.0 python3-cairo 2>/dev/null || true
+
+ICON_SCALABLE_DIR="$REAL_HOME/.local/share/icons/hicolor/scalable/apps"
+mkdir -p "$ICON_SCALABLE_DIR" "$REAL_HOME/.local/bin" "$REAL_HOME/.config/systemd/user"
+if [ -f /usr/share/icons/hicolor/index.theme ] && [ ! -f "$REAL_HOME/.local/share/icons/hicolor/index.theme" ]; then
+    cp -f /usr/share/icons/hicolor/index.theme "$REAL_HOME/.local/share/icons/hicolor/index.theme" 2>/dev/null || true
+fi
+
+for icon_name in google-drive onedrive-pessoal mega; do
+    SRC_SVG="$BASE_DIR/config/icons/${icon_name}.svg"
+    if [ -f "$SRC_SVG" ]; then
+        cp -f "$SRC_SVG" "$ICON_SCALABLE_DIR/${icon_name}.svg"
+        cp -f "$SRC_SVG" "/usr/share/pixmaps/${icon_name}.svg" 2>/dev/null || true
+
+        python3 - "$SRC_SVG" "$REAL_HOME/.local/share/icons/hicolor" "$icon_name" 2>/dev/null << 'PYEOF' || true
+import os
+import sys
+import gi
+gi.require_version("Rsvg", "2.0")
+from gi.repository import Rsvg
+import cairo
+
+svg_path, hicolor_base, icon_name = sys.argv[1], sys.argv[2], sys.argv[3]
+if os.path.exists(svg_path):
+    handle = Rsvg.Handle.new_from_file(svg_path)
+    for sz in [16, 24, 32, 48, 64, 128, 256]:
+        sz_dir = os.path.join(hicolor_base, f"{sz}x{sz}", "apps")
+        os.makedirs(sz_dir, exist_ok=True)
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, sz, sz)
+        ctx = cairo.Context(surface)
+        ctx.scale(sz / 32.0, sz / 32.0)
+        handle.render_cairo(ctx)
+        surface.write_to_png(os.path.join(sz_dir, f"{icon_name}.png"))
+PYEOF
+
+        if [ -f "$REAL_HOME/.local/share/icons/hicolor/48x48/apps/${icon_name}.png" ]; then
+            cp -f "$REAL_HOME/.local/share/icons/hicolor/48x48/apps/${icon_name}.png" "/usr/share/pixmaps/${icon_name}.png" 2>/dev/null || true
+        fi
+    fi
+done
+
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/share/icons" 2>/dev/null || true
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -f "$REAL_HOME/.local/share/icons/hicolor" 2>/dev/null || true
+fi
+
+cp -f "$SCRIPT_DIR/daemons/rclone-cloud-indicator.py" "$REAL_HOME/.local/bin/rclone-cloud-indicator.py"
+chmod +x "$REAL_HOME/.local/bin/rclone-cloud-indicator.py"
+chown "$REAL_USER:$REAL_USER" "$REAL_HOME/.local/bin/rclone-cloud-indicator.py"
+
+for ind_svc in gdrive-indicator.service onedrive-pessoal-indicator.service mega-indicator.service; do
+    if [ -f "$BASE_DIR/config/systemd/user/$ind_svc" ]; then
+        cp -f "$BASE_DIR/config/systemd/user/$ind_svc" "$REAL_HOME/.config/systemd/user/"
+    fi
+done
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/systemd" 2>/dev/null || true
+
+if [ "$(id -u)" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+    sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user daemon-reload 2>/dev/null || true
+    sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user enable gdrive-indicator.service onedrive-pessoal-indicator.service mega-indicator.service 2>/dev/null || true
+    sudo -u "$REAL_USER" XDG_RUNTIME_DIR="/run/user/$REAL_UID" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$REAL_UID/bus" systemctl --user restart gdrive-indicator.service onedrive-pessoal-indicator.service mega-indicator.service 2>/dev/null || true
+else
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user enable gdrive-indicator.service onedrive-pessoal-indicator.service mega-indicator.service 2>/dev/null || true
+    systemctl --user restart gdrive-indicator.service onedrive-pessoal-indicator.service mega-indicator.service 2>/dev/null || true
+fi
+
 sleep 2
 if verificar_gdrive_montado; then
     log_msg "SUCCESS" "Google Drive montado com sucesso em '$REAL_HOME/GoogleDrive_Pessoal'."

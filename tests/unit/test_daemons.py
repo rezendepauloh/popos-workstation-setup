@@ -39,6 +39,10 @@ class TestDaemonsAndPatches(unittest.TestCase):
             "wacom_expresskeys_daemon",
             os.path.join(DAEMONS_DIR, "wacom-expresskeys-daemon.py")
         )
+        cls.rclone_indicator = load_module_from_path(
+            "rclone_cloud_indicator",
+            os.path.join(DAEMONS_DIR, "rclone-cloud-indicator.py")
+        )
 
     def test_01_patch_cedilla_binary_and_idempotency(self):
         """Testa aplicação de bytes de cedilha/aspas em um binário mockado, criação de .orig e idempotência."""
@@ -119,6 +123,85 @@ class TestDaemonsAndPatches(unittest.TestCase):
             daemon.last_wheel_time = 0.0
             daemon.handle_wheel(70)
             mock_pulse.assert_called_once_with([ecodes.KEY_LEFTCTRL, ecodes.KEY_MINUS])
+
+    def test_04_rclone_indicator_profiles_and_formatting(self):
+        """Valida os perfis do rclone-cloud-indicator.py e formatação de bytes."""
+        profiles = self.rclone_indicator.CLOUD_PROFILES
+        self.assertEqual(set(profiles.keys()), {'gdrive-pessoal', 'onedrive-pessoal', 'mega-pessoal'})
+        self.assertEqual(profiles['gdrive-pessoal']['mount_service'], 'gdrive-pessoal.service')
+        self.assertEqual(profiles['onedrive-pessoal']['mount_service'], 'onedrive-pessoal.service')
+        self.assertEqual(profiles['mega-pessoal']['mount_service'], 'mega-pessoal.service')
+
+        self.assertEqual(self.rclone_indicator.format_bytes(0), '0 B')
+        self.assertEqual(self.rclone_indicator.format_bytes(512), '512 B')
+        self.assertEqual(self.rclone_indicator.format_bytes(1024), '1.0 KB')
+        self.assertEqual(self.rclone_indicator.format_bytes(1024 ** 3 * 2.5), '2.5 GB')
+
+        args = self.rclone_indicator.parse_args(['--profile', 'mega-pessoal'])
+        self.assertEqual(args.profile, 'mega-pessoal')
+
+    def test_05_rclone_indicator_mountpoint_and_vfs_parsing(self):
+        """Testa detecção de mountpoint em /proc/mounts simulado, df e logs VFS do rclone."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mounted_dir = os.path.join(tmpdir, 'GoogleDrive_Pessoal')
+            spaced_dir = os.path.join(tmpdir, 'My Cloud')
+            unmounted_dir = os.path.join(tmpdir, 'Mega_Pessoal')
+            os.makedirs(mounted_dir)
+            os.makedirs(spaced_dir)
+            os.makedirs(unmounted_dir)
+
+            fake_mounts = os.path.join(tmpdir, 'mounts')
+            with open(fake_mounts, 'w', encoding='utf-8') as f:
+                f.write(f"gdrive_pessoal: {mounted_dir} fuse.rclone rw,nosuid,nodev 0 0\n")
+                f.write(f"other: {spaced_dir.replace(' ', r'\040')} fuse.rclone rw 0 0\n")
+
+            self.assertTrue(self.rclone_indicator.is_mountpoint_active(mounted_dir, mounts_file=fake_mounts))
+            self.assertTrue(self.rclone_indicator.is_mountpoint_active(spaced_dir, mounts_file=fake_mounts))
+            self.assertFalse(self.rclone_indicator.is_mountpoint_active(unmounted_dir, mounts_file=fake_mounts))
+
+            # Testa parser de log VFS
+            sample_line = "INFO  : Google drive root '': vfs cache: cleaned: objects 12 (was 14) in use 1, to upload 3, uploading 2, total size 45.2Mi (was 50Mi)"
+            parsed = self.rclone_indicator.parse_vfs_journal_line(sample_line)
+            self.assertEqual(parsed, {
+                'objects': 12,
+                'in_use': 1,
+                'to_upload': 3,
+                'uploading': 2,
+                'total_size_str': '45.2Mi',
+            })
+            self.assertIsNone(self.rclone_indicator.parse_vfs_journal_line("unrelated log line"))
+
+            # Testa get_vfs_cache_info com diretório local e journalctl mockado
+            vfs_remote_dir = os.path.join(tmpdir, 'vfs', 'gdrive_pessoal')
+            os.makedirs(vfs_remote_dir)
+            with open(os.path.join(vfs_remote_dir, 'cached.bin'), 'wb') as f:
+                f.write(b'x' * 2048)
+
+            fake_journal = MagicMock(returncode=0, stdout=sample_line + "\n")
+            with patch.object(self.rclone_indicator.subprocess, 'run', return_value=fake_journal):
+                info = self.rclone_indicator.get_vfs_cache_info(
+                    'gdrive_pessoal',
+                    'gdrive-pessoal.service',
+                    cache_base=os.path.join(tmpdir, 'vfs'),
+                )
+            self.assertEqual(info['cache_bytes'], 2048)
+            self.assertEqual(info['cache_files'], 1)
+            self.assertEqual(info['to_upload'], 3)
+            self.assertEqual(info['uploading'], 2)
+
+            # Testa get_mount_space_info com saída mockada do df
+            fake_df = MagicMock(
+                returncode=0,
+                stdout="      1B-blocks         Used        Avail Use%\n53687091200 4294967296 49392123904   8%\n",
+            )
+            with patch.object(self.rclone_indicator.subprocess, 'run', return_value=fake_df):
+                space = self.rclone_indicator.get_mount_space_info(mounted_dir)
+            self.assertEqual(space, {
+                'total': 53687091200,
+                'used': 4294967296,
+                'avail': 49392123904,
+                'pcent': '8%',
+            })
 
 
 if __name__ == '__main__':

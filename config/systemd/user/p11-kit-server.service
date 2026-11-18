@@ -1,0 +1,12 @@
+[Unit]
+Description=p11-kit PKCS#11 Server (exposes host tokens to Flatpak apps)
+
+[Service]
+Type=simple
+ExecStartPre=/bin/mkdir -p %t/p11-kit
+ExecStart=/usr/bin/p11-kit server -f -n %t/p11-kit/pkcs11 --provider /usr/lib/libeTPkcs11.so pkcs11:
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
