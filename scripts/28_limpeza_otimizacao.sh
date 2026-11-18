@@ -269,6 +269,23 @@ systemctl --user daemon-reload 2>/dev/null || true
 systemctl --user enable --now backup-workstation.timer 2>/dev/null || true
 
 # ------------------------------------------------------------------------------
+# 8. Timer Leve de Sincronização de Backups do Homelab (disk3 -> Pop!_OS)
+# ------------------------------------------------------------------------------
+log_msg "INFO" "Configurando Systemd Timer leve para sincronização de backups do Homelab..."
+mkdir -p "$REAL_HOME/.config/systemd/user" "$REAL_HOME/.local/state"
+cp -f "$SCRIPT_DIR/../config/systemd/user/homelab-backup-sync.service" "$REAL_HOME/.config/systemd/user/" 2>/dev/null || true
+cp -f "$SCRIPT_DIR/../config/systemd/user/homelab-backup-sync.timer" "$REAL_HOME/.config/systemd/user/" 2>/dev/null || true
+chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config/systemd" "$REAL_HOME/.local/state" 2>/dev/null || true
+
+if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ]; then
+    sudo -u "$REAL_USER" systemctl --user daemon-reload 2>/dev/null || true
+    sudo -u "$REAL_USER" systemctl --user enable --now homelab-backup-sync.timer 2>/dev/null || true
+else
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user enable --now homelab-backup-sync.timer 2>/dev/null || true
+fi
+
+# ------------------------------------------------------------------------------
 # Conclusão
 # ------------------------------------------------------------------------------
 set_flag "$FLAG_NAME"

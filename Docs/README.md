@@ -20,6 +20,7 @@ Docs/
 │   ├── como-fazer-backup-android.md                  # Backup automatizado de celular Android via ADB de alta velocidade
 │   ├── como-atualizar-containers-docker.md           # Atualização automatizada de containers Docker (Compose & Standalone)
 │   ├── como-atualizar-antigravity.md                 # Atualização do Google Antigravity IDE com patch de cedilha/Wayland
+│   ├── sincronizacao_backups_homelab.md              # Timer systemd diário para sincronização de backups do Homelab (umbrelOS)
 │   └── gravacao_de_tela_cosmic_kooha.md              # Gravação de tela nativa Wayland via Kooha e atalhos Kando
 │
 ├── 🚨 issues/                                        # Diagnósticos aprofundados, bugs upstream & soluções
@@ -68,6 +69,7 @@ Docs/
 * **Interface Escura do VLC Media Player:** [Customização QSS Completa](guias/tema_escuro_botoes_vlc.md)
 * **Atualização de Containers Docker:** [Script Automatizado (Compose & Standalone)](guias/como-atualizar-containers-docker.md)
 * **Atualização do Google Antigravity IDE:** [Script Oficial com Patch de Cedilha & Wayland](guias/como-atualizar-antigravity.md)
+* **Sincronização de Backups do Homelab (umbrelOS):** [Timer Systemd Diário de Baixo Impacto](guias/sincronizacao_backups_homelab.md)
 
 ---
 

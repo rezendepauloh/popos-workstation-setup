@@ -107,7 +107,7 @@ if [ -f /opt/antigravity/chrome-sandbox ]; then
 fi
 
 # 4. Preserva wrapper Wayland em /opt/antigravity/bin/antigravity-ide
-if [ -x /usr/local/bin/antigravity ]; then
+if [ -x /usr/local/bin/antigravity ] && [ ! /usr/local/bin/antigravity -ef /opt/antigravity/bin/antigravity-ide ]; then
     sudo mkdir -p /opt/antigravity/bin
     sudo cp -f /usr/local/bin/antigravity /opt/antigravity/bin/antigravity-ide
     sudo chmod +x /opt/antigravity/bin/antigravity-ide

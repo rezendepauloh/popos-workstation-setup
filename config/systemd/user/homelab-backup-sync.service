@@ -1,0 +1,15 @@
+[Unit]
+Description=Sincronização e Rotação Leve de Backups do Homelab (disk3 -> Pop!_OS)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=%h/Documentos/DevProjects/Bash/umbrelos-scripts/scripts/utils/homelab_auditar_e_sincronizar_backups.sh
+
+[Service]
+Type=oneshot
+Nice=19
+IOSchedulingClass=idle
+CPUQuota=35%
+ExecStart=/usr/bin/nice -n 19 /usr/bin/ionice -c3 %h/Documentos/DevProjects/Bash/umbrelos-scripts/scripts/utils/homelab_auditar_e_sincronizar_backups.sh --auto
+StandardOutput=append:%h/.local/state/homelab-backup-sync.log
+StandardError=append:%h/.local/state/homelab-backup-sync.log
+

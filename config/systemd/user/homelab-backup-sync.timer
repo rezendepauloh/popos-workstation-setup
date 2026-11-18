@@ -1,0 +1,11 @@
+[Unit]
+Description=Timer Diário Leve para Varredura e Sincronização de Backups do Homelab
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target
+
