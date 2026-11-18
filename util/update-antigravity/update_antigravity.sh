@@ -26,6 +26,13 @@ for arg in "$@"; do
     case "$arg" in
         --check) CHECK_ONLY=true ;;
         --force) FORCE=true ;;
+        --help|-h)
+            echo "Uso: $0 [--check] [--force] [--help]"
+            echo "  --check   Apenas verifica se há nova versão disponível"
+            echo "  --force   Força a reinstalação mesmo na última versão"
+            echo "  --help    Exibe esta ajuda"
+            exit 0
+            ;;
     esac
 done
 
@@ -42,9 +49,11 @@ echo -e "${C_CYAN}==============================================================
 echo -e "${C_CYAN}   🚀 ATUALIZAÇÃO DO GOOGLE ANTIGRAVITY IDE                     ${C_RESET}"
 echo -e "${C_CYAN}================================================================${C_RESET}"
 
-# 1. Versão instalada atualmente
+# 1. Versão instalada atualmente (ideVersion em product.json)
 CURRENT_VER="não instalado"
-if [ -f /opt/antigravity/resources/app/package.json ]; then
+if [ -f /opt/antigravity/resources/app/product.json ]; then
+    CURRENT_VER="$(python3 -c 'import json; d = json.load(open("/opt/antigravity/resources/app/product.json")); print(d.get("ideVersion") or d.get("version") or "desconhecida")' 2>/dev/null || echo "desconhecida")"
+elif [ -f /opt/antigravity/resources/app/package.json ]; then
     CURRENT_VER="$(python3 -c 'import json; print(json.load(open("/opt/antigravity/resources/app/package.json")).get("version", "desconhecida"))' 2>/dev/null || echo "desconhecida")"
 fi
 log_info "Versão instalada: $CURRENT_VER"
