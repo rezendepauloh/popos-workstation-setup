@@ -114,7 +114,8 @@ Para que os aplicativos do WinApps (Word, Excel, etc.) e as sessões RDP abram i
    winapps-vm fix-autologon
    ```
 3. O comando configura no Registro do Windows:
-   - `AutoAdminLogon = 1` com as credenciais do seu `.env`
+   - `AutoAdminLogon = 0` e remoção de `ForceAutoLogon` (impede sessão automática concorrente na Console que bloqueia o RemoteApp com aviso de "Outro usuário conectado" / tela preta)
+   - `UserAuthentication = 1` (NLA habilitado para autenticação transparente antes da abertura da sessão)
    - `NoLockScreen = 1` (desativa tela de bloqueio com relógio)
    - `fPromptForPassword = 0` (impede solicitações repetitivas de senha no RDP)
    - `powercfg -x -monitor-timeout-ac 0` (impede suspensão ou desligamento de tela)
@@ -207,16 +208,15 @@ Para evitar ter que abrir a VM ou janelas do Windows apenas para acessar arquivo
 
 ---
 
-## ⚠️ 7. Issues Mapeadas & Próximos Passos (Acompanhamento)
+## ⚠️ 7. Issues Mapeadas & Resolvidas
 
-### 📌 Issue: Comportamento Anômalo / Congelamento da Janela ao Clicar nos WinApps
-* **Sintoma:** Ao disparar o Word ou Excel pelo atalho `(WinApp)` no COSMIC Launcher, surge a tela inicial (Splash Screen) ou uma moldura que congela/trava na área de trabalho, interferindo na sessão.
-* **Causas Prováveis Investigadas:**
-  1. **Compositor Wayland vs FreeRDP 3 (RAIL / RemoteApp):**
-     - O FreeRDP 3 com flags `/app` (RemoteApp) sob Wayland nativo às vezes tenta criar superfícies `xf_UnmapWindowForSurface` e repassar eventos de foco antes do handshake completo da janela principal do Office.
-  2. **Interação com Pop Shell / COSMIC Window Management:**
-     - Falta de regra de exceção para janelas flutuantes (`Floating window exception`) no COSMIC para classes de janela do FreeRDP (`StartupWMClass=Microsoft Word`, `Microsoft Excel`, etc.), fazendo o compositor tentar ladrilhar (tile) uma janela remota sem suporte a redimensionamento dinâmico.
-  3. **Flags de RDP a Testar na Próxima Sessão:**
-     - Testar uso do backend Wayland nativo do FreeRDP (`wlfreerdp3`) vs cliente XWayland (`xfreerdp3` com `/gdi:hw` ou `/gfx:avc420`).
-     - Avaliar adição de `/network:auto` e desativação temporária de redirecionamento de áudio/clipboard (`/clipboard` ou `/sound`) para isolar se é contenção de canal virtual.
-* **Status:** Mapeado para depuração e refinamento na próxima sessão.
+### ✅ Issue Resolvida: Aviso "Outro usuário conectado" e Janela Preta nos WinApps (RemoteApp)
+* **Sintoma:** Ao abrir Word, Excel ou PowerPoint pelo atalho `(WinApp)`, o RDP exibia o aviso *"Another user is signed in / Já existe um usuário com sessão aberta"* (`LOGON_MSG_BUMP_OPTIONS`); ao escolher **"Sim"**, a janela ficava preta sem renderizar o aplicativo.
+* **Causa-Raiz Identificada:**
+  1. As chaves `AutoAdminLogon = 1` e `ForceAutoLogon = 1` em `HKLM\...\Winlogon` faziam o Windows logar automaticamente o usuário `winapps` na sessão Console (`Session 1`) no boot.
+  2. Com `fSingleSessionPerUser = 1` e `UserAuthentication = 0` (NLA desativado), a conexão RemoteApp via `xfreerdp3` abria uma nova sessão (`Session 2`) com `LogonUI.exe` pedindo desconexão da Console. Ao confirmar, `ForceAutoLogon = 1` disparava imediatamente um novo logon automático na Console (`Session 3`), travando a `Session 2` em tela preta (`LogonUI.exe` ativo, sem iniciar `WINWORD.EXE`).
+  3. Adicionalmente, no Docker Engine 29+, `winapps-smb-sync.sh` usava `--format '{{.Status}}'` em `docker events` (campo inválido em `*events.Message`), fazendo o serviço `winapps-smb-sync.service` reiniciar em loop.
+* **Solução Aplicada:**
+  - Garantido `AutoAdminLogon = 0`, remoção de `ForceAutoLogon` e `UserAuthentication = 1` (NLA) em [`scripts/26_winapps_office.sh`](../../scripts/26_winapps_office.sh) e [`util/winapps/setup_autologon.bat`](../../util/winapps/setup_autologon.bat), aplicados na VM via `winapps-vm fix-autologon`.
+  - Corrigido `docker events --format '{{.Action}}'` no `winapps-smb-sync.sh` para manter a sincronização SMB do OneDrive ativa sem reinícios em loop.
+* **Status:** Resolvido e validado após reinicialização do container `winapps-windows` (Word, Excel e PowerPoint renderizando nativamente via `xfreerdp3` RAIL sem prompts).

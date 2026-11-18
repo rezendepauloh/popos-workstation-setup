@@ -104,8 +104,12 @@ class TestOrchestratorAndModules(unittest.TestCase):
 
         self.assertIn('setup_autologon.bat', content)
         self.assertIn('AutoAdminLogon', content)
+        self.assertIn('ForceAutoLogon', content)
+        self.assertIn('UserAuthentication', content)
         self.assertIn('NoLockScreen', content)
         self.assertIn('fPromptForPassword', content)
+        self.assertIn("{{.Action}}", content)
+        self.assertNotIn("{{.Status}}", content)
         self.assertIn('onedrive-x86.desktop', content)
         self.assertIn('gio open smb://172.20.0.2/onedrive-mpms', content)
         self.assertIn('microsoft-onedrive.desktop', content)
@@ -116,7 +120,9 @@ class TestOrchestratorAndModules(unittest.TestCase):
         self.assertTrue(os.path.isfile(autologon_bat), "util/winapps/setup_autologon.bat deve existir")
         with open(autologon_bat, 'r', encoding='utf-8') as f:
             bat_content = f.read()
-        self.assertIn('AutoAdminLogon', bat_content)
+        self.assertIn('AutoAdminLogon" /t REG_SZ /d "0"', bat_content)
+        self.assertIn('delete "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v "ForceAutoLogon"', bat_content)
+        self.assertIn('UserAuthentication" /t REG_DWORD /d 1', bat_content)
         self.assertIn('NoLockScreen', bat_content)
         self.assertIn('fPromptForPassword', bat_content)
 

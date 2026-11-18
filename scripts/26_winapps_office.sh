@@ -153,9 +153,10 @@ reg.exe add "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" /v
 :: 2. Desativar Tela de Bloqueio (NoLockScreen)
 reg.exe add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization" /v "NoLockScreen" /t REG_DWORD /d 1 /f >> "%LOG_FILE%" 2>&1
 
-:: 3. Desativar solicitacao de senha ao conectar via RDP / Terminal Services
+:: 3. Desativar solicitacao de senha ao conectar via RDP / Terminal Services (preservando NLA)
 reg.exe add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" /v "fPromptForPassword" /t REG_DWORD /d 0 /f >> "%LOG_FILE%" 2>&1
 reg.exe add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v "fPromptForPassword" /t REG_DWORD /d 0 /f >> "%LOG_FILE%" 2>&1
+reg.exe add "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" /v "UserAuthentication" /t REG_DWORD /d 1 /f >> "%LOG_FILE%" 2>&1
 
 :: 4. Desativar protecao por senha no protetor de tela
 reg.exe add "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Control Panel\\Desktop" /v "ScreenSaverIsSecure" /t REG_SZ /d 0 /f >> "%LOG_FILE%" 2>&1
@@ -314,7 +315,7 @@ fi
 apply_smb_fix
 
 # Fica em loop ouvindo eventos do Docker (start, restart, unpause)
-docker events --filter "container=$CONTAINER" --filter "event=start" --filter "event=unpause" --format '{{.Status}}' 2>/dev/null | while read -r event; do
+docker events --filter "container=$CONTAINER" --filter "event=start" --filter "event=unpause" --format '{{.Action}}' 2>/dev/null | while read -r event; do
     apply_smb_fix
 done
 EOF

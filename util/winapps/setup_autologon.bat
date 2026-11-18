@@ -25,9 +25,10 @@ reg.exe add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v "Aut
 :: 2. Desativar Tela de Bloqueio (NoLockScreen)
 reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization" /v "NoLockScreen" /t REG_DWORD /d 1 /f >> "%LOG_FILE%" 2>&1
 
-:: 3. Desativar solicitacao de senha ao conectar via RDP / Terminal Services
+:: 3. Desativar solicitacao de senha ao conectar via RDP / Terminal Services (preservando NLA)
 reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" /v "fPromptForPassword" /t REG_DWORD /d 0 /f >> "%LOG_FILE%" 2>&1
 reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v "fPromptForPassword" /t REG_DWORD /d 0 /f >> "%LOG_FILE%" 2>&1
+reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" /v "UserAuthentication" /t REG_DWORD /d 1 /f >> "%LOG_FILE%" 2>&1
 
 :: 4. Desativar protecao por senha no protetor de tela
 reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Control Panel\Desktop" /v "ScreenSaverIsSecure" /t REG_SZ /d 0 /f >> "%LOG_FILE%" 2>&1
