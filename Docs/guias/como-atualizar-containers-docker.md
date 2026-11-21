@@ -6,12 +6,14 @@ Este guia explica como utilizar o utilitário [update_containers.sh](../../util/
 
 ## 📋 O que o Script Faz
 
-1. **Projetos Docker Compose**:
+1. **Projetos Docker Compose (uma stack por vez)**:
    - Descobre automaticamente os arquivos `docker-compose.yml` a partir dos labels dos containers (`com.docker.compose.project.config_files`).
-   - Executa `docker compose pull --ignore-buildable` (ignorando serviços construídos localmente) e `docker compose up -d`.
-2. **Containers Standalone**:
+   - No modo `--dry-run`, inspeciona cada container da stack, exibe a imagem, a versão/digest local e compara com o digest remoto via `docker manifest inspect` para indicar o que está atualizado ou prestes a atualizar.
+   - Na execução normal, atualiza cada stack sequencialmente (`[i/N]`), executando `docker compose pull --ignore-buildable` e `docker compose up -d` para acompanhar o progresso passo a passo.
+2. **Containers Standalone (um por vez)**:
    - Identifica containers sem projeto Compose associado (ex.: `dozzle-agent`).
-   - Faz `docker pull` da imagem configurada; se houver nova versão, recria o container preservando nome, portas, volumes, variáveis de ambiente, política de *restart*, rede e comando.
+   - No modo `--dry-run`, exibe a versão/digest local e verifica se há atualização remota disponível.
+   - Na execução normal, faz `docker pull` da imagem configurada; se houver nova versão, recria o container preservando nome, portas, volumes, variáveis de ambiente, política de *restart*, rede e comando.
 3. **Limpeza**:
    - Remove imagens antigas sem uso (*dangling*) com `docker image prune -f`.
 
