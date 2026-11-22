@@ -43,13 +43,30 @@ pub fn load_env_file(repo_root: &Path, target: EnvTarget) -> Result<LoadedEnvFil
         .map_err(|e| format!("Erro ao ler {}: {e}", read_path.display()))?;
     let mut entries = parse_env_content(&content);
 
-    // Merge newly added template keys from .env.example / config.env.example
+    // Merge newly added template keys and enrich section/comment metadata from .example
     if !loaded_from_example && example.exists() && ensure_not_symlink(&example).is_ok()
         && let Ok(ex_content) = fs::read_to_string(&example)
     {
+        let ex_entries = parse_env_content(&ex_content);
+        let ex_meta: HashMap<String, (String, String)> = ex_entries
+            .iter()
+            .map(|e| (e.key.clone(), (e.section.clone(), e.comment.clone())))
+            .collect();
+
+        for item in &mut entries {
+            if let Some((sec, cmt)) = ex_meta.get(&item.key) {
+                if !sec.is_empty() && sec != "Geral" {
+                    item.section = sec.clone();
+                }
+                if item.comment.is_empty() && !cmt.is_empty() {
+                    item.comment = cmt.clone();
+                }
+            }
+        }
+
         let existing_keys: std::collections::HashSet<String> =
             entries.iter().map(|e| e.key.clone()).collect();
-        for ex_item in parse_env_content(&ex_content) {
+        for ex_item in ex_entries {
             if !existing_keys.contains(&ex_item.key) {
                 entries.push(ex_item);
             }

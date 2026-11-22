@@ -1,4 +1,6 @@
-# 🖥️ Issue: Porta RDP (3389) Inacessível no Windows 11 Remoto (Edição Home)
+# 🖥️ Issue: Porta RDP (3389) Inacessível no Windows 11 Remoto (Edição Home) — ✅ Resolvido
+
+## 📌 Contexto & Sintomas
 
 ## 📌 Contexto & Sintomas
 
@@ -15,11 +17,9 @@
 
 ---
 
-## ✅ Mitigação Atual & Próximos Passos
+## ✅ Solução Aplicada (Resolvido)
 
 1. **Manutenção & Limpeza (100% operacional via SSH):**
-   - Todas as rotinas de status, disco, limpeza de `%TEMP%`/Lixeira, `winget upgrade` e Wake-on-LAN funcionam normalmente via SSH sem depender do RDP.
-2. **Alternativas futuras caso precise de controle gráfico de tela:**
-   - **RustDesk** (cliente/servidor gratuito com acesso direto na LAN/IP ou relay) — opção mais simples para Windows Home.
-   - **Sunshine + Moonlight** (já utilizado na workstation para streaming em baixa latência).
-   - **Upgrade para Windows 11 Pro**, caso deseje usar `xfreerdp3` / `remmina` nativamente.
+   - Todas as rotinas de status, disco, limpeza de `%TEMP%`/Lixeira, `winget upgrade` e Wake-on-LAN funcionam normalmente via OpenSSH (porta `22`).
+2. **Controle Gráfico de Tela via Sunshine + Moonlight (em uso):**
+   - Instalado o **Sunshine** no Windows 11 (`winget install LizardByte.Sunshine`) e o cliente **Moonlight** (`com.moonlight_stream.Moonlight`) no Pop!_OS (integrado ao módulo [`scripts/18_jogos_performance.sh`](../../scripts/18_jogos_performance.sh), ao [`util/remote-devices/win_remote.sh`](../../util/remote-devices/win_remote.sh) com `--moonlight` e ao botão **Abrir Tela (Moonlight)** no `workstation-hub`).

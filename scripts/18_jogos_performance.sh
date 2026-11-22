@@ -19,8 +19,8 @@ log_msg "HEADER" "18. JOGOS, CONTROLES E PERFORMANCE MÁXIMA"
 log_msg "INFO" "Instalando Steam, Gamemode, MangoHud e jstest-gtk (Testador de Controles)..."
 sudo apt install -y steam gamemode mangohud jstest-gtk
 
-log_msg "INFO" "Instalando Heroic Games Launcher e AntiMicroX (Mapeador de Controles) via Flatpak..."
-flatpak install -y --system flathub com.heroicgameslauncher.hgl io.github.antimicrox.antimicrox
+log_msg "INFO" "Instalando Heroic Games Launcher, AntiMicroX e Moonlight via Flatpak..."
+flatpak install -y --system flathub com.heroicgameslauncher.hgl io.github.antimicrox.antimicrox com.moonlight_stream.Moonlight
 
 # Permissão para o Heroic acessar o SSD dedicado de jogos
 flatpak override --user --filesystem=/mnt/nvme_01 com.heroicgameslauncher.hgl 2>/dev/null || true

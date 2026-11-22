@@ -44,7 +44,8 @@ New-NetFirewallRule -Name 'RDP-3389-TCP' -DisplayName 'RDP TCP 3389' -Enabled Tr
 ./util/remote-devices/win_remote.sh --mode lan --status         # OS, Uptime, RAM e espaço em disco
 ./util/remote-devices/win_remote.sh --mode lan --clean          # Limpa %TEMP%, Windows\Temp e Lixeira
 ./util/remote-devices/win_remote.sh --mode lan --winget-upgrade # Atualiza programas via winget
-./util/remote-devices/win_remote.sh --mode lan --rdp            # Abre tela remota (xfreerdp3/remmina)
+./util/remote-devices/win_remote.sh --mode lan --moonlight      # Abre tela remota via Moonlight/Sunshine (instala Flatpak se necessário)
+./util/remote-devices/win_remote.sh --mode lan --rdp            # Abre tela remota RDP (xfreerdp3/remmina)
 ./util/remote-devices/win_remote.sh --wol                       # Envia Wake-on-LAN (via REMOTE_WIN_MAC)
 ```
 

@@ -676,6 +676,7 @@ impl cosmic::Application for AppModel {
                     "win_status" => ("Windows 11: Status & Disco", "util/remote-devices/win_remote.sh", vec!["--mode", mode, "--status"]),
                     "win_clean" => ("Windows 11: Limpar Cache & Temp", "util/remote-devices/win_remote.sh", vec!["--mode", mode, "--clean"]),
                     "win_winget" => ("Windows 11: Winget Upgrade", "util/remote-devices/win_remote.sh", vec!["--mode", mode, "--winget-upgrade"]),
+                    "win_moonlight" => ("Windows 11: Abrir Moonlight", "util/remote-devices/win_remote.sh", vec!["--mode", mode, "--moonlight"]),
                     "win_rdp" => ("Windows 11: Abrir RDP", "util/remote-devices/win_remote.sh", vec!["--mode", mode, "--rdp"]),
                     "win_wol" => ("Windows 11: Wake-on-LAN", "util/remote-devices/win_remote.sh", vec!["--mode", mode, "--wol"]),
                     "win_setup_ssh" => ("Windows 11: Comando Setup OpenSSH", "util/remote-devices/win_remote.sh", vec!["--setup-ssh-cmd"]),

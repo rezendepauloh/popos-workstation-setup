@@ -39,13 +39,14 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         Some(false) => format!("○ Offline/Inacessível ({}@{win_host})", rd.win_user),
     };
 
-    let win_btns = widget::row::with_capacity(7)
+    let win_btns = widget::row::with_capacity(8)
         .spacing(space_s)
         .push(widget::button::standard("Testar SSH/RDP").on_press(Message::RunRemoteAction("win_check".to_string())))
         .push(widget::button::standard("Status & Disco").on_press(Message::RunRemoteAction("win_status".to_string())))
         .push(widget::button::suggested("Limpar Cache & Temp").on_press(Message::RunRemoteAction("win_clean".to_string())))
         .push(widget::button::standard("Winget Upgrade").on_press(Message::RunRemoteAction("win_winget".to_string())))
-        .push(widget::button::suggested("Abrir Tela RDP").on_press(Message::RunRemoteAction("win_rdp".to_string())))
+        .push(widget::button::suggested("Abrir Tela (Moonlight)").on_press(Message::RunRemoteAction("win_moonlight".to_string())))
+        .push(widget::button::standard("Abrir RDP").on_press(Message::RunRemoteAction("win_rdp".to_string())))
         .push(widget::button::standard("Ligar (WoL)").on_press(Message::RunRemoteAction("win_wol".to_string())))
         .push(widget::button::standard("Setup OpenSSH").on_press(Message::RunRemoteAction("win_setup_ssh".to_string())));
 

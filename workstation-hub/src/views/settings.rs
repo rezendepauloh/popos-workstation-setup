@@ -55,15 +55,28 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .push(widget::button::standard("Recarregar").on_press(Message::ReloadCurrentEnv))
         .push(widget::button::suggested("Salvar (chmod 0600)").on_press(Message::SaveCurrentEnv));
 
-    let mut env_sec = settings::section().title(format!("Editor {}", app.env_target.label()));
+    let mut col = widget::column::with_capacity(16)
+        .spacing(space_m)
+        .push(header)
+        .push(paths_section)
+        .push(env_toolbar);
+
     if let Some(msg) = &app.env_status_msg {
-        env_sec = env_sec.add(
-            settings::item::builder("Status do Arquivo")
-                .control(widget::text::caption(msg.clone())),
+        col = col.push(
+            settings::section()
+                .title(format!("Editor {}", app.env_target.label()))
+                .add(
+                    settings::item::builder("Status do Arquivo")
+                        .control(widget::text::caption(msg.clone())),
+                ),
         );
     }
 
     let query = app.env_search.trim().to_ascii_lowercase();
+    let mut section_order: Vec<String> = Vec::new();
+    let mut grouped: std::collections::HashMap<String, Vec<(usize, &crate::models::env_entry::EnvVarItem)>> =
+        std::collections::HashMap::new();
+
     for (idx, item) in app.env_entries.iter().enumerate() {
         if !query.is_empty()
             && !item.key.to_ascii_lowercase().contains(&query)
@@ -72,45 +85,50 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         {
             continue;
         }
-
-        let mut input = widget::text_input("Valor...", &item.value)
-            .on_input(move |v| Message::EnvValueChanged(idx, v))
-            .width(Length::Fixed(320.0));
-        if item.is_secret && !item.revealed {
-            input = input.password();
-        }
-
-        let mut ctrl = widget::row::with_capacity(2)
-            .spacing(space_s)
-            .align_y(Alignment::Center)
-            .push(input);
-
-        if item.is_secret {
-            ctrl = ctrl.push(
-                widget::button::standard(if item.revealed { "Ocultar" } else { "Revelar" })
-                    .on_press(Message::ToggleEnvReveal(idx)),
-            );
-        }
-
-        let desc = if item.comment.is_empty() {
-            item.section.clone()
+        let sec_name = if item.section.trim().is_empty() {
+            "Geral".to_string()
         } else {
-            format!("{} · {}", item.section, item.comment)
+            item.section.clone()
         };
-
-        env_sec = env_sec.add(
-            settings::item::builder(&item.key)
-                .description(desc)
-                .control(ctrl),
-        );
+        if !grouped.contains_key(&sec_name) {
+            section_order.push(sec_name.clone());
+        }
+        grouped.entry(sec_name).or_default().push((idx, item));
     }
 
-    let col = widget::column::with_capacity(4)
-        .spacing(space_m)
-        .push(header)
-        .push(paths_section)
-        .push(env_toolbar)
-        .push(env_sec);
+    for sec_name in section_order {
+        let mut sec = settings::section().title(sec_name.clone());
+        if let Some(items) = grouped.get(&sec_name) {
+            for (idx, item) in items {
+                let idx = *idx;
+                let mut input = widget::text_input("Valor...", &item.value)
+                    .on_input(move |v| Message::EnvValueChanged(idx, v))
+                    .width(Length::Fixed(320.0));
+                if item.is_secret && !item.revealed {
+                    input = input.password();
+                }
+
+                let mut ctrl = widget::row::with_capacity(2)
+                    .spacing(space_s)
+                    .align_y(Alignment::Center)
+                    .push(input);
+
+                if item.is_secret {
+                    ctrl = ctrl.push(
+                        widget::button::standard(if item.revealed { "Ocultar" } else { "Revelar" })
+                            .on_press(Message::ToggleEnvReveal(idx)),
+                    );
+                }
+
+                sec = sec.add(
+                    settings::item::builder(&item.key)
+                        .description(item.comment.clone())
+                        .control(ctrl),
+                );
+            }
+        }
+        col = col.push(sec);
+    }
 
     widget::scrollable(col).height(Length::Fill).into()
 }

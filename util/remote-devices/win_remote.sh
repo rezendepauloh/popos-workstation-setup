@@ -35,12 +35,12 @@ while [[ $# -gt 0 ]]; do
             MODE="${2:-lan}"
             shift 2
             ;;
-        --check|--status|--clean|--winget-upgrade|--rdp|--wol|--setup-ssh-cmd)
+        --check|--status|--clean|--winget-upgrade|--rdp|--moonlight|--wol|--setup-ssh-cmd)
             ACTION="$1"
             shift
             ;;
         --help|-h)
-            echo "Uso: $0 [--mode lan|tailscale] [--check|--status|--clean|--winget-upgrade|--rdp|--wol|--setup-ssh-cmd]"
+            echo "Uso: $0 [--mode lan|tailscale] [--check|--status|--clean|--winget-upgrade|--rdp|--moonlight|--wol|--setup-ssh-cmd]"
             exit 0
             ;;
         *)
@@ -146,6 +146,22 @@ if [ "$ACTION" = "--check" ]; then
 fi
 
 validate_token "$TARGET_USER" "REMOTE_WIN_USER"
+
+if [ "$ACTION" = "--moonlight" ]; then
+    if command -v flatpak >/dev/null 2>&1; then
+        if ! flatpak list --app 2>/dev/null | grep -q "com.moonlight_stream.Moonlight"; then
+            echo -e "${C_CYAN}[INFO] Moonlight não encontrado. Instalando com.moonlight_stream.Moonlight via Flatpak...${C_RESET}"
+            flatpak install -y flathub com.moonlight_stream.Moonlight
+        fi
+        echo -e "${C_CYAN}[INFO] Abrindo Moonlight (Sunshine Desktop)...${C_RESET}"
+        exec flatpak run com.moonlight_stream.Moonlight
+    elif command -v moonlight-qt >/dev/null 2>&1; then
+        exec moonlight-qt
+    else
+        echo -e "${C_RED}[ERRO] Flatpak ou moonlight-qt não encontrado.${C_RESET}" >&2
+        exit 1
+    fi
+fi
 
 if [ "$ACTION" = "--rdp" ]; then
     echo -e "${C_CYAN}[INFO] Abrindo sessão RDP para ${TARGET_USER}@${TARGET_HOST}...${C_RESET}"
