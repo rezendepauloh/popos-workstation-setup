@@ -30,6 +30,26 @@ sudo apt install -y \
 # Garante permissões de udev para dispositivos Android (ADB sem necessidade de root)
 sudo usermod -aG plugdev "$REAL_USER" 2>/dev/null || true
 
+# Instalação do scrcpy oficial (GitHub latest) para suporte a Android 15/16/17+
+if [ ! -x /usr/local/bin/scrcpy ]; then
+    log_msg "INFO" "Instalando scrcpy oficial (GitHub latest) em /opt/scrcpy..."
+    SCRCPY_URL=$(curl -fsSL https://api.github.com/repos/Genymobile/scrcpy/releases/latest | jq -r '.assets[] | select(.name | test("scrcpy-linux-x86_64-.*\\.tar\\.gz$")) | .browser_download_url' 2>/dev/null || true)
+    if [ -n "$SCRCPY_URL" ] && [ "$SCRCPY_URL" != "null" ]; then
+        WORK_TMP_SCRCPY=$(mktemp -d /tmp/popos_scrcpy_XXXXXX)
+        if curl -fSL "$SCRCPY_URL" -o "$WORK_TMP_SCRCPY/scrcpy.tar.gz"; then
+            sudo rm -rf /opt/scrcpy
+            sudo mkdir -p /opt/scrcpy
+            sudo tar -xzf "$WORK_TMP_SCRCPY/scrcpy.tar.gz" -C /opt/scrcpy --strip-components=1
+            sudo ln -sf /opt/scrcpy/scrcpy /usr/local/bin/scrcpy
+            log_msg "SUCCESS" "scrcpy instalado em /usr/local/bin/scrcpy."
+        fi
+        rm -rf "$WORK_TMP_SCRCPY"
+    else
+        log_msg "WARN" "Não foi possível obter URL do scrcpy; instalando fallback via APT..."
+        sudo apt install -y scrcpy || true
+    fi
+fi
+
 
 # Instalação do NVM (Node Version Manager)
 log_msg "INFO" "Instalando Node Version Manager (NVM)..."

@@ -55,9 +55,13 @@ New-NetFirewallRule -Name 'RDP-3389-TCP' -DisplayName 'RDP TCP 3389' -Enabled Tr
 
 ### Pré-requisitos
 1. No celular, ative **Depuração sem fio** (ou conecte uma vez via USB e rode `adb tcpip 5555`).
-2. Para espelhamento interativo de tela, instale o `scrcpy` no Pop!_OS:
+2. Para espelhamento interativo de tela, o módulo `04_pacotes_base_dev.sh` instala o `scrcpy` oficial mais recente em `/opt/scrcpy` (`/usr/local/bin/scrcpy`). Para instalar manualmente (recomendado no Android 14+, pois o pacote `1.25` do APT é antigo):
    ```bash
-   sudo apt update && sudo apt install -y scrcpy
+   SCRCPY_URL=$(curl -fsSL https://api.github.com/repos/Genymobile/scrcpy/releases/latest | jq -r '.assets[] | select(.name | test("scrcpy-linux-x86_64-.*\\.tar\\.gz$")) | .browser_download_url')
+   curl -fSL "$SCRCPY_URL" -o /tmp/scrcpy.tar.gz
+   sudo rm -rf /opt/scrcpy && sudo mkdir -p /opt/scrcpy
+   sudo tar -xzf /tmp/scrcpy.tar.gz -C /opt/scrcpy --strip-components=1
+   sudo ln -sf /opt/scrcpy/scrcpy /usr/local/bin/scrcpy && rm -f /tmp/scrcpy.tar.gz
    ```
 
 ### Operações disponíveis
