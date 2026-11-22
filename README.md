@@ -195,6 +195,12 @@
 │   │   └── restore_android.sh          # Restauração assistida no celular formatado via ADB
 │   └── docker-update/
 │       └── update_containers.sh        # Atualização automatizada de containers Docker (Compose & Standalone)
+│   └── remote-devices/                 # Controle remoto & manutenção de dispositivos na rede
+│       ├── android_remote.sh           # ADB Wi-Fi/Tailscale, trim-caches e scrcpy
+│       ├── ha_alexa_remote.sh          # Integração Home Assistant / Alexa TTS
+│       ├── network_scan.sh             # Descoberta LAN (ARP), mDNS e Tailscale
+│       ├── samsung_tv_remote.py        # Controle Tizen LAN (:8001) e Wake-on-LAN
+│       └── win_remote.sh               # Windows 11 via OpenSSH, RDP e Wake-on-LAN
 │   └── update-antigravity/
 │       └── update_antigravity.sh       # Atualização do Google Antigravity IDE com patch de cedilha/Wayland
 │   └── winapps/                        # Scripts de debloat e otimização para VM Windows (WinApps)
@@ -202,10 +208,18 @@
 │       ├── otimizar_winapps_vm.cmd     # Launcher com elevação automática de Administrador
 │       ├── otimizar_winapps_vm.ps1     # Script de remoção de telemetria, bloatware e serviços
 │       └── setup_autologon.bat         # Configuração de AutoLogon e bypass de tela de bloqueio
+├── workstation-hub/                    # Interface GUI nativa COSMIC (Rust + libcosmic) desacoplada dos scripts CLI
+│   ├── Cargo.toml                      # Manifesto Cargo (libcosmic, portable-pty, tokio)
+│   ├── justfile                        # Receitas: build-release, test, install, uninstall
+│   ├── res/                            # Atalho .desktop, metainfo e ícone SVG para o menu COSMIC
+│   ├── src/                            # Código-fonte Rust (models/, services/, views/)
+│   └── tests/                          # Testes unitários e de integração Rust
 ├── Logs/                               # Logs de Execução e Checkpoints do Setup
 │   └── .setup_progress.log             # Histórico de módulos concluídos
 └── Docs/                               # Relatórios Técnicos e Manuais Especializados
     ├── guias/                          # Manuais Práticos e Guias de Configuração
+    │   ├── compilar_e_instalar_workstation_hub.md
+    │   ├── workstation_homelab_hub_gui.md
     │   ├── como-fazer-backup-android.md
     │   ├── como-atualizar-containers-docker.md
     │   ├── como-atualizar-antigravity.md
@@ -276,6 +290,15 @@ Limpa travas residuais (`code.lock`), caches corrompidos de GPU/Dawn do Wayland 
 ```bash
 ./setup_popos.sh --repair-ides
 ```
+
+### 🖥️ Interface Gráfica Nativa COSMIC (`workstation-hub`):
+Aplicação desktop em **Rust + `libcosmic`** (totalmente desacoplada da CLI) para gerenciar módulos pós-formatação, utilitários (`util/`), testes (`tests/`), logs PTY, cofre `.env` (`0600`) e operações SSH do Homelab (`umbrelos-scripts`):
+```bash
+cd workstation-hub
+just test      # Testes unitários Rust
+just install   # Compila release e registra no menu principal do Pop!_OS
+```
+Veja o guia completo em [Docs/guias/compilar_e_instalar_workstation_hub.md](Docs/guias/compilar_e_instalar_workstation_hub.md).
 
 ---
 

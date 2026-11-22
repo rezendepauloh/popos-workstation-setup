@@ -61,6 +61,18 @@ class TestCommonLibrary(unittest.TestCase):
         self.assertIn("Mensagem de teste", res.stdout)
         self.assertIn("=== Cabeçalho ===", res.stdout)
 
+    def test_05_real_user_resolves_pkexec_uid_when_sudo_user_empty(self):
+        """00_comum.sh deve resolver REAL_USER via PKEXEC_UID quando SUDO_USER estiver vazio."""
+        current_uid = str(os.getuid())
+        expected_user = subprocess.check_output(['id', '-un'], text=True).strip()
+        env = os.environ.copy()
+        env.pop('SUDO_USER', None)
+        env['PKEXEC_UID'] = current_uid
+        cmd = f'source "{COMUM_SH}" && printf "%s:%s" "$REAL_USER" "$REAL_UID"'
+        res = subprocess.run(['bash', '-c', cmd], env=env, capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0)
+        self.assertEqual(res.stdout.strip(), f"{expected_user}:{current_uid}")
+
 
 if __name__ == '__main__':
     unittest.main()

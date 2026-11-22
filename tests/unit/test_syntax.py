@@ -25,7 +25,10 @@ class TestSyntaxValidation(unittest.TestCase):
             os.path.join(ROOT_DIR, 'tests', 'test_in_docker.sh'),
         ]
         bash_files.extend(sorted(glob.glob(os.path.join(SCRIPTS_DIR, '*.sh'))))
-        bash_files.extend(sorted(glob.glob(os.path.join(UTIL_DIR, '*.sh'))))
+        for root, _, files in os.walk(UTIL_DIR):
+            for fname in sorted(files):
+                if fname.endswith('.sh'):
+                    bash_files.append(os.path.join(root, fname))
 
         self.assertGreaterEqual(len(bash_files), 30, "Deveria encontrar pelo menos 30 scripts Bash.")
 
@@ -54,8 +57,12 @@ class TestSyntaxValidation(unittest.TestCase):
             self.assertTrue(os.access(script, os.X_OK), f"{rel} deve possuir permissão de execução (+x)")
 
     def test_03_all_python_daemons_compile_cleanly(self):
-        """Valida compilação AST de todos os daemons Python em scripts/daemons/*.py."""
+        """Valida compilação AST de todos os daemons Python em scripts/daemons/*.py e util/**/*.py."""
         py_files = sorted(glob.glob(os.path.join(DAEMONS_DIR, '*.py')))
+        for root, _, files in os.walk(UTIL_DIR):
+            for fname in sorted(files):
+                if fname.endswith('.py'):
+                    py_files.append(os.path.join(root, fname))
         self.assertGreaterEqual(len(py_files), 4, "Devem existir pelo menos 4 daemons/utilitários Python.")
 
         for py_file in py_files:

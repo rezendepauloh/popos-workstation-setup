@@ -151,6 +151,7 @@ cat << 'EOF' > "$REAL_HOME/.config/cosmic/com.system76.CosmicAppLibrary/v1/group
                 "Utility",
             ],
             include: [
+                "br.dev.rezendepauloh.WorkstationHub",
                 "org.gnome.Calculator",
                 "com.github.tchx84.Flatseal",
                 "org.openrgb.OpenRGB",

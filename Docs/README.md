@@ -21,7 +21,10 @@ Docs/
 │   ├── como-atualizar-containers-docker.md           # Atualização automatizada de containers Docker (Compose & Standalone)
 │   ├── como-atualizar-antigravity.md                 # Atualização do Google Antigravity IDE com patch de cedilha/Wayland
 │   ├── sincronizacao_backups_homelab.md              # Timer systemd diário para sincronização de backups do Homelab (umbrelOS)
-│   └── gravacao_de_tela_cosmic_kooha.md              # Gravação de tela nativa Wayland via Kooha e atalhos Kando
+│   ├── gravacao_de_tela_cosmic_kooha.md              # Gravação de tela nativa Wayland via Kooha e atalhos Kando
+│   ├── compilar_e_instalar_workstation_hub.md        # Compilação Rust/libcosmic e registro no menu do Pop!_OS
+│   ├── workstation_homelab_hub_gui.md                # Arquitetura da GUI nativa (módulos, util, testes, Homelab e .env)
+│   └── controle_remoto_dispositivos_rede.md          # Controle remoto Windows 11, Android (ADB/scrcpy), Samsung e HA/Alexa
 │
 ├── 🚨 issues/                                        # Diagnósticos aprofundados, bugs upstream & soluções
 │   ├── issue_chromium_electron_cedilha_wayland.md    # Cedilha ('+c = ç) e aspas no Electron Wayland via patch binário
@@ -32,7 +35,8 @@ Docs/
 │   ├── issue_edf_espanso_kando_cosmic.md             # Formulários gráficos interativos (GTK3) com injeção de foco
 │   ├── issue_antigravity_dock_cosmic_launch.md       # AppArmor unprivileged userns & inicialização da IDE Antigravity
 │   ├── issue_cosmic_files_fuse_freeze.md             # Prevenção de travamentos FUSE no Rclone e mitigação no cosmic-files
-│   └── issue_cursor_blurry_gtk4_wayland.md           # Resolução de cursor borrado em apps GTK4 sob Wayland fracionário
+│   ├── issue_cursor_blurry_gtk4_wayland.md           # Resolução de cursor borrado em apps GTK4 sob Wayland fracionário
+│   └── issue_windows11_home_rdp_bloqueado.md         # Porta RDP 3389 bloqueada no Windows 11 Home (uso de SSH / RustDesk)
 │
 ├── 📋 relatorios/                                    # Linha do tempo, auditorias de segurança e checkpoints
 │   ├── auditoria_seguranca_workstation.md            # Dossiê completo de auditoria de segurança (SAST & Hardening)
@@ -70,6 +74,8 @@ Docs/
 * **Atualização de Containers Docker:** [Script Automatizado (Compose & Standalone)](guias/como-atualizar-containers-docker.md)
 * **Atualização do Google Antigravity IDE:** [Script Oficial com Patch de Cedilha & Wayland](guias/como-atualizar-antigravity.md)
 * **Sincronização de Backups do Homelab (umbrelOS):** [Timer Systemd Diário de Baixo Impacto](guias/sincronizacao_backups_homelab.md)
+* **Workstation & Homelab Hub (GUI Nativa COSMIC):** [Arquitetura da Interface](guias/workstation_homelab_hub_gui.md) · [Como Compilar & Instalar no Menu](guias/compilar_e_instalar_workstation_hub.md)
+* **Controle Remoto de Dispositivos na Rede:** [Windows 11, Android Wi-Fi/scrcpy, Samsung Tizen & Alexa](guias/controle_remoto_dispositivos_rede.md)
 
 ---
 

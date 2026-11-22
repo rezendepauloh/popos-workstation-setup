@@ -1,0 +1,64 @@
+# Receitas de compilação, testes e instalação do Workstation & Homelab Hub (COSMIC)
+
+name := 'workstation-hub'
+appid := 'br.dev.rezendepauloh.WorkstationHub'
+
+home_dir := env('HOME')
+prefix := env('PREFIX', '/usr/local')
+cargo-target-dir := env('CARGO_TARGET_DIR', 'target')
+
+bin-dst := prefix / 'bin' / name
+desktop-dir := home_dir / '.local' / 'share' / 'applications'
+desktop-dst := desktop-dir / (appid + '.desktop')
+icon-dir := home_dir / '.local' / 'share' / 'icons' / 'hicolor' / 'scalable' / 'apps'
+icon-dst := icon-dir / (appid + '.svg')
+metainfo-dst := prefix / 'share' / 'metainfo' / (appid + '.metainfo.xml')
+
+default: build-release
+
+# Verifica sintaxe e lints sem compilar binário final
+check:
+    cargo check --all-targets
+
+# Executa testes unitários e de integração Rust
+test:
+    cargo test --lib --tests
+
+# Compila em modo debug (rápido para desenvolvimento)
+build-debug *args:
+    cargo build {{args}}
+
+# Compila em modo release otimizado
+build-release *args:
+    cargo build --release {{args}}
+
+# Executa diretamente a partir do código-fonte
+run *args:
+    cargo run --release -- {{args}}
+
+# Compila release e instala binário (via sudo) + .desktop + ícone no menu do COSMIC
+install: build-release
+    sudo install -Dm0755 {{ cargo-target-dir / 'release' / name }} {{bin-dst}}
+    sudo install -Dm0644 {{ 'res' / (appid + '.metainfo.xml') }} {{metainfo-dst}}
+    install -Dm0644 {{ 'res' / (appid + '.desktop') }} {{desktop-dst}}
+    install -Dm0644 {{ 'res' / 'icons' / 'hicolor' / 'scalable' / 'apps' / (appid + '.svg') }} {{icon-dst}}
+    -update-desktop-database {{desktop-dir}} 2>/dev/null || true
+    -gtk-update-icon-cache -f -t {{ home_dir / '.local' / 'share' / 'icons' / 'hicolor' }} 2>/dev/null || true
+
+# Instala apenas para o usuário atual (~/.local/bin) sem precisar de sudo
+install-user: build-release
+    install -Dm0755 {{ cargo-target-dir / 'release' / name }} {{ home_dir / '.local' / 'bin' / name }}
+    install -Dm0644 {{ 'res' / (appid + '.desktop') }} {{desktop-dst}}
+    sed -i 's|^Exec=workstation-hub|Exec={{ home_dir / ".local" / "bin" / name }}|' {{desktop-dst}}
+    install -Dm0644 {{ 'res' / 'icons' / 'hicolor' / 'scalable' / 'apps' / (appid + '.svg') }} {{icon-dst}}
+    -update-desktop-database {{desktop-dir}} 2>/dev/null || true
+
+# Remove binário e atalhos instalados
+uninstall:
+    -sudo rm -f {{bin-dst}} {{metainfo-dst}}
+    rm -f {{ home_dir / '.local' / 'bin' / name }} {{desktop-dst}} {{icon-dst}}
+    -update-desktop-database {{desktop-dir}} 2>/dev/null || true
+
+# Limpa artefatos de compilação
+clean:
+    cargo clean

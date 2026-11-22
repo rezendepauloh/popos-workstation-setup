@@ -49,3 +49,7 @@ Thumbs.db
 .cache
 __pycache__
 **/__pycache__
+
+# Rust / Cargo (workstation-hub)
+workstation-hub/target/
+**/*.rs.bk

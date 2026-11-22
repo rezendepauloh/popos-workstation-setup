@@ -1,0 +1,350 @@
+use crate::app::{AppModel, Message};
+use crate::models::log_entry::{AnsiColor, LogLine, RunStatus};
+use cosmic::iced::{Alignment, Color, Length};
+use cosmic::prelude::*;
+use cosmic::widget::{self, settings};
+
+pub fn view(app: &AppModel) -> Element<'_, Message> {
+    let space_s = cosmic::theme::spacing().space_s;
+    let space_m = cosmic::theme::spacing().space_m;
+
+    let (exec_badge_text, exec_badge_color) = match &app.run_status {
+        RunStatus::Idle => (
+            "○ Ocioso (nenhuma tarefa em execução)".to_string(),
+            Color::from_rgb(0.62, 0.65, 0.72),
+        ),
+        RunStatus::Running { label } => (
+            format!("⏳ RODANDO AGORA: {label}"),
+            Color::from_rgb(0.95, 0.80, 0.35),
+        ),
+        RunStatus::Succeeded { label, duration_ms } => (
+            format!("✔ FINALIZADO (0): {label} ({:.1}s)", *duration_ms as f64 / 1000.0),
+            Color::from_rgb(0.45, 0.88, 0.55),
+        ),
+        RunStatus::Failed {
+            label,
+            exit_code,
+            duration_ms,
+        } => (
+            format!(
+                "✖ FINALIZADO (código {exit_code}): {label} ({:.1}s)",
+                *duration_ms as f64 / 1000.0
+            ),
+            Color::from_rgb(0.95, 0.45, 0.45),
+        ),
+    };
+
+    let status_banner = widget::container(
+        widget::text::body(exec_badge_text).class(cosmic::theme::Text::Color(exec_badge_color)),
+    )
+    .padding([6, 10])
+    .width(Length::Fill);
+
+    let hub_logs_dir = dirs::state_dir()
+        .or_else(dirs::data_local_dir)
+        .unwrap_or_else(|| app.paths.popos_repo.join("Logs"))
+        .join("workstation-hub")
+        .join("logs");
+
+    let mut toolbar = widget::row::with_capacity(7)
+        .spacing(space_s)
+        .align_y(Alignment::Center)
+        .push(widget::text::title2("Console em Tempo Real & Histórico de Logs").width(Length::Fill))
+        .push(
+            widget::button::standard("Logs Remotos Homelab")
+                .on_press(Message::FetchRemoteHomelabLogs),
+        )
+        .push(widget::button::standard("Copiar Saída").on_press(Message::CopyConsoleLogs))
+        .push(widget::button::standard("Limpar Console").on_press(Message::ClearConsoleLogs))
+        .push(
+            widget::button::standard("Abrir Logs Hub")
+                .on_press(Message::OpenLocalFolder(hub_logs_dir)),
+        )
+        .push(
+            widget::button::standard("Abrir Pasta Logs/")
+                .on_press(Message::OpenLocalFolder(app.paths.popos_repo.join("Logs"))),
+        );
+
+    if app.process_handle.is_some() {
+        toolbar = toolbar.push(
+            widget::button::destructive("Encerrar Processo")
+                .on_press(Message::StopRunningProcess),
+        );
+    }
+
+    let mut console_col = widget::column::with_capacity(app.log_lines.len().min(600))
+        .spacing(2)
+        .width(Length::Fill);
+
+    let start_idx = app.log_lines.len().saturating_sub(600);
+    for line in &app.log_lines[start_idx..] {
+        console_col = console_col.push(render_log_line(line));
+    }
+
+    let console_box = widget::container(
+        widget::scrollable(console_col)
+            .height(Length::Fixed(app.console_height))
+            .width(Length::Fill),
+    )
+    .padding(10)
+    .width(Length::Fill);
+
+    let console_resize = widget::row::with_capacity(2)
+        .spacing(space_s)
+        .align_y(Alignment::Center)
+        .push(widget::text::caption(format!(
+            "Altura Console: {}px",
+            app.console_height as u32
+        )))
+        .push(
+            widget::slider(180.0..=720.0, app.console_height, Message::ConsoleHeightChanged)
+                .width(Length::Fixed(180.0)),
+        );
+
+    let stdin_bar = widget::row::with_capacity(2)
+        .spacing(space_s)
+        .align_y(Alignment::Center)
+        .push(
+            widget::text_input(
+                "Entrada interativa PTY (ex: S, n, número da opção, OTP)...",
+                &app.pty_input,
+            )
+            .on_input(Message::PtyInputChanged)
+            .on_submit(|_| Message::SendPtyInput)
+            .width(Length::Fill),
+        )
+        .push(widget::button::suggested("Enviar Entrada").on_press(Message::SendPtyInput));
+
+    const PAGE_SIZE: usize = 6;
+    let total_execs = app.snapshot.hub_executions.len();
+    let total_pages = total_execs.max(1).div_ceil(PAGE_SIZE);
+    let current_page = app.log_exec_page.min(total_pages.saturating_sub(1));
+    let start_exec = current_page * PAGE_SIZE;
+    let end_exec = (start_exec + PAGE_SIZE).min(total_execs);
+
+    let mut execs_sec = settings::section().title(format!(
+        "Execuções do Hub (workstation-hub.log · Página {}/{total_pages})",
+        current_page + 1
+    ));
+
+    if total_execs == 0 {
+        execs_sec = execs_sec.add(
+            settings::item::builder("Nenhuma execução registrada ainda")
+                .control(widget::text::caption("workstation-hub.log")),
+        );
+    } else {
+        for idx in start_exec..end_exec {
+            let rec = &app.snapshot.hub_executions[idx];
+            execs_sec = execs_sec.add(
+                settings::item::builder(&rec.label)
+                    .description(&rec.timestamp)
+                    .control(
+                        widget::button::standard("Visualizar")
+                            .on_press(Message::OpenHubExecution(idx)),
+                    ),
+            );
+        }
+        if total_pages > 1 {
+            let pager = widget::row::with_capacity(3)
+                .spacing(space_s)
+                .align_y(Alignment::Center)
+                .push(widget::button::standard("◀ Anterior").on_press(Message::LogExecPagePrev))
+                .push(widget::text::caption(format!(
+                    "Página {} de {total_pages} ({total_execs} execuções)",
+                    current_page + 1
+                )))
+                .push(widget::button::standard("Próxima ▶").on_press(Message::LogExecPageNext));
+            execs_sec = execs_sec.add(widget::container(pager).padding(4));
+        }
+    }
+
+    let mut logs_sec = settings::section().title("Arquivos de Log Salvos (Pop!_OS, Rust Hub & Homelab)");
+    if app.snapshot.log_files.is_empty() {
+        logs_sec = logs_sec.add(
+            settings::item::builder("Nenhum arquivo .log encontrado")
+                .control(widget::text::caption("Logs/")),
+        );
+    } else {
+        for path in app.snapshot.log_files.iter().take(40) {
+            let name = path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("log");
+            logs_sec = logs_sec.add(
+                settings::item::builder(name)
+                    .description(path.to_string_lossy().to_string())
+                    .control(
+                        widget::button::standard("Visualizar")
+                            .on_press(Message::OpenLogFile(path.clone())),
+                    ),
+            );
+        }
+    }
+
+    let mut root_col = widget::column::with_capacity(8)
+        .spacing(space_m)
+        .push(toolbar)
+        .push(status_banner)
+        .push(console_box)
+        .push(console_resize)
+        .push(stdin_bar)
+        .push(execs_sec)
+        .push(logs_sec);
+
+    if let Some((path, content)) = &app.selected_log_preview {
+        let preview_title = format!(
+            "Prévia: {}",
+            path.file_name().and_then(|s| s.to_str()).unwrap_or("")
+        );
+        let filter_q = app.log_preview_filter.trim().to_ascii_lowercase();
+        let filtered_content = if filter_q.is_empty() {
+            content.clone()
+        } else {
+            content
+                .lines()
+                .filter(|l| l.to_ascii_lowercase().contains(&filter_q))
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+
+        let preview_bar = widget::row::with_capacity(4)
+            .spacing(space_s)
+            .align_y(Alignment::Center)
+            .push(
+                widget::text_input("Filtrar prévia por execução ou texto...", &app.log_preview_filter)
+                    .on_input(Message::LogPreviewFilterChanged)
+                    .width(Length::Fill),
+            )
+            .push(widget::text::caption(format!(
+                "{}px",
+                app.log_preview_height as u32
+            )))
+            .push(
+                widget::slider(
+                    160.0..=720.0,
+                    app.log_preview_height,
+                    Message::LogPreviewHeightChanged,
+                )
+                .width(Length::Fixed(140.0)),
+            )
+            .push(widget::button::destructive("Fechar Prévia").on_press(Message::CloseLogPreview));
+
+        let mut preview_col = widget::column::with_capacity(400)
+            .spacing(2)
+            .width(Length::Fill);
+        for line in filtered_content.lines().take(500) {
+            let styled = colorize_log_preview_line(line);
+            preview_col = preview_col.push(render_owned_log_line(styled));
+        }
+
+        let preview_sec = settings::section()
+            .title(preview_title)
+            .add(widget::container(preview_bar).padding(4))
+            .add(
+                widget::container(
+                    widget::scrollable(preview_col)
+                        .height(Length::Fixed(app.log_preview_height))
+                        .width(Length::Fill),
+                )
+                .padding(8),
+            );
+        root_col = root_col.push(preview_sec);
+    }
+
+    widget::scrollable(root_col).height(Length::Fill).into()
+}
+
+fn colorize_log_preview_line(line: &str) -> LogLine {
+    if line.contains('\x1b') {
+        return crate::services::ansi_parser::parse_ansi_line(line);
+    }
+    let trimmed = line.trim();
+    let color = if trimmed.contains("[✔]")
+        || trimmed.contains("[OK]")
+        || trimmed.contains("[SUCCESS]")
+        || trimmed.contains("✔ PASS")
+        || trimmed.starts_with('✔')
+    {
+        AnsiColor::Green
+    } else if trimmed.contains("[!]")
+        || trimmed.contains("[ERROR]")
+        || trimmed.contains("[ERRO]")
+        || trimmed.contains("✖ FAIL")
+        || trimmed.starts_with('✖')
+        || trimmed.contains("Falhou")
+    {
+        AnsiColor::Red
+    } else if trimmed.contains("[WARN]")
+        || trimmed.contains("[AVISO]")
+        || trimmed.contains('⚠')
+        || trimmed.contains("⚡ SKIP")
+    {
+        AnsiColor::Yellow
+    } else if trimmed.starts_with("▶ ")
+        || trimmed.contains("[INFO]")
+        || trimmed.starts_with("===")
+        || trimmed.starts_with("i ")
+    {
+        AnsiColor::Cyan
+    } else if trimmed.starts_with("---") || trimmed.contains("backup_") {
+        AnsiColor::Blue
+    } else {
+        AnsiColor::Default
+    };
+    LogLine::plain(line, color, false)
+}
+
+fn render_owned_log_line(line: LogLine) -> Element<'static, Message> {
+    if line.segments.len() == 1 {
+        let seg = line.segments.into_iter().next().unwrap();
+        let mut t = widget::text::monotext(seg.text).size(13.0);
+        if let Some(c) = map_ansi_color(seg.color) {
+            t = t.class(cosmic::theme::Text::Color(c));
+        }
+        return t.into();
+    }
+
+    let mut r = widget::row::with_capacity(line.segments.len()).spacing(0);
+    for seg in line.segments {
+        let mut t = widget::text::monotext(seg.text).size(13.0);
+        if let Some(c) = map_ansi_color(seg.color) {
+            t = t.class(cosmic::theme::Text::Color(c));
+        }
+        r = r.push(t);
+    }
+    r.into()
+}
+
+fn render_log_line(line: &LogLine) -> Element<'_, Message> {
+    if line.segments.len() == 1 {
+        let seg = &line.segments[0];
+        let mut t = widget::text::monotext(&seg.text).size(13.0);
+        if let Some(c) = map_ansi_color(seg.color) {
+            t = t.class(cosmic::theme::Text::Color(c));
+        }
+        return t.into();
+    }
+
+    let mut r = widget::row::with_capacity(line.segments.len()).spacing(0);
+    for seg in &line.segments {
+        let mut t = widget::text::monotext(&seg.text).size(13.0);
+        if let Some(c) = map_ansi_color(seg.color) {
+            t = t.class(cosmic::theme::Text::Color(c));
+        }
+        r = r.push(t);
+    }
+    r.into()
+}
+
+fn map_ansi_color(color: AnsiColor) -> Option<Color> {
+    match color {
+        AnsiColor::Default => None,
+        AnsiColor::Red => Some(Color::from_rgb(0.95, 0.45, 0.45)),
+        AnsiColor::Green => Some(Color::from_rgb(0.45, 0.88, 0.55)),
+        AnsiColor::Yellow => Some(Color::from_rgb(0.95, 0.80, 0.35)),
+        AnsiColor::Blue => Some(Color::from_rgb(0.48, 0.70, 0.98)),
+        AnsiColor::Magenta => Some(Color::from_rgb(0.85, 0.58, 0.95)),
+        AnsiColor::Cyan => Some(Color::from_rgb(0.35, 0.85, 0.92)),
+        AnsiColor::Muted => Some(Color::from_rgb(0.62, 0.65, 0.72)),
+    }
+}

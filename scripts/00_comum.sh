@@ -22,7 +22,14 @@ SCRIPTS_DIR="$BASE_DIR/scripts"
 mkdir -p "$BASE_DIR/Logs"
 PROGRESS_LOG="$BASE_DIR/Logs/.setup_progress.log"
 
-REAL_USER="${SUDO_USER:-$USER}"
+if [ -n "${SUDO_USER:-}" ]; then
+    REAL_USER="$SUDO_USER"
+elif [ -n "${PKEXEC_UID:-}" ]; then
+    REAL_USER=$(getent passwd "$PKEXEC_UID" | cut -d: -f1)
+    REAL_USER="${REAL_USER:-$USER}"
+else
+    REAL_USER="$USER"
+fi
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 REAL_UID=$(id -u "$REAL_USER" 2>/dev/null || echo 1000)
 

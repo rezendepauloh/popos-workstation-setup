@@ -63,6 +63,7 @@ Pilares fundamentais:
 │   ├── unit/                           # Testes de sintaxe Bash/Python, 00_comum.sh e lógica dos daemons/patches
 │   └── integration/                    # Testes do orquestrador CLI, coerência de módulos e transformações JSON/RON
 ├── util/                               # Utilitários standalone (android-backup/, docker-update/ e update-antigravity/)
+├── workstation-hub/                    # GUI nativa COSMIC (Rust + libcosmic) desacoplada da CLI (Cargo.toml, justfile, src/, res/, tests/)
 └── Docs/                               # Documentação técnica profunda, guias e relatórios de issues upstream
 ```
 
@@ -75,6 +76,7 @@ Pilares fundamentais:
    - Nota: Ao usar `source "$SCRIPT_DIR/00_comum.sh"`, lembre-se de que `00_comum.sh` redefine `SCRIPT_DIR` para a pasta `scripts/` e define `BASE_DIR` como a raiz do repositório.
 2. **Sincronização do Orquestrador (`setup_popos.sh`)**:
    - Se um novo módulo `XX_nome.sh` for adicionado, renomeado ou reordenado em `scripts/`, o array `MODULES=(...)` em `setup_popos.sh` **DEVE** ser atualizado imediatamente (há um teste automatizado que falha caso divergirem).
+   - A GUI `workstation-hub/` deve permanecer **totalmente desacoplada** da execução CLI: todos os scripts em `setup_popos.sh`, `scripts/`, `util/` e `umbrelos-scripts/` devem continuar funcionando normalmente em terminal comum. Nunca hardcode dados sensíveis ou identificadores pessoais em `workstation-hub/`.
 3. **Peculiaridades de Software já Resolvidas (Não Reverta)**:
    - **Kando (`13_kando_restore.sh` & PR #1535)**: No COSMIC Wayland (com `kando-cosmic-helper` e `wp_pointer_warp_v1`), o menu **NÃO** deve usar modo centralizado fixo. Mantenha sempre `.menus[0].centered = false | .menus[0].useFixedPosition = false` para que o menu abra sob o cursor sem puxar o mouse para o centro da tela ultrawide.
    - **Cedilha no Electron/Chromium (`02_teclado_cedilha_numlock.sh` & `patch_cedilla_electron.py`)**: Sob Wayland nativo (`--ozone-platform=wayland`), o Chromium ignora `GTK_IM_MODULE=cedilla`. O patch binário em `ui::CharacterComposer` converte `' + c -> ç`, `' + C -> Ç`, `"" -> "` e `'' -> '` preservando cópia `.orig`.
@@ -117,5 +119,8 @@ sudo ./scripts/13_kando_restore.sh --force
 
 # 5. Executar teste end-to-end completo em container Docker isolado (com mocks)
 ./tests/test_in_docker.sh
+
+# 6. Compilar, testar e instalar a GUI nativa COSMIC (Workstation & Homelab Hub)
+cd workstation-hub && just test && just install
 ```
 

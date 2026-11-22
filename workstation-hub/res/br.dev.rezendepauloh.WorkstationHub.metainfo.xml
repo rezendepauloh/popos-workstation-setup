@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>br.dev.rezendepauloh.WorkstationHub</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Workstation &amp; Homelab Hub</name>
+  <summary>Central COSMIC para provisionamento da workstation Pop!_OS e controle do Homelab umbrelOS</summary>
+  <description>
+    <p>
+      Aplicação nativa COSMIC Desktop em Rust e libcosmic para gerenciar módulos pós-formatação,
+      utilitários de manutenção, suítes de testes automatizados, logs, variáveis .env e operações
+      remotas SSH do Homelab umbrelOS.
+    </p>
+  </description>
+  <launchable type="desktop-id">br.dev.rezendepauloh.WorkstationHub.desktop</launchable>
+</component>

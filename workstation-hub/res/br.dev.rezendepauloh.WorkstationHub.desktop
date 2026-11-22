@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Workstation & Homelab Hub
+GenericName=Gerenciador de Workstation e Homelab
+Comment=Central COSMIC para provisionamento pós-formatação, utilitários, testes, logs e Homelab umbrelOS
+Exec=workstation-hub
+Icon=br.dev.rezendepauloh.WorkstationHub
+Terminal=false
+Type=Application
+Categories=System;Utility;Settings;
+Keywords=popos;cosmic;setup;homelab;umbrelos;docker;android;testes;
+StartupNotify=true
+StartupWMClass=br.dev.rezendepauloh.WorkstationHub

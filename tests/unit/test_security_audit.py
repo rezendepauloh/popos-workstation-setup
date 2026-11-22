@@ -21,7 +21,13 @@ class TestSecurityAudit(unittest.TestCase):
 
     def _iter_code_files(self):
         """Itera sobre todos os arquivos de código e configuração versionados."""
-        target_dirs = [SCRIPTS_DIR, UTIL_DIR, os.path.join(BASE_DIR, "Docs")]
+        target_dirs = [
+            SCRIPTS_DIR,
+            UTIL_DIR,
+            os.path.join(BASE_DIR, "Docs"),
+            os.path.join(BASE_DIR, "workstation-hub", "src"),
+            os.path.join(BASE_DIR, "workstation-hub", "tests"),
+        ]
         root_files = [
             os.path.join(BASE_DIR, "setup_popos.sh"),
             os.path.join(BASE_DIR, ".env.example"),
@@ -33,9 +39,11 @@ class TestSecurityAudit(unittest.TestCase):
                 yield fpath
 
         for d in target_dirs:
+            if not os.path.isdir(d):
+                continue
             for root, _, files in os.walk(d):
                 for fname in files:
-                    if fname.endswith((".sh", ".py", ".ps1", ".bat", ".md", ".conf")):
+                    if fname.endswith((".sh", ".py", ".ps1", ".bat", ".md", ".conf", ".rs")):
                         yield os.path.join(root, fname)
 
     def test_01_no_hardcoded_credentials_or_personal_identifiers(self):
