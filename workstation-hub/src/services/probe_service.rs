@@ -1,4 +1,7 @@
-use crate::models::status::{HubPaths, RemoteDevicesInfo, SystemSnapshot};
+use crate::models::status::{
+    DockerContainerInfo, DockerSystemInfo, HubPaths, NetworkHostStatus, NetworkMonitorInfo,
+    RemoteDevicesInfo, SystemHardwareInfo, SystemSnapshot, TailscalePeerStatus,
+};
 use crate::services::env_service::read_env_map;
 use crate::services::progress_service::read_completed_flags;
 use std::fs;
@@ -14,6 +17,8 @@ pub async fn collect_snapshot(paths: &HubPaths) -> SystemSnapshot {
     let (
         adb_devices,
         docker_res,
+        docker_info,
+        hardware_info,
         antigravity_version,
         homelab_online,
         vpn_mpms_ip,
@@ -22,12 +27,22 @@ pub async fn collect_snapshot(paths: &HubPaths) -> SystemSnapshot {
     ) = tokio::join!(
         probe_adb_devices(),
         probe_docker_and_winapps(),
+        probe_docker_info(),
+        probe_hardware_info(),
         probe_antigravity_version(),
         probe_homelab_ssh(&homelab_local_host, &homelab_user),
         probe_vpn_mpms_ip(),
         probe_tailscale_ip(),
         probe_remote_devices(&paths.popos_repo),
     );
+
+    let network_info = probe_network_monitor(
+        &paths.popos_repo,
+        &homelab_local_host,
+        &homelab_tailscale_host,
+        &remote_devices,
+    )
+    .await;
 
     let local_android_backups = list_android_backups();
     let log_files = list_log_files(paths);
@@ -40,6 +55,9 @@ pub async fn collect_snapshot(paths: &HubPaths) -> SystemSnapshot {
         completed_flags,
         adb_devices,
         docker_active: docker_res.0,
+        docker_info,
+        hardware_info,
+        network_info,
         winapps_running: docker_res.1,
         antigravity_version,
         homelab_online: Some(homelab_online),
@@ -130,6 +148,180 @@ async fn probe_docker_and_winapps() -> (bool, bool) {
     let text = String::from_utf8_lossy(&out.stdout);
     let winapps = text.lines().any(|l| l.trim() == "winapps-windows");
     (true, winapps)
+}
+
+async fn probe_docker_info() -> DockerSystemInfo {
+    let mut info = DockerSystemInfo::default();
+    let Ok(Ok(ps_out)) = tokio::time::timeout(
+        Duration::from_secs(2),
+        Command::new("docker")
+            .args([
+                "ps",
+                "-a",
+                "--format",
+                "{{.Names}}|{{.Image}}|{{.Status}}|{{.Label \"com.docker.compose.project.working_dir\"}}",
+            ])
+            .output(),
+    )
+    .await
+    else {
+        return info;
+    };
+    if !ps_out.status.success() {
+        return info;
+    }
+    info.daemon_active = true;
+    for line in String::from_utf8_lossy(&ps_out.stdout).lines() {
+        let parts: Vec<&str> = line.splitn(4, '|').collect();
+        if parts.len() < 3 {
+            continue;
+        }
+        let status = parts[2].trim().to_string();
+        let running = status.starts_with("Up ");
+        info.containers.push(DockerContainerInfo {
+            name: parts[0].trim().to_string(),
+            image: parts[1].trim().to_string(),
+            status,
+            running,
+            compose_dir: parts.get(3).map(|s| s.trim().to_string()).unwrap_or_default(),
+        });
+    }
+
+    if let Ok(Ok(df_out)) = tokio::time::timeout(
+        Duration::from_secs(2),
+        Command::new("docker")
+            .args([
+                "system",
+                "df",
+                "--format",
+                "{{.Type}}: {{.TotalCount}} total ({{.Active}} ativos) — {{.Size}} (recuperável: {{.Reclaimable}})",
+            ])
+            .output(),
+    )
+    .await
+    {
+        if df_out.status.success() {
+            info.df_lines = String::from_utf8_lossy(&df_out.stdout)
+                .lines()
+                .map(|l| l.trim().to_string())
+                .filter(|l| !l.is_empty())
+                .collect();
+        }
+    }
+    info
+}
+
+async fn probe_hardware_info() -> SystemHardwareInfo {
+    let mut hw = SystemHardwareInfo::default();
+
+    if let Ok(load) = fs::read_to_string("/proc/loadavg") {
+        let parts: Vec<&str> = load.split_whitespace().take(3).collect();
+        if !parts.is_empty() {
+            hw.cpu_load = format!("Load avg: {}", parts.join(" / "));
+        }
+    }
+
+    if let Ok(meminfo) = fs::read_to_string("/proc/meminfo") {
+        let mut total_kb: u64 = 0;
+        let mut avail_kb: u64 = 0;
+        for line in meminfo.lines() {
+            if let Some(rest) = line.strip_prefix("MemTotal:") {
+                total_kb = rest.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+            } else if let Some(rest) = line.strip_prefix("MemAvailable:") {
+                avail_kb = rest.split_whitespace().next().and_then(|v| v.parse().ok()).unwrap_or(0);
+            }
+        }
+        if total_kb > 0 {
+            let used_kb = total_kb.saturating_sub(avail_kb);
+            let total_gib = total_kb as f64 / 1048576.0;
+            let used_gib = used_kb as f64 / 1048576.0;
+            let avail_gib = avail_kb as f64 / 1048576.0;
+            hw.ram_summary = format!("{used_gib:.1} GiB / {total_gib:.1} GiB (disp: {avail_gib:.1} GiB)");
+        }
+    }
+
+    if let Ok(Ok(gpu_out)) = tokio::time::timeout(
+        Duration::from_secs(2),
+        Command::new("nvidia-smi")
+            .args([
+                "--query-gpu=name,temperature.gpu,utilization.gpu,memory.used,memory.total",
+                "--format=csv,noheader,nounits",
+            ])
+            .output(),
+    )
+    .await
+    {
+        if gpu_out.status.success() {
+            let line = String::from_utf8_lossy(&gpu_out.stdout).trim().to_string();
+            let p: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
+            if p.len() >= 5 {
+                hw.gpu_summary = format!(
+                    "{} — {}°C | Uso: {}% | VRAM: {}/{} MiB",
+                    p[0], p[1], p[2], p[3], p[4]
+                );
+            }
+        }
+    }
+    if hw.gpu_summary.is_empty() {
+        hw.gpu_summary = "Não detectada".to_string();
+    }
+
+    if let Ok(Ok(df_out)) = tokio::time::timeout(
+        Duration::from_secs(2),
+        Command::new("df")
+            .args(["-h", "--output=target,used,size,avail,pcent", "/", "/mnt/storage_700", "/mnt/storage_930"])
+            .output(),
+    )
+    .await
+    {
+        for line in String::from_utf8_lossy(&df_out.stdout).lines().skip(1) {
+            let cols: Vec<&str> = line.split_whitespace().collect();
+            if cols.len() >= 5 {
+                hw.disks.push(format!(
+                    "{} — {}/{} ({} livre, {} usado)",
+                    cols[0], cols[1], cols[2], cols[3], cols[4]
+                ));
+            }
+        }
+    }
+
+    let home_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home"));
+    for (label, rel) in [
+        ("Google Drive (gdrive_pessoal)", "GoogleDrive_Pessoal"),
+        ("OneDrive (onedrive_pessoal)", "OneDrive_Pessoal"),
+        ("MEGA (mega_pessoal)", "Mega_Pessoal"),
+    ] {
+        let p = home_dir.join(rel);
+        let mounted = p.exists()
+            && fs::read_dir(&p).map(|mut d| d.next().is_some()).unwrap_or(false);
+        hw.rclone_status.push(format!(
+            "{label}: {}",
+            if mounted { "Montado" } else { "Não montado / Vazio" }
+        ));
+    }
+
+    if let Ok(Ok(sun_out)) = tokio::time::timeout(
+        Duration::from_secs(2),
+        Command::new("systemctl")
+            .args(["--user", "is-active", "sunshine"])
+            .output(),
+    )
+    .await
+    {
+        hw.sunshine_active = sun_out.status.success();
+    }
+
+    let hb_dir = Path::new("/mnt/storage_930/Backups_Homelab");
+    if hb_dir.exists() {
+        let count = fs::read_dir(hb_dir)
+            .map(|rd| rd.filter_map(Result::ok).count())
+            .unwrap_or(0);
+        hw.homelab_backup_summary = format!("Pasta presente ({count} itens em Backups_Homelab)");
+    } else {
+        hw.homelab_backup_summary = "Pasta /mnt/storage_930/Backups_Homelab não encontrada".to_string();
+    }
+
+    hw
 }
 
 async fn probe_antigravity_version() -> String {
@@ -251,6 +443,10 @@ async fn probe_remote_devices(popos_repo: &Path) -> RemoteDevicesInfo {
         android_lan_host: get("REMOTE_ANDROID_LAN_HOST", ""),
         android_ts_host: get("REMOTE_ANDROID_TS_HOST", ""),
         android_port: get("REMOTE_ANDROID_PORT", "5555"),
+        tablet_label: get("REMOTE_TABLET_ANDROID_LABEL", "Tablet Android (ADB Wi-Fi)"),
+        tablet_lan_host: get("REMOTE_TABLET_ANDROID_LAN_HOST", ""),
+        tablet_ts_host: get("REMOTE_TABLET_ANDROID_TS_HOST", ""),
+        tablet_port: get("REMOTE_TABLET_ANDROID_PORT", "5555"),
         tv_label: get("REMOTE_TV_LABEL", "Smart TV Samsung"),
         tv_ip: get("REMOTE_TV_IP", ""),
         projector_label: get("REMOTE_PROJECTOR_LABEL", "Projetor Samsung"),
@@ -337,4 +533,236 @@ pub fn list_log_files(paths: &HubPaths) -> Vec<PathBuf> {
     }
     files.sort_by(|a, b| b.0.cmp(&a.0));
     files.into_iter().take(40).map(|(_, p)| p).collect()
+}
+
+fn extract_host_from_url(raw: &str) -> String {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    let no_scheme = trimmed
+        .strip_prefix("https://")
+        .or_else(|| trimmed.strip_prefix("http://"))
+        .unwrap_or(trimmed);
+    let host_port = no_scheme.split('/').next().unwrap_or(no_scheme);
+    host_port.split(':').next().unwrap_or(host_port).trim().to_string()
+}
+
+async fn ping_host(label: String, host: String, network_type: &'static str) -> NetworkHostStatus {
+    if host.is_empty() {
+        return NetworkHostStatus {
+            label,
+            host: "não configurado".to_string(),
+            network_type: network_type.to_string(),
+            online: false,
+            latency_ms: "—".to_string(),
+        };
+    }
+
+    let Ok(Ok(out)) = tokio::time::timeout(
+        Duration::from_secs(2),
+        Command::new("ping")
+            .args(["-c", "1", "-W", "1", &host])
+            .output(),
+    )
+    .await
+    else {
+        return NetworkHostStatus {
+            label,
+            host,
+            network_type: network_type.to_string(),
+            online: false,
+            latency_ms: "Timeout".to_string(),
+        };
+    };
+
+    if !out.status.success() {
+        return NetworkHostStatus {
+            label,
+            host,
+            network_type: network_type.to_string(),
+            online: false,
+            latency_ms: "Offline".to_string(),
+        };
+    }
+
+    let stdout = String::from_utf8_lossy(&out.stdout);
+    let latency_ms = stdout
+        .split("time=")
+        .nth(1)
+        .and_then(|s| s.split_whitespace().next())
+        .map(|v| format!("{v} ms"))
+        .unwrap_or_else(|| "Online".to_string());
+
+    NetworkHostStatus {
+        label,
+        host,
+        network_type: network_type.to_string(),
+        online: true,
+        latency_ms,
+    }
+}
+
+async fn probe_network_monitor(
+    popos_repo: &Path,
+    homelab_lan: &str,
+    homelab_ts: &str,
+    remote: &RemoteDevicesInfo,
+) -> NetworkMonitorInfo {
+    let mut info = NetworkMonitorInfo::default();
+
+    let (gw_out, if_out, ts_out, neigh_out) = tokio::join!(
+        tokio::time::timeout(
+            Duration::from_secs(2),
+            Command::new("ip").args(["route", "show", "default"]).output(),
+        ),
+        tokio::time::timeout(
+            Duration::from_secs(2),
+            Command::new("ip").args(["-br", "-4", "addr", "show"]).output(),
+        ),
+        tokio::time::timeout(
+            Duration::from_secs(2),
+            Command::new("tailscale").arg("status").output(),
+        ),
+        tokio::time::timeout(
+            Duration::from_secs(2),
+            Command::new("ip").args(["-4", "neigh", "show"]).output(),
+        ),
+    );
+
+    if let Ok(Ok(out)) = gw_out
+        && out.status.success()
+    {
+        let text = String::from_utf8_lossy(&out.stdout);
+        info.gateway_ip = text
+            .split_whitespace()
+            .skip_while(|&w| w != "via")
+            .nth(1)
+            .unwrap_or("")
+            .to_string();
+    }
+
+    if let Ok(Ok(out)) = if_out
+        && out.status.success()
+    {
+        for line in String::from_utf8_lossy(&out.stdout).lines() {
+            let cols: Vec<&str> = line.split_whitespace().collect();
+            if cols.len() >= 3 {
+                let iface = cols[0];
+                if iface.starts_with("veth") || iface.starts_with("br-") || iface == "lo" {
+                    continue;
+                }
+                info.local_interfaces
+                    .push(format!("{iface} ({}) — {}", cols[1], cols[2..].join(", ")));
+            }
+        }
+    }
+
+    if let Ok(Ok(out)) = ts_out
+        && out.status.success()
+    {
+        for line in String::from_utf8_lossy(&out.stdout).lines() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() || trimmed.starts_with('#') {
+                continue;
+            }
+            let cols: Vec<&str> = trimmed.split_whitespace().collect();
+            if cols.len() >= 4 && cols[0].contains('.') {
+                let status = if cols.len() >= 5 {
+                    cols[4..].join(" ")
+                } else {
+                    "local".to_string()
+                };
+                info.tailscale_peers.push(TailscalePeerStatus {
+                    ip: cols[0].to_string(),
+                    hostname: cols[1].to_string(),
+                    os: cols[3].to_string(),
+                    status,
+                });
+            }
+        }
+    }
+
+    if let Ok(Ok(out)) = neigh_out
+        && out.status.success()
+    {
+        for line in String::from_utf8_lossy(&out.stdout).lines() {
+            let trimmed = line.trim();
+            if trimmed.contains("FAILED") || trimmed.is_empty() {
+                continue;
+            }
+            info.lan_neighbors.push(trimmed.to_string());
+        }
+    }
+
+    let env_map = read_env_map(&popos_repo.join(".env"));
+    let ha_host = env_map
+        .get("HA_URL")
+        .map(|s| extract_host_from_url(s))
+        .unwrap_or_default();
+
+    let mut targets: Vec<(String, String, &'static str)> = Vec::new();
+    if !info.gateway_ip.is_empty() {
+        targets.push((
+            "Roteador / Gateway".to_string(),
+            info.gateway_ip.clone(),
+            "LAN",
+        ));
+    }
+    targets.push((
+        "umbrelOS Homelab (LAN)".to_string(),
+        homelab_lan.to_string(),
+        "LAN",
+    ));
+    targets.push((
+        "umbrelOS Homelab (Tailscale)".to_string(),
+        homelab_ts.to_string(),
+        "Tailscale",
+    ));
+    targets.push(("Home Assistant".to_string(), ha_host, "LAN/DNS"));
+    targets.push((
+        format!("{} (LAN)", remote.win_label),
+        remote.win_lan_host.clone(),
+        "LAN",
+    ));
+    targets.push((
+        format!("{} (Tailscale)", remote.win_label),
+        remote.win_ts_host.clone(),
+        "Tailscale",
+    ));
+    targets.push((
+        format!("{} (LAN)", remote.android_label),
+        remote.android_lan_host.clone(),
+        "LAN",
+    ));
+    targets.push((
+        format!("{} (Tailscale)", remote.android_label),
+        remote.android_ts_host.clone(),
+        "Tailscale",
+    ));
+    targets.push((
+        format!("{} (LAN)", remote.tablet_label),
+        remote.tablet_lan_host.clone(),
+        "LAN",
+    ));
+    targets.push((
+        format!("{} (Tailscale)", remote.tablet_label),
+        remote.tablet_ts_host.clone(),
+        "Tailscale",
+    ));
+    targets.push((remote.tv_label.clone(), remote.tv_ip.clone(), "LAN"));
+    targets.push((
+        remote.projector_label.clone(),
+        remote.projector_ip.clone(),
+        "LAN",
+    ));
+    targets.push(("Internet / DNS Cloudflare".to_string(), "1.1.1.1".to_string(), "WAN"));
+
+    let mut futs = Vec::with_capacity(targets.len());
+    for (label, host, net) in targets {
+        futs.push(ping_host(label, host, net));
+    }
+    info.hosts = futures::future::join_all(futs).await;
+
+    info
 }

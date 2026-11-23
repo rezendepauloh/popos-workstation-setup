@@ -32,6 +32,7 @@ if ! command -v adb >/dev/null 2>&1; then
 fi
 
 MODE="lan"
+DEVICE="phone"
 ACTION="--status"
 
 while [[ $# -gt 0 ]]; do
@@ -40,12 +41,16 @@ while [[ $# -gt 0 ]]; do
             MODE="${2:-lan}"
             shift 2
             ;;
+        --device)
+            DEVICE="${2:-phone}"
+            shift 2
+            ;;
         --connect|--status|--clean-cache|--scrcpy|--disconnect)
             ACTION="$1"
             shift
             ;;
         --help|-h)
-            echo "Uso: $0 [--mode lan|tailscale] [--connect|--status|--clean-cache|--scrcpy|--disconnect]"
+            echo "Uso: $0 [--device phone|tablet] [--mode lan|tailscale] [--connect|--status|--clean-cache|--scrcpy|--disconnect]"
             exit 0
             ;;
         *)
@@ -55,11 +60,19 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-HOST="${REMOTE_ANDROID_LAN_HOST:-}"
-if [ "$MODE" = "tailscale" ] && [ -n "${REMOTE_ANDROID_TS_HOST:-}" ]; then
-    HOST="$REMOTE_ANDROID_TS_HOST"
+if [ "$DEVICE" = "tablet" ]; then
+    HOST="${REMOTE_TABLET_ANDROID_LAN_HOST:-}"
+    if [ "$MODE" = "tailscale" ] && [ -n "${REMOTE_TABLET_ANDROID_TS_HOST:-}" ]; then
+        HOST="$REMOTE_TABLET_ANDROID_TS_HOST"
+    fi
+    PORT="${REMOTE_TABLET_ANDROID_PORT:-5555}"
+else
+    HOST="${REMOTE_ANDROID_LAN_HOST:-}"
+    if [ "$MODE" = "tailscale" ] && [ -n "${REMOTE_ANDROID_TS_HOST:-}" ]; then
+        HOST="$REMOTE_ANDROID_TS_HOST"
+    fi
+    PORT="${REMOTE_ANDROID_PORT:-5555}"
 fi
-PORT="${REMOTE_ANDROID_PORT:-5555}"
 
 if [[ -z "$HOST" ]] || [[ ! "$HOST" =~ ^[a-zA-Z0-9._-]+$ ]]; then
     echo -e "${C_RED}[ERRO] REMOTE_ANDROID_LAN_HOST / REMOTE_ANDROID_TS_HOST ausente ou inválido no .env.${C_RESET}" >&2

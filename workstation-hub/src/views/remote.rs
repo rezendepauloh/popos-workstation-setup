@@ -84,36 +84,50 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .add(settings::item::builder("Destino").control(widget::text::body(android_info)))
         .add(widget::container(android_btns).padding(4));
 
-    let samsung_ip = match app.samsung_target {
-        SamsungTarget::Tv => rd.tv_ip.as_str(),
-        SamsungTarget::Projector => rd.projector_ip.as_str(),
+    let tablet_host = match app.remote_network_mode {
+        HomelabNetworkMode::Local => rd.tablet_lan_host.as_str(),
+        HomelabNetworkMode::Tailscale => {
+            if rd.tablet_ts_host.is_empty() {
+                rd.tablet_lan_host.as_str()
+            } else {
+                rd.tablet_ts_host.as_str()
+            }
+        }
     };
-    let samsung_selector = widget::row::with_capacity(3)
-        .spacing(space_s)
-        .align_y(Alignment::Center)
-        .push(samsung_btn(&rd.tv_label, SamsungTarget::Tv, app.samsung_target))
-        .push(samsung_btn(&rd.projector_label, SamsungTarget::Projector, app.samsung_target))
-        .push(widget::text::caption(if samsung_ip.is_empty() {
-            "Configure REMOTE_TV_IP / REMOTE_PROJECTOR_IP no .env"
-        } else {
-            samsung_ip
-        }));
+    let tablet_info = if tablet_host.is_empty() {
+        "Configure REMOTE_TABLET_ANDROID_LAN_HOST na aba Configurações -> .env".to_string()
+    } else {
+        format!("Alvo ADB: {tablet_host}:{}", rd.tablet_port)
+    };
 
-    let samsung_btns = widget::row::with_capacity(8)
+    let tablet_btns = widget::row::with_capacity(5)
         .spacing(space_s)
-        .push(widget::button::standard("Status API").on_press(Message::RunSamsungAction("status".to_string())))
-        .push(widget::button::suggested("Ligar (WoL)").on_press(Message::RunSamsungAction("wol".to_string())))
-        .push(widget::button::destructive("Power").on_press(Message::RunSamsungAction("KEY_POWER".to_string())))
-        .push(widget::button::standard("Vol +").on_press(Message::RunSamsungAction("KEY_VOLUP".to_string())))
-        .push(widget::button::standard("Vol -").on_press(Message::RunSamsungAction("KEY_VOLDOWN".to_string())))
-        .push(widget::button::standard("Mute").on_press(Message::RunSamsungAction("KEY_MUTE".to_string())))
-        .push(widget::button::standard("Home").on_press(Message::RunSamsungAction("KEY_HOME".to_string())))
-        .push(widget::button::standard("Source").on_press(Message::RunSamsungAction("KEY_SOURCE".to_string())));
+        .push(widget::button::standard("Conectar ADB").on_press(Message::RunRemoteAction("tablet_connect".to_string())))
+        .push(widget::button::standard("Status & Espaço").on_press(Message::RunRemoteAction("tablet_status".to_string())))
+        .push(widget::button::suggested("Limpar Cache Apps").on_press(Message::RunRemoteAction("tablet_clean".to_string())))
+        .push(widget::button::suggested("Espelhar Tela (scrcpy)").on_press(Message::RunRemoteAction("tablet_scrcpy".to_string())))
+        .push(widget::button::destructive("Desconectar").on_press(Message::RunRemoteAction("tablet_disconnect".to_string())));
 
-    let samsung_sec = settings::section()
-        .title("📺 Smart TV & Projetor Samsung (Tizen LAN + WoL)")
-        .add(widget::container(samsung_selector).padding(4))
-        .add(widget::container(samsung_btns).padding(4));
+    let tablet_sec = settings::section()
+        .title(format!("📲 {} (ADB Wi-Fi + scrcpy)", rd.tablet_label))
+        .add(settings::item::builder("Destino").control(widget::text::body(tablet_info)))
+        .add(widget::container(tablet_btns).padding(4));
+
+    let tv_sec = samsung_card(
+        format!("📺 {} (Tizen LAN + WoL)", rd.tv_label),
+        &rd.tv_ip,
+        "Configure REMOTE_TV_IP no .env",
+        SamsungTarget::Tv,
+        space_s,
+    );
+
+    let projector_sec = samsung_card(
+        format!("📽️ {} (Tizen LAN + WoL)", rd.projector_label),
+        &rd.projector_ip,
+        "Configure REMOTE_PROJECTOR_IP no .env",
+        SamsungTarget::Projector,
+        space_s,
+    );
 
     let alexa_ctrl = widget::row::with_capacity(3)
         .spacing(space_s)
@@ -144,15 +158,45 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
                 .control(widget::text::caption("Somente mDNS / LocalSend / USB")),
         );
 
-    let col = widget::column::with_capacity(5)
+    let col = widget::column::with_capacity(7)
         .spacing(space_m)
         .push(header)
         .push(win_sec)
         .push(android_sec)
-        .push(samsung_sec)
+        .push(tablet_sec)
+        .push(tv_sec)
+        .push(projector_sec)
         .push(other_sec);
 
     widget::scrollable(col).height(Length::Fill).into()
+}
+
+fn samsung_card<'a>(
+    title: String,
+    ip: &'a str,
+    empty_hint: &'static str,
+    target: SamsungTarget,
+    space_s: u16,
+) -> settings::Section<'a, Message> {
+    let btns = widget::row::with_capacity(8)
+        .spacing(space_s)
+        .push(widget::button::standard("Status API").on_press(Message::RunSamsungTargetAction(target, "status".to_string())))
+        .push(widget::button::suggested("Ligar (WoL)").on_press(Message::RunSamsungTargetAction(target, "wol".to_string())))
+        .push(widget::button::destructive("Power").on_press(Message::RunSamsungTargetAction(target, "KEY_POWER".to_string())))
+        .push(widget::button::standard("Vol +").on_press(Message::RunSamsungTargetAction(target, "KEY_VOLUP".to_string())))
+        .push(widget::button::standard("Vol -").on_press(Message::RunSamsungTargetAction(target, "KEY_VOLDOWN".to_string())))
+        .push(widget::button::standard("Mute").on_press(Message::RunSamsungTargetAction(target, "KEY_MUTE".to_string())))
+        .push(widget::button::standard("Home").on_press(Message::RunSamsungTargetAction(target, "KEY_HOME".to_string())))
+        .push(widget::button::standard("Source").on_press(Message::RunSamsungTargetAction(target, "KEY_SOURCE".to_string())));
+
+    settings::section()
+        .title(title)
+        .add(settings::item::builder("Endereço").control(widget::text::caption(if ip.is_empty() {
+            empty_hint
+        } else {
+            ip
+        })))
+        .add(widget::container(btns).padding(4))
 }
 
 fn net_btn(

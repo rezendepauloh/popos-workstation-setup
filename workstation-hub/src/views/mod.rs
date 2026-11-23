@@ -1,9 +1,12 @@
 pub mod dashboard;
+pub mod docker;
 pub mod homelab;
 pub mod logs;
+pub mod network;
 pub mod remote;
 pub mod settings;
 pub mod setup;
+pub mod system;
 pub mod tests;
 pub mod utils;
 pub mod vpn;

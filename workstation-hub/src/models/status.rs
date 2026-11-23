@@ -40,6 +40,10 @@ pub struct RemoteDevicesInfo {
     pub android_lan_host: String,
     pub android_ts_host: String,
     pub android_port: String,
+    pub tablet_label: String,
+    pub tablet_lan_host: String,
+    pub tablet_ts_host: String,
+    pub tablet_port: String,
     pub tv_label: String,
     pub tv_ip: String,
     pub projector_label: String,
@@ -48,10 +52,67 @@ pub struct RemoteDevicesInfo {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct DockerContainerInfo {
+    pub name: String,
+    pub image: String,
+    pub status: String,
+    pub running: bool,
+    pub compose_dir: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct DockerSystemInfo {
+    pub daemon_active: bool,
+    pub containers: Vec<DockerContainerInfo>,
+    pub df_lines: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SystemHardwareInfo {
+    pub cpu_load: String,
+    pub ram_summary: String,
+    pub cpu_temp: String,
+    pub gpu_summary: String,
+    pub disks: Vec<String>,
+    pub rclone_status: Vec<String>,
+    pub sunshine_active: bool,
+    pub homelab_backup_summary: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct NetworkHostStatus {
+    pub label: String,
+    pub host: String,
+    pub network_type: String,
+    pub online: bool,
+    pub latency_ms: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TailscalePeerStatus {
+    pub ip: String,
+    pub hostname: String,
+    pub os: String,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct NetworkMonitorInfo {
+    pub gateway_ip: String,
+    pub local_interfaces: Vec<String>,
+    pub hosts: Vec<NetworkHostStatus>,
+    pub tailscale_peers: Vec<TailscalePeerStatus>,
+    pub lan_neighbors: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct SystemSnapshot {
     pub completed_flags: HashSet<String>,
     pub adb_devices: Vec<String>,
     pub docker_active: bool,
+    pub docker_info: DockerSystemInfo,
+    pub hardware_info: SystemHardwareInfo,
+    pub network_info: NetworkMonitorInfo,
     pub winapps_running: bool,
     pub antigravity_version: String,
     pub homelab_online: Option<bool>,

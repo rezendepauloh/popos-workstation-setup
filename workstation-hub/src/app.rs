@@ -41,8 +41,11 @@ pub enum Page {
     Dashboard,
     Setup,
     Utils,
+    System,
+    Docker,
     Homelab,
     RemoteDevices,
+    Network,
     Vpn,
     Tests,
     Logs,
@@ -129,7 +132,18 @@ pub enum Message {
     SetRemoteNetworkMode(HomelabNetworkMode),
     SetSamsungTarget(SamsungTarget),
     RunRemoteAction(String),
-    RunSamsungAction(String),
+    RunSamsungTargetAction(SamsungTarget, String),
+    RunDockerAction(String),
+    RunDockerContainerAction {
+        name: String,
+        compose_dir: String,
+        action: String,
+    },
+    RunSystemAction(String),
+    OpenRgbHexChanged(String),
+    ApplyOpenRgbHex,
+    OpenRgbSetColor(String),
+    RunNetworkAction(String),
     AlexaTtsInputChanged(String),
     SendAlexaTts,
 
@@ -193,6 +207,7 @@ pub struct AppModel {
     pub remote_network_mode: HomelabNetworkMode,
     pub samsung_target: SamsungTarget,
     pub alexa_tts_input: String,
+    pub openrgb_hex_input: String,
 
     // Runner & Logs state
     pub run_status: RunStatus,
@@ -250,6 +265,14 @@ impl cosmic::Application for AppModel {
             .data::<Page>(Page::Utils)
             .icon(icon::from_name("applications-utilities-symbolic"));
         nav.insert()
+            .text("Sistema")
+            .data::<Page>(Page::System)
+            .icon(icon::from_name("computer-symbolic"));
+        nav.insert()
+            .text("Docker (Pop!_OS)")
+            .data::<Page>(Page::Docker)
+            .icon(icon::from_name("utilities-system-monitor-symbolic"));
+        nav.insert()
             .text("Homelab (umbrelOS)")
             .data::<Page>(Page::Homelab)
             .icon(icon::from_name("network-server-symbolic"));
@@ -257,6 +280,10 @@ impl cosmic::Application for AppModel {
             .text("Dispositivos (Rede)")
             .data::<Page>(Page::RemoteDevices)
             .icon(icon::from_name("computer-symbolic"));
+        nav.insert()
+            .text("Monitor de Rede")
+            .data::<Page>(Page::Network)
+            .icon(icon::from_name("network-wired-symbolic"));
         nav.insert()
             .text("VPN (MPMS & Tailscale)")
             .data::<Page>(Page::Vpn)
@@ -310,6 +337,7 @@ impl cosmic::Application for AppModel {
             remote_network_mode: HomelabNetworkMode::Local,
             samsung_target: SamsungTarget::Tv,
             alexa_tts_input: String::new(),
+            openrgb_hex_input: "7A5AF8".to_string(),
             run_status: RunStatus::Idle,
             log_lines: vec![LogLine::plain(
                 "Hub pronto. Selecione uma ação para acompanhar a saída em tempo real.",
@@ -685,6 +713,11 @@ impl cosmic::Application for AppModel {
                     "android_clean" => ("Android: Limpar Cache Apps", "util/remote-devices/android_remote.sh", vec!["--mode", mode, "--clean-cache"]),
                     "android_scrcpy" => ("Android: Espelhar Tela (scrcpy)", "util/remote-devices/android_remote.sh", vec!["--mode", mode, "--scrcpy"]),
                     "android_disconnect" => ("Android: Desconectar ADB", "util/remote-devices/android_remote.sh", vec!["--mode", mode, "--disconnect"]),
+                    "tablet_connect" => ("Tablet Android: Conectar ADB", "util/remote-devices/android_remote.sh", vec!["--device", "tablet", "--mode", mode, "--connect"]),
+                    "tablet_status" => ("Tablet Android: Status & Espaço", "util/remote-devices/android_remote.sh", vec!["--device", "tablet", "--mode", mode, "--status"]),
+                    "tablet_clean" => ("Tablet Android: Limpar Cache Apps", "util/remote-devices/android_remote.sh", vec!["--device", "tablet", "--mode", mode, "--clean-cache"]),
+                    "tablet_scrcpy" => ("Tablet Android: Espelhar Tela (scrcpy)", "util/remote-devices/android_remote.sh", vec!["--device", "tablet", "--mode", mode, "--scrcpy"]),
+                    "tablet_disconnect" => ("Tablet Android: Desconectar ADB", "util/remote-devices/android_remote.sh", vec!["--device", "tablet", "--mode", mode, "--disconnect"]),
                     "ha_check" => ("Home Assistant: Testar API", "util/remote-devices/ha_alexa_remote.sh", vec!["--check"]),
                     _ => return Task::none(),
                 };
@@ -693,8 +726,8 @@ impl cosmic::Application for AppModel {
                     Err(e) => self.banner_notice = Some((e, true)),
                 }
             }
-            Message::RunSamsungAction(action) => {
-                let target = match self.samsung_target {
+            Message::RunSamsungTargetAction(target_dev, action) => {
+                let target = match target_dev {
                     SamsungTarget::Tv => "tv",
                     SamsungTarget::Projector => "projector",
                 };
@@ -713,6 +746,188 @@ impl cosmic::Application for AppModel {
                     Ok(spec) => self.start_command(spec),
                     Err(e) => self.banner_notice = Some((e, true)),
                 }
+            }
+            Message::RunDockerAction(action) => {
+                let (label, program, args): (&str, &str, Vec<String>) = match action.as_str() {
+                    "df_verbose" => ("Docker: Análise de Disco (df -v)", "docker", vec!["system".into(), "df".into(), "-v".into()]),
+                    "prune_images" => ("Docker: Limpar Imagens Não Usadas", "docker", vec!["image".into(), "prune".into(), "-a".into(), "-f".into()]),
+                    "prune_cache" => ("Docker: Limpar Build Cache", "docker", vec!["builder".into(), "prune".into(), "-f".into()]),
+                    "prune_system" => ("Docker: Limpeza Geral (Prune)", "docker", vec!["system".into(), "prune".into(), "-f".into()]),
+                    "pull_all" => (
+                        "Docker: Atualizar Todas Imagens (Pull)",
+                        "bash",
+                        vec![
+                            "-lc".into(),
+                            "docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>' | sort -u | xargs -r -n1 docker pull".into(),
+                        ],
+                    ),
+                    "start_daemon" => ("Docker: Iniciar Daemon", "sudo", vec!["systemctl".into(), "start".into(), "docker".into()]),
+                    "restart_daemon" => ("Docker: Reiniciar Daemon", "sudo", vec!["systemctl".into(), "restart".into(), "docker".into()]),
+                    _ => return Task::none(),
+                };
+                self.start_command(CommandSpec {
+                    label: label.to_string(),
+                    program: program.to_string(),
+                    args,
+                    workdir: self.paths.popos_repo.clone(),
+                    cleanup_file: None,
+                });
+            }
+            Message::RunDockerContainerAction { name, compose_dir, action } => {
+                let (label, program, args, workdir): (String, &str, Vec<String>, Option<PathBuf>) = match action.as_str() {
+                    "start" => (format!("Docker: Iniciar {name}"), "docker", vec!["start".into(), name], None),
+                    "stop" => (format!("Docker: Parar {name}"), "docker", vec!["stop".into(), name], None),
+                    "restart" => (format!("Docker: Reiniciar {name}"), "docker", vec!["restart".into(), name], None),
+                    "logs" => (format!("Docker: Logs {name}"), "docker", vec!["logs".into(), "--tail".into(), "150".into(), name], None),
+                    "compose_update" if !compose_dir.is_empty() => (
+                        format!("Docker Compose: Atualizar {name}"),
+                        "bash",
+                        vec!["-lc".into(), "docker compose pull && docker compose up -d".into()],
+                        Some(PathBuf::from(compose_dir)),
+                    ),
+                    "compose_rebuild" if !compose_dir.is_empty() => (
+                        format!("Docker Compose: Reconstruir {name}"),
+                        "bash",
+                        vec!["-lc".into(), "docker compose build --no-cache && docker compose up -d".into()],
+                        Some(PathBuf::from(compose_dir)),
+                    ),
+                    _ => return Task::none(),
+                };
+                self.start_command(CommandSpec {
+                    label,
+                    program: program.to_string(),
+                    args,
+                    workdir: workdir.unwrap_or_else(|| self.paths.popos_repo.clone()),
+                    cleanup_file: None,
+                });
+            }
+            Message::RunSystemAction(action) => {
+                let homelab_user = self.snapshot.homelab_user.clone();
+                let homelab_host = self.active_homelab_host();
+                let (label, program, args): (String, &str, Vec<String>) = match action.as_str() {
+                    "sunshine_start" => ("Sunshine: Iniciar".into(), "systemctl", vec!["--user".into(), "start".into(), "sunshine".into()]),
+                    "sunshine_stop" => ("Sunshine: Parar".into(), "systemctl", vec!["--user".into(), "stop".into(), "sunshine".into()]),
+                    "sunshine_status" => ("Sunshine: Status".into(), "systemctl", vec!["--user".into(), "status".into(), "sunshine".into(), "--no-pager".into()]),
+                    "openrgb_rainbow" => ("OpenRGB: Modo Rainbow".into(), "flatpak", vec!["run".into(), "org.openrgb.OpenRGB".into(), "--mode".into(), "rainbow".into()]),
+                    "openrgb_off" => ("OpenRGB: Desligar Todos LEDs".into(), "flatpak", vec!["run".into(), "org.openrgb.OpenRGB".into(), "--mode".into(), "static".into(), "--color".into(), "000000".into()]),
+                    "openrgb_list" => ("OpenRGB: Listar Dispositivos".into(), "flatpak", vec!["run".into(), "org.openrgb.OpenRGB".into(), "--list-devices".into()]),
+                    "audio_restart" => ("Áudio: Reiniciar PipeWire".into(), "systemctl", vec!["--user".into(), "restart".into(), "pipewire".into(), "pipewire-pulse".into(), "wireplumber".into()]),
+                    "audio_bt" => ("Áudio: Alternar para QCY H3S".into(), "bash", vec!["-lc".into(), "pactl list short sinks | awk '/bluez/{print $2}' | head -n1 | xargs -r pactl set-default-sink".into()]),
+                    "audio_speakers" => ("Áudio: Alternar para Caixas de Som".into(), "bash", vec!["-lc".into(), "pactl list short sinks | awk '!/bluez/{print $2}' | head -n1 | xargs -r pactl set-default-sink".into()]),
+                    "backup_cosmic_gdrive" => (
+                        "Backup COSMIC (.config -> Google Drive)".into(),
+                        "bash",
+                        vec![
+                            "-lc".into(),
+                            "TS=$(date +%Y%m%d_%H%M%S) && ARC=/tmp/cosmic-config-$TS.tar.gz && tar -czf \"$ARC\" -C \"$HOME/.config\" cosmic && echo \"[INFO] Arquivo criado: $ARC\" && rclone copy \"$ARC\" gdrive_pessoal:Backups_PopOS/cosmic/ --progress && rm -f \"$ARC\" && echo \"[OK] Backup COSMIC enviado para gdrive_pessoal:Backups_PopOS/cosmic/\"".into(),
+                        ],
+                    ),
+                    "sync_homelab_disk3" => (
+                        "Homelab: Verificar Daemon & Sincronizar disk3".into(),
+                        "bash",
+                        vec![
+                            "-lc".into(),
+                            format!(
+                                "echo '[INFO] Verificando serviços/timers de backup...' && systemctl --user list-timers --all | grep -iE 'homelab|backup|umbrel' || true; mkdir -p /mnt/storage_930/Backups_Homelab && rsync -avh --delete --progress {homelab_user}@{homelab_host}:/mnt/disk3/backups/ /mnt/storage_930/Backups_Homelab/ && echo '[OK] Sincronização concluída em /mnt/storage_930/Backups_Homelab/'"
+                            ),
+                        ],
+                    ),
+                    "rclone_restart" => ("Rclone: Reiniciar Montagens".into(), "bash", vec!["-lc".into(), "systemctl --user restart 'rclone-*' && echo '[OK] Serviços rclone reiniciados'".into()]),
+                    "onedrive_sync" => ("OneDrive (MPMS): Forçar Sync".into(), "onedrive", vec!["--synchronize".into()],),
+                    "repair_ides" => ("Reparar IDEs (Locks & GPU Cache)".into(), "bash", vec!["./setup_popos.sh".into(), "--repair-ides".into()]),
+                    "restart_cosmic_panel" => ("COSMIC: Reiniciar Panel".into(), "bash", vec!["-lc".into(), "pkill -f cosmic-panel || true".into()]),
+                    "power_suspend" => ("Energia: Suspender".into(), "systemctl", vec!["suspend".into()]),
+                    "power_reboot" => ("Energia: Reiniciar PC".into(), "systemctl", vec!["reboot".into()]),
+                    "power_off" => ("Energia: Desligar PC".into(), "systemctl", vec!["poweroff".into()]),
+                    _ => return Task::none(),
+                };
+                self.start_command(CommandSpec {
+                    label,
+                    program: program.to_string(),
+                    args,
+                    workdir: self.paths.popos_repo.clone(),
+                    cleanup_file: None,
+                });
+            }
+            Message::OpenRgbHexChanged(v) => self.openrgb_hex_input = v,
+            Message::ApplyOpenRgbHex => {
+                let hex = self.openrgb_hex_input.trim().trim_start_matches('#').to_string();
+                if hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()) {
+                    self.start_command(CommandSpec {
+                        label: format!("OpenRGB: Cor #{hex}"),
+                        program: "flatpak".to_string(),
+                        args: vec![
+                            "run".into(),
+                            "org.openrgb.OpenRGB".into(),
+                            "--mode".into(),
+                            "static".into(),
+                            "--color".into(),
+                            hex,
+                        ],
+                        workdir: self.paths.popos_repo.clone(),
+                        cleanup_file: None,
+                    });
+                } else {
+                    self.banner_notice = Some((
+                        "Informe um código HEX válido de 6 dígitos (ex: 7A5AF8).".to_string(),
+                        true,
+                    ));
+                }
+            }
+            Message::OpenRgbSetColor(hex) => {
+                self.openrgb_hex_input = hex.clone();
+                self.start_command(CommandSpec {
+                    label: format!("OpenRGB: Cor #{hex}"),
+                    program: "flatpak".to_string(),
+                    args: vec![
+                        "run".into(),
+                        "org.openrgb.OpenRGB".into(),
+                        "--mode".into(),
+                        "static".into(),
+                        "--color".into(),
+                        hex,
+                    ],
+                    workdir: self.paths.popos_repo.clone(),
+                    cleanup_file: None,
+                });
+            }
+            Message::RunNetworkAction(action) => {
+                let (label, program, args): (&str, &str, Vec<String>) = match action.as_str() {
+                    "lan_sweep" => (
+                        "Rede: Varredura LAN (Ping Sweep)",
+                        "bash",
+                        vec![
+                            "-lc".into(),
+                            "SUBNET=$(ip -4 route show scope link | awk '{print $1}' | head -n1); echo \"[INFO] Varrendo sub-rede $SUBNET...\"; if command -v nmap >/dev/null; then nmap -sn \"$SUBNET\"; else PREFIX=${SUBNET%.*}; for i in $(seq 1 254); do (ping -c1 -W1 \"${PREFIX}.$i\" >/dev/null 2>&1 && echo \"Ativo: ${PREFIX}.$i\") & done; wait; fi".into(),
+                        ],
+                    ),
+                    "dns_check" => (
+                        "Rede: Teste DNS & Internet",
+                        "bash",
+                        vec![
+                            "-lc".into(),
+                            "echo '=== Gateway ==='; ping -c 2 \"$(ip route show default | awk '/via/{print $3; exit}')\"; echo '=== Cloudflare 1.1.1.1 ==='; ping -c 2 1.1.1.1; echo '=== Resolução DNS ==='; resolvectl query google.com || nslookup google.com".into(),
+                        ],
+                    ),
+                    "listening_ports" => (
+                        "Rede: Portas Locais Abertas (ss -tulnp)",
+                        "ss",
+                        vec!["-tulnp".into()],
+                    ),
+                    "tailscale_status" => (
+                        "Tailscale: Status Completo",
+                        "tailscale",
+                        vec!["status".into()],
+                    ),
+                    _ => return Task::none(),
+                };
+                self.start_command(CommandSpec {
+                    label: label.to_string(),
+                    program: program.to_string(),
+                    args,
+                    workdir: self.paths.popos_repo.clone(),
+                    cleanup_file: None,
+                });
             }
             Message::FetchRemoteHomelabLogs => {
                 let host = self.active_homelab_host();
@@ -979,8 +1194,11 @@ impl cosmic::Application for AppModel {
             Page::Dashboard => views::dashboard::view(self),
             Page::Setup => views::setup::view(self),
             Page::Utils => views::utils::view(self),
+            Page::System => views::system::view(self),
+            Page::Docker => views::docker::view(self),
             Page::Homelab => views::homelab::view(self),
             Page::RemoteDevices => views::remote::view(self),
+            Page::Network => views::network::view(self),
             Page::Vpn => views::vpn::view(self),
             Page::Tests => views::tests::view(self),
             Page::Logs => views::logs::view(self),
