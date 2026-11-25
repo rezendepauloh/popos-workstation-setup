@@ -105,6 +105,50 @@ pub struct NetworkMonitorInfo {
     pub lan_neighbors: Vec<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PanelSegment {
+    Start,
+    Center,
+    End,
+    #[default]
+    Hidden,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct PanelAppletInfo {
+    pub id: String,
+    pub name: String,
+    pub comment: String,
+    pub icon: String,
+    pub segment: PanelSegment,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TrayItemInfo {
+    pub bus_name: String,
+    pub object_path: String,
+    pub id: String,
+    pub title: String,
+    pub icon: String,
+    pub status: String,
+    pub systemd_unit: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ManagedIndicatorInfo {
+    pub unit: String,
+    pub label: String,
+    pub icon: String,
+    pub active: bool,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct PanelAndTrayInfo {
+    pub applets: Vec<PanelAppletInfo>,
+    pub tray_items: Vec<TrayItemInfo>,
+    pub managed_indicators: Vec<ManagedIndicatorInfo>,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct SystemSnapshot {
     pub completed_flags: HashSet<String>,
@@ -113,6 +157,7 @@ pub struct SystemSnapshot {
     pub docker_info: DockerSystemInfo,
     pub hardware_info: SystemHardwareInfo,
     pub network_info: NetworkMonitorInfo,
+    pub panel_tray_info: PanelAndTrayInfo,
     pub winapps_running: bool,
     pub antigravity_version: String,
     pub homelab_online: Option<bool>,

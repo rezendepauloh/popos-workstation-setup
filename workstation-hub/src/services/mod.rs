@@ -2,6 +2,7 @@ pub mod ansi_parser;
 pub mod env_service;
 pub mod input_validator;
 pub mod log_service;
+pub mod panel_tray_service;
 pub mod path_locator;
 pub mod probe_service;
 pub mod progress_service;

@@ -57,6 +57,62 @@ pub fn parse_hub_executions(logs_dir: &Path) -> Vec<HubExecutionRecord> {
     records
 }
 
+pub fn delete_hub_execution(
+    logs_dir: &Path,
+    target_timestamp: &str,
+    target_label: &str,
+) -> Result<(), String> {
+    let target_header = format!("=== [{target_timestamp}] EXEC: {target_label} ===");
+    for fname in [
+        "workstation-hub.log",
+        "workstation-hub.log.1",
+        "workstation-hub.log.2",
+    ] {
+        let p = logs_dir.join(fname);
+        let Ok(raw) = fs::read_to_string(&p) else {
+            continue;
+        };
+        let mut out = String::with_capacity(raw.len());
+        let mut skipping = false;
+        let mut changed = false;
+        for line in raw.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("=== [") && trimmed.contains("] EXEC: ") && trimmed.ends_with(" ===") {
+                if trimmed == target_header && !changed {
+                    skipping = true;
+                    changed = true;
+                    continue;
+                }
+                skipping = false;
+            }
+            if !skipping {
+                out.push_str(line);
+                out.push('\n');
+            }
+        }
+        if changed {
+            fs::write(&p, out).map_err(|e| format!("Falha ao atualizar {}: {e}", p.display()))?;
+            return Ok(());
+        }
+    }
+    Ok(())
+}
+
+pub fn clear_hub_executions(logs_dir: &Path) -> Result<(), String> {
+    for fname in [
+        "workstation-hub.log",
+        "workstation-hub.log.1",
+        "workstation-hub.log.2",
+    ] {
+        let p = logs_dir.join(fname);
+        if p.exists() {
+            fs::remove_file(&p)
+                .map_err(|e| format!("Falha ao remover {}: {e}", p.display()))?;
+        }
+    }
+    Ok(())
+}
+
 pub fn append_rotated_log(logs_dir: &Path, label: &str, content: &str) -> Result<(), String> {
     append_rotated_log_with_limit(logs_dir, label, content, MAX_LOG_FILE_BYTES)
 }

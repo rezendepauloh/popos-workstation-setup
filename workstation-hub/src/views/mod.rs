@@ -1,8 +1,10 @@
 pub mod dashboard;
 pub mod docker;
+pub mod docs;
 pub mod homelab;
 pub mod logs;
 pub mod network;
+pub mod panel_tray;
 pub mod remote;
 pub mod settings;
 pub mod setup;

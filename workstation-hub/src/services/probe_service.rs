@@ -36,13 +36,15 @@ pub async fn collect_snapshot(paths: &HubPaths) -> SystemSnapshot {
         probe_remote_devices(&paths.popos_repo),
     );
 
-    let network_info = probe_network_monitor(
-        &paths.popos_repo,
-        &homelab_local_host,
-        &homelab_tailscale_host,
-        &remote_devices,
-    )
-    .await;
+    let (network_info, panel_tray_info) = tokio::join!(
+        probe_network_monitor(
+            &paths.popos_repo,
+            &homelab_local_host,
+            &homelab_tailscale_host,
+            &remote_devices,
+        ),
+        crate::services::panel_tray_service::probe_panel_and_tray(),
+    );
 
     let local_android_backups = list_android_backups();
     let log_files = list_log_files(paths);
@@ -58,6 +60,7 @@ pub async fn collect_snapshot(paths: &HubPaths) -> SystemSnapshot {
         docker_info,
         hardware_info,
         network_info,
+        panel_tray_info,
         winapps_running: docker_res.1,
         antigravity_version,
         homelab_online: Some(homelab_online),

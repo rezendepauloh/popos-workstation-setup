@@ -42,6 +42,7 @@ pub enum Page {
     Setup,
     Utils,
     System,
+    PanelTray,
     Docker,
     Homelab,
     RemoteDevices,
@@ -49,6 +50,7 @@ pub enum Page {
     Vpn,
     Tests,
     Logs,
+    Docs,
     Settings,
 }
 
@@ -73,12 +75,29 @@ pub enum TestTarget {
 pub enum ContextPage {
     #[default]
     About,
+    Console,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MenuAction {
-    About,
     Refresh,
+    OpenProjectFolder,
+    OpenLogsFolder,
+    GoSettings,
+    Quit,
+    ToggleConsoleDrawer,
+    GoDashboard,
+    GoSystem,
+    GoPanelTray,
+    GoDocker,
+    GoHomelab,
+    GoNetwork,
+    QuickBackupCosmic,
+    QuickRepairIdes,
+    QuickRestartRclone,
+    QuickRunTests,
+    OpenDocsFolder,
+    About,
 }
 
 impl menu::action::MenuAction for MenuAction {
@@ -86,8 +105,24 @@ impl menu::action::MenuAction for MenuAction {
 
     fn message(&self) -> Self::Message {
         match self {
-            MenuAction::About => Message::ToggleContextPage(ContextPage::About),
             MenuAction::Refresh => Message::RefreshSnapshot,
+            MenuAction::OpenProjectFolder => Message::MenuOpenProjectFolder,
+            MenuAction::OpenLogsFolder => Message::MenuOpenLogsFolder,
+            MenuAction::GoSettings => Message::NavigateTo(Page::Settings),
+            MenuAction::Quit => Message::MenuQuit,
+            MenuAction::ToggleConsoleDrawer => Message::ToggleContextPage(ContextPage::Console),
+            MenuAction::GoDashboard => Message::NavigateTo(Page::Dashboard),
+            MenuAction::GoSystem => Message::NavigateTo(Page::System),
+            MenuAction::GoPanelTray => Message::NavigateTo(Page::PanelTray),
+            MenuAction::GoDocker => Message::NavigateTo(Page::Docker),
+            MenuAction::GoHomelab => Message::NavigateTo(Page::Homelab),
+            MenuAction::GoNetwork => Message::NavigateTo(Page::Network),
+            MenuAction::QuickBackupCosmic => Message::RunSystemAction("backup_cosmic_gdrive".to_string()),
+            MenuAction::QuickRepairIdes => Message::RunSystemAction("repair_ides".to_string()),
+            MenuAction::QuickRestartRclone => Message::RunSystemAction("rclone_restart".to_string()),
+            MenuAction::QuickRunTests => Message::RunTestTarget(TestTarget::PoposFull),
+            MenuAction::OpenDocsFolder => Message::NavigateTo(Page::Docs),
+            MenuAction::About => Message::ToggleContextPage(ContextPage::About),
         }
     }
 }
@@ -98,6 +133,10 @@ pub enum Message {
     SnapshotLoaded(SystemSnapshot),
     ToggleContextPage(ContextPage),
     LaunchUrl(String),
+    MenuOpenProjectFolder,
+    MenuOpenLogsFolder,
+    MenuOpenDocsFolder,
+    MenuQuit,
 
     // Setup Tab
     SetupSearchChanged(String),
@@ -144,6 +183,10 @@ pub enum Message {
     ApplyOpenRgbHex,
     OpenRgbSetColor(String),
     RunNetworkAction(String),
+    SetPanelAppletSegment(String, crate::models::status::PanelSegment),
+    ToggleTrayIndicator(String, bool),
+    RestartTrayIndicator(String),
+    ActivateTrayItem(String, String),
     AlexaTtsInputChanged(String),
     SendAlexaTts,
 
@@ -155,14 +198,20 @@ pub enum Message {
     ClearConsoleLogs,
     OpenLogFile(PathBuf),
     OpenHubExecution(usize),
+    DeleteHubExecution(usize),
+    ClearAllHubExecutions,
     LogExecPagePrev,
     LogExecPageNext,
+    DocsSearchChanged(String),
+    SelectDocFile(PathBuf),
+    CopyDocContent,
     CloseLogPreview,
     LogPreviewFilterChanged(String),
     ConsoleHeightChanged(f32),
     LogPreviewHeightChanged(f32),
     CopyConsoleLogs,
     AutoProbeTick,
+    ConsoleProgressTick,
 
     // Settings & .env Editor
     PoposPathInputChanged(String),
@@ -212,6 +261,10 @@ pub struct AppModel {
     // Runner & Logs state
     pub run_status: RunStatus,
     pub log_lines: Vec<LogLine>,
+    pub console_progress: f32,
+    pub docs_search: String,
+    pub selected_doc_path: Option<PathBuf>,
+    pub selected_doc_content: String,
     pub pty_input: String,
     pub process_handle: Option<RunningProcessHandle>,
     runner_tx: UnboundedSender<RunnerEvent>,
@@ -269,6 +322,10 @@ impl cosmic::Application for AppModel {
             .data::<Page>(Page::System)
             .icon(icon::from_name("computer-symbolic"));
         nav.insert()
+            .text("Painel & Tray")
+            .data::<Page>(Page::PanelTray)
+            .icon(icon::from_name("view-grid-symbolic"));
+        nav.insert()
             .text("Docker (Pop!_OS)")
             .data::<Page>(Page::Docker)
             .icon(icon::from_name("utilities-system-monitor-symbolic"));
@@ -296,6 +353,10 @@ impl cosmic::Application for AppModel {
             .text("Console & Logs")
             .data::<Page>(Page::Logs)
             .icon(icon::from_name("utilities-terminal-symbolic"));
+        nav.insert()
+            .text("Documentação (Wiki)")
+            .data::<Page>(Page::Docs)
+            .icon(icon::from_name("help-contents-symbolic"));
         nav.insert()
             .text("Configurações")
             .data::<Page>(Page::Settings)
@@ -344,6 +405,10 @@ impl cosmic::Application for AppModel {
                 AnsiColor::Muted,
                 false,
             )],
+            console_progress: 0.15,
+            docs_search: String::new(),
+            selected_doc_path: None,
+            selected_doc_content: String::new(),
             pty_input: String::new(),
             process_handle: None,
             runner_tx,
@@ -367,16 +432,87 @@ impl cosmic::Application for AppModel {
     }
 
     fn header_start(&self) -> Vec<Element<'_, Self::Message>> {
-        let menu_bar = menu::bar(vec![menu::Tree::with_children(
-            menu::root("Arquivo").apply(Element::from),
-            menu::items(
-                &self.key_binds,
-                vec![
-                    menu::Item::Button("Atualizar Status", None, MenuAction::Refresh),
-                    menu::Item::Button("Sobre", None, MenuAction::About),
-                ],
+        let menu_bar = menu::bar(vec![
+            menu::Tree::with_children(
+                menu::root("Arquivo").apply(Element::from),
+                menu::items(
+                    &self.key_binds,
+                    vec![
+                        menu::Item::Button("Atualizar Painel", None, MenuAction::Refresh),
+                        menu::Item::Button(
+                            "Abrir Pasta do Projeto",
+                            None,
+                            MenuAction::OpenProjectFolder,
+                        ),
+                        menu::Item::Button("Abrir Pasta de Logs", None, MenuAction::OpenLogsFolder),
+                        menu::Item::Button("Configurações & .env", None, MenuAction::GoSettings),
+                        menu::Item::Divider,
+                        menu::Item::Button("Sair", None, MenuAction::Quit),
+                    ],
+                ),
             ),
-        )]);
+            menu::Tree::with_children(
+                menu::root("Exibir").apply(Element::from),
+                menu::items(
+                    &self.key_binds,
+                    vec![
+                        menu::Item::Button(
+                            "Alternar Console Lateral",
+                            None,
+                            MenuAction::ToggleConsoleDrawer,
+                        ),
+                        menu::Item::Divider,
+                        menu::Item::Button("Visão Geral", None, MenuAction::GoDashboard),
+                        menu::Item::Button("Sistema", None, MenuAction::GoSystem),
+                        menu::Item::Button("Painel & Tray", None, MenuAction::GoPanelTray),
+                        menu::Item::Button("Docker (Pop!_OS)", None, MenuAction::GoDocker),
+                        menu::Item::Button("Homelab (umbrelOS)", None, MenuAction::GoHomelab),
+                        menu::Item::Button("Monitor de Rede", None, MenuAction::GoNetwork),
+                    ],
+                ),
+            ),
+            menu::Tree::with_children(
+                menu::root("Ações Rápidas").apply(Element::from),
+                menu::items(
+                    &self.key_binds,
+                    vec![
+                        menu::Item::Button(
+                            "Backup COSMIC (.config -> Google Drive)",
+                            None,
+                            MenuAction::QuickBackupCosmic,
+                        ),
+                        menu::Item::Button(
+                            "Reparar IDEs (Locks & GPU)",
+                            None,
+                            MenuAction::QuickRepairIdes,
+                        ),
+                        menu::Item::Button(
+                            "Reiniciar Montagens Rclone",
+                            None,
+                            MenuAction::QuickRestartRclone,
+                        ),
+                        menu::Item::Divider,
+                        menu::Item::Button(
+                            "Rodar Testes (setup_popos.sh --test)",
+                            None,
+                            MenuAction::QuickRunTests,
+                        ),
+                    ],
+                ),
+            ),
+            menu::Tree::with_children(
+                menu::root("Ajuda").apply(Element::from),
+                menu::items(
+                    &self.key_binds,
+                    vec![
+                        menu::Item::Button("Documentação (Docs/)", None, MenuAction::OpenDocsFolder),
+                        menu::Item::Divider,
+                        menu::Item::Button("Sobre o Workstation Hub", None, MenuAction::About),
+                    ],
+                ),
+            ),
+        ]);
+        let menu_bar = menu_bar.item_width(menu::ItemWidth::Uniform(310));
         vec![menu_bar.into()]
     }
 
@@ -401,6 +537,7 @@ impl cosmic::Application for AppModel {
                 |url| Message::LaunchUrl(url.to_string()),
                 Message::ToggleContextPage(ContextPage::About),
             ),
+            ContextPage::Console => views::logs::console_drawer(self),
         })
     }
 
@@ -443,7 +580,27 @@ impl cosmic::Application for AppModel {
             )
         });
 
-        Subscription::batch([runner_sub, tick_sub])
+        let progress_sub = if self.process_handle.is_some() {
+            Subscription::run(|| {
+                cosmic::iced::stream::channel(
+                    4,
+                    move |mut emitter: futures::channel::mpsc::Sender<Message>| async move {
+                        use futures::SinkExt;
+                        let mut interval = tokio::time::interval(std::time::Duration::from_millis(350));
+                        loop {
+                            interval.tick().await;
+                            if emitter.send(Message::ConsoleProgressTick).await.is_err() {
+                                break;
+                            }
+                        }
+                    },
+                )
+            })
+        } else {
+            Subscription::none()
+        };
+
+        Subscription::batch([runner_sub, tick_sub, progress_sub])
     }
 
     fn update(&mut self, message: Self::Message) -> Task<cosmic::Action<Self::Message>> {
@@ -468,6 +625,22 @@ impl cosmic::Application for AppModel {
                 if let Err(err) = open::that_detached(&url) {
                     self.banner_notice = Some((format!("Erro ao abrir URL: {err}"), true));
                 }
+            }
+            Message::MenuOpenProjectFolder => {
+                let _ = open::that_detached(&self.paths.popos_repo);
+            }
+            Message::MenuOpenLogsFolder => {
+                if let Some(state_dir) = dirs::state_dir().or_else(dirs::data_local_dir) {
+                    let logs_dir = state_dir.join("workstation-hub").join("logs");
+                    let _ = fs::create_dir_all(&logs_dir);
+                    let _ = open::that_detached(logs_dir);
+                }
+            }
+            Message::MenuOpenDocsFolder => {
+                let _ = open::that_detached(self.paths.popos_repo.join("Docs"));
+            }
+            Message::MenuQuit => {
+                return cosmic::iced::exit();
             }
             Message::NavigateTo(page) => {
                 self.activate_page(page);
@@ -929,6 +1102,68 @@ impl cosmic::Application for AppModel {
                     cleanup_file: None,
                 });
             }
+            Message::SetPanelAppletSegment(id, seg) => {
+                match crate::services::panel_tray_service::set_applet_segment(&id, seg) {
+                    Ok(()) => {
+                        self.banner_notice = Some((
+                            format!("Painel COSMIC atualizado ({id})"),
+                            false,
+                        ));
+                        let paths = self.paths.clone();
+                        return Task::perform(
+                            async move {
+                                crate::services::probe_service::collect_snapshot(&paths).await
+                            },
+                            Message::SnapshotLoaded,
+                        )
+                        .map(cosmic::Action::App);
+                    }
+                    Err(e) => self.banner_notice = Some((e, true)),
+                }
+            }
+            Message::ToggleTrayIndicator(unit, show) => {
+                let verb = if show { "start" } else { "stop" };
+                let label = format!(
+                    "Bandeja: {} {unit}",
+                    if show { "Exibir" } else { "Ocultar" }
+                );
+                self.start_command(CommandSpec {
+                    label,
+                    program: "systemctl".to_string(),
+                    args: vec!["--user".into(), verb.into(), unit],
+                    workdir: self.paths.popos_repo.clone(),
+                    cleanup_file: None,
+                });
+            }
+            Message::RestartTrayIndicator(unit) => {
+                self.start_command(CommandSpec {
+                    label: format!("Bandeja: Reiniciar {unit}"),
+                    program: "systemctl".to_string(),
+                    args: vec!["--user".into(), "restart".into(), unit],
+                    workdir: self.paths.popos_repo.clone(),
+                    cleanup_file: None,
+                });
+            }
+            Message::ActivateTrayItem(bus, path) => {
+                self.start_command(CommandSpec {
+                    label: format!("Bandeja: Ativar {bus}"),
+                    program: "gdbus".to_string(),
+                    args: vec![
+                        "call".into(),
+                        "--session".into(),
+                        "--dest".into(),
+                        bus,
+                        "--object-path".into(),
+                        path,
+                        "--method".into(),
+                        "org.kde.StatusNotifierItem.Activate".into(),
+                        "0".into(),
+                        "0".into(),
+                    ],
+                    workdir: self.paths.popos_repo.clone(),
+                    cleanup_file: None,
+                });
+            }
             Message::FetchRemoteHomelabLogs => {
                 let host = self.active_homelab_host();
                 let spec = build_remote_homelab_logs_command(
@@ -1082,6 +1317,41 @@ impl cosmic::Application for AppModel {
                     self.selected_log_preview = Some((title, rec.body.clone()));
                 }
             }
+            Message::DeleteHubExecution(idx) => {
+                if let Some(rec) = self.snapshot.hub_executions.get(idx).cloned()
+                    && let Some(state_dir) = dirs::state_dir().or_else(dirs::data_local_dir)
+                {
+                    let logs_dir = state_dir.join("workstation-hub").join("logs");
+                    match crate::services::log_service::delete_hub_execution(
+                        &logs_dir,
+                        &rec.timestamp,
+                        &rec.label,
+                    ) {
+                        Ok(()) => {
+                            self.snapshot.hub_executions.remove(idx);
+                            self.selected_log_preview = None;
+                        }
+                        Err(e) => self.banner_notice = Some((e, true)),
+                    }
+                }
+            }
+            Message::ClearAllHubExecutions => {
+                if let Some(state_dir) = dirs::state_dir().or_else(dirs::data_local_dir) {
+                    let logs_dir = state_dir.join("workstation-hub").join("logs");
+                    match crate::services::log_service::clear_hub_executions(&logs_dir) {
+                        Ok(()) => {
+                            self.snapshot.hub_executions.clear();
+                            self.log_exec_page = 0;
+                            self.selected_log_preview = None;
+                            self.banner_notice = Some((
+                                "Histórico de execuções do Hub apagado.".to_string(),
+                                false,
+                            ));
+                        }
+                        Err(e) => self.banner_notice = Some((e, true)),
+                    }
+                }
+            }
             Message::LogExecPagePrev => {
                 self.log_exec_page = self.log_exec_page.saturating_sub(1);
             }
@@ -1090,6 +1360,19 @@ impl cosmic::Application for AppModel {
                 let max_page = total.saturating_sub(1) / 6;
                 if self.log_exec_page < max_page {
                     self.log_exec_page += 1;
+                }
+            }
+            Message::DocsSearchChanged(v) => self.docs_search = v,
+            Message::SelectDocFile(path) => match fs::read_to_string(&path) {
+                Ok(content) => {
+                    self.selected_doc_path = Some(path);
+                    self.selected_doc_content = content;
+                }
+                Err(e) => self.banner_notice = Some((format!("Erro ao ler documento: {e}"), true)),
+            },
+            Message::CopyDocContent => {
+                if !self.selected_doc_content.is_empty() {
+                    return cosmic::iced::clipboard::write(self.selected_doc_content.clone());
                 }
             }
             Message::CloseLogPreview => {
@@ -1102,6 +1385,14 @@ impl cosmic::Application for AppModel {
             Message::AutoProbeTick => {
                 if self.process_handle.is_none() && !self.is_probing {
                     return self.spawn_probe_task();
+                }
+            }
+            Message::ConsoleProgressTick => {
+                if self.process_handle.is_some() {
+                    self.console_progress += 0.06;
+                    if self.console_progress > 0.94 {
+                        self.console_progress = 0.12;
+                    }
                 }
             }
             Message::CopyConsoleLogs => {
@@ -1195,6 +1486,7 @@ impl cosmic::Application for AppModel {
             Page::Setup => views::setup::view(self),
             Page::Utils => views::utils::view(self),
             Page::System => views::system::view(self),
+            Page::PanelTray => views::panel_tray::view(self),
             Page::Docker => views::docker::view(self),
             Page::Homelab => views::homelab::view(self),
             Page::RemoteDevices => views::remote::view(self),
@@ -1202,6 +1494,7 @@ impl cosmic::Application for AppModel {
             Page::Vpn => views::vpn::view(self),
             Page::Tests => views::tests::view(self),
             Page::Logs => views::logs::view(self),
+            Page::Docs => views::docs::view(self),
             Page::Settings => views::settings::view(self),
         };
 
@@ -1306,14 +1599,17 @@ impl AppModel {
                 "Já existe uma tarefa em execução. Aguarde ou cancele no Console.".to_string(),
                 true,
             ));
-            self.activate_page(Page::Logs);
+            self.context_page = ContextPage::Console;
+            self.core.window.show_context = true;
             return;
         }
         self.banner_notice = None;
         self.log_lines.clear();
+        self.console_progress = 0.15;
         let handle = spawn_pty_command(spec, self.runner_tx.clone());
         self.process_handle = Some(handle);
-        self.activate_page(Page::Logs);
+        self.context_page = ContextPage::Console;
+        self.core.window.show_context = true;
     }
 
     fn load_env_for_target(&mut self, target: EnvTarget) {
@@ -1358,19 +1654,29 @@ impl AppModel {
             ),
         };
 
-        let mut bar = widget::row::with_capacity(4)
+        let mut bar = widget::row::with_capacity(6)
             .spacing(space_s)
             .align_y(Alignment::Center)
             .push(widget::text::caption(status_text).width(Length::Fill));
 
         if self.process_handle.is_some() {
-            bar = bar.push(
-                widget::button::destructive("Parar").on_press(Message::StopRunningProcess),
-            );
+            bar = bar
+                .push(
+                    cosmic::iced::widget::progress_bar(0.0..=1.0, self.console_progress)
+                        .length(Length::Fixed(120.0))
+                        .girth(Length::Fixed(6.0)),
+                )
+                .push(
+                    widget::button::destructive("Parar").on_press(Message::StopRunningProcess),
+                );
         }
 
         bar = bar.push(
-            widget::button::standard("Console").on_press(Message::NavigateTo(Page::Logs)),
+            widget::button::standard("Console")
+                .on_press(Message::ToggleContextPage(ContextPage::Console)),
+        );
+        bar = bar.push(
+            widget::button::standard("Histórico").on_press(Message::NavigateTo(Page::Logs)),
         );
         bar = bar.push(
             widget::button::standard("Atualizar").on_press(Message::RefreshSnapshot),

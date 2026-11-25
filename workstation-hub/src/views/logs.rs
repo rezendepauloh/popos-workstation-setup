@@ -1,5 +1,6 @@
-use crate::app::{AppModel, Message};
+use crate::app::{AppModel, ContextPage, Message, Page};
 use crate::models::log_entry::{AnsiColor, LogLine, RunStatus};
+use cosmic::app::context_drawer;
 use cosmic::iced::{Alignment, Color, Length};
 use cosmic::prelude::*;
 use cosmic::widget::{self, settings};
@@ -139,23 +140,40 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
                 settings::item::builder(&rec.label)
                     .description(&rec.timestamp)
                     .control(
-                        widget::button::standard("Visualizar")
-                            .on_press(Message::OpenHubExecution(idx)),
+                        widget::row::with_capacity(2)
+                            .spacing(6)
+                            .push(
+                                widget::button::standard("Visualizar")
+                                    .on_press(Message::OpenHubExecution(idx)),
+                            )
+                            .push(
+                                widget::button::destructive("Apagar")
+                                    .on_press(Message::DeleteHubExecution(idx)),
+                            ),
                     ),
             );
         }
+        let mut footer_row = widget::row::with_capacity(4)
+            .spacing(space_s)
+            .align_y(Alignment::Center);
         if total_pages > 1 {
-            let pager = widget::row::with_capacity(3)
-                .spacing(space_s)
-                .align_y(Alignment::Center)
+            footer_row = footer_row
                 .push(widget::button::standard("◀ Anterior").on_press(Message::LogExecPagePrev))
                 .push(widget::text::caption(format!(
                     "Página {} de {total_pages} ({total_execs} execuções)",
                     current_page + 1
                 )))
                 .push(widget::button::standard("Próxima ▶").on_press(Message::LogExecPageNext));
-            execs_sec = execs_sec.add(widget::container(pager).padding(4));
+        } else {
+            footer_row = footer_row.push(widget::text::caption(format!(
+                "{total_execs} execuções registradas"
+            )));
         }
+        footer_row = footer_row.push(
+            widget::button::destructive("Apagar Tudo")
+                .on_press(Message::ClearAllHubExecutions),
+        );
+        execs_sec = execs_sec.add(widget::container(footer_row).padding(4));
     }
 
     let mut logs_sec = settings::section().title("Arquivos de Log Salvos (Pop!_OS, Rust Hub & Homelab)");
@@ -252,6 +270,110 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
     }
 
     widget::scrollable(root_col).height(Length::Fill).into()
+}
+
+pub fn console_drawer(app: &AppModel) -> context_drawer::ContextDrawer<'_, Message> {
+    let space_s = cosmic::theme::spacing().space_s;
+
+    let (badge_text, badge_color, progress_val) = match &app.run_status {
+        RunStatus::Idle => (
+            "○ Ocioso (pronto)".to_string(),
+            Color::from_rgb(0.62, 0.65, 0.72),
+            0.0,
+        ),
+        RunStatus::Running { label } => (
+            format!("⏳ {label}"),
+            Color::from_rgb(0.95, 0.80, 0.35),
+            app.console_progress.clamp(0.08, 0.95),
+        ),
+        RunStatus::Succeeded { label, duration_ms } => (
+            format!("✔ {label} ({:.1}s)", *duration_ms as f64 / 1000.0),
+            Color::from_rgb(0.45, 0.88, 0.55),
+            1.0,
+        ),
+        RunStatus::Failed {
+            label,
+            exit_code,
+            duration_ms,
+        } => (
+            format!(
+                "✖ Falhou ({exit_code}): {label} ({:.1}s)",
+                *duration_ms as f64 / 1000.0
+            ),
+            Color::from_rgb(0.95, 0.45, 0.45),
+            1.0,
+        ),
+    };
+
+    let mut status_row = widget::row::with_capacity(2)
+        .spacing(space_s)
+        .align_y(Alignment::Center)
+        .push(
+            widget::text::body(badge_text)
+                .class(cosmic::theme::Text::Color(badge_color))
+                .width(Length::Fill),
+        );
+
+    if app.process_handle.is_some() {
+        status_row = status_row.push(
+            widget::button::destructive("Parar").on_press(Message::StopRunningProcess),
+        );
+    }
+
+    let header = widget::column::with_capacity(2)
+        .spacing(6)
+        .padding([4, 0])
+        .push(status_row)
+        .push(cosmic::iced::widget::progress_bar(0.0..=1.0, progress_val).girth(Length::Fixed(6.0)));
+
+    let actions = widget::row::with_capacity(3)
+        .spacing(6)
+        .push(widget::button::standard("Copiar").on_press(Message::CopyConsoleLogs))
+        .push(widget::button::standard("Limpar").on_press(Message::ClearConsoleLogs))
+        .push(widget::button::standard("Aba Logs").on_press(Message::NavigateTo(Page::Logs)));
+
+    let mut console_col = widget::column::with_capacity(app.log_lines.len().min(400).max(1))
+        .spacing(2)
+        .width(Length::Fill);
+
+    if app.log_lines.is_empty() {
+        console_col = console_col.push(widget::text::caption(
+            "A saída dos comandos executados aparecerá aqui em tempo real.",
+        ));
+    } else {
+        let start_idx = app.log_lines.len().saturating_sub(400);
+        for line in &app.log_lines[start_idx..] {
+            console_col = console_col.push(render_log_line(line));
+        }
+    }
+
+    let footer = widget::row::with_capacity(2)
+        .spacing(space_s)
+        .align_y(Alignment::Center)
+        .push(
+            widget::text_input("Entrada PTY (S/n, OTP...)", &app.pty_input)
+                .on_input(Message::PtyInputChanged)
+                .on_submit(|_| Message::SendPtyInput)
+                .width(Length::Fill),
+        )
+        .push(widget::button::suggested("Enviar").on_press(Message::SendPtyInput));
+
+    let console_scroll = widget::scrollable(console_col)
+        .height(Length::Fixed(520.0))
+        .width(Length::Fill)
+        .direction(cosmic::iced::widget::scrollable::Direction::Both {
+            vertical: Default::default(),
+            horizontal: Default::default(),
+        });
+
+    context_drawer::context_drawer(
+        console_scroll,
+        Message::ToggleContextPage(ContextPage::Console),
+    )
+        .title("Console em Tempo Real")
+        .actions(actions)
+        .header(header)
+        .footer(footer)
 }
 
 fn colorize_log_preview_line(line: &str) -> LogLine {
