@@ -203,8 +203,13 @@ pub enum Message {
     LogExecPagePrev,
     LogExecPageNext,
     DocsSearchChanged(String),
+    DocsCategorySelected(usize),
+    DocsFontSizeDelta(f32),
+    ToggleDocsSelectMode,
+    DocsEditorAction(cosmic::iced::widget::text_editor::Action),
     SelectDocFile(PathBuf),
     CopyDocContent,
+    CopyText(String),
     CloseLogPreview,
     LogPreviewFilterChanged(String),
     ConsoleHeightChanged(f32),
@@ -263,6 +268,10 @@ pub struct AppModel {
     pub log_lines: Vec<LogLine>,
     pub console_progress: f32,
     pub docs_search: String,
+    pub docs_category_idx: usize,
+    pub docs_font_size: f32,
+    pub docs_select_mode: bool,
+    pub docs_editor_content: cosmic::iced::widget::text_editor::Content,
     pub selected_doc_path: Option<PathBuf>,
     pub selected_doc_content: String,
     pub pty_input: String,
@@ -407,6 +416,10 @@ impl cosmic::Application for AppModel {
             )],
             console_progress: 0.15,
             docs_search: String::new(),
+            docs_category_idx: 0,
+            docs_font_size: 14.0,
+            docs_select_mode: false,
+            docs_editor_content: cosmic::iced::widget::text_editor::Content::new(),
             selected_doc_path: None,
             selected_doc_content: String::new(),
             pty_input: String::new(),
@@ -622,7 +635,51 @@ impl cosmic::Application for AppModel {
                 }
             }
             Message::LaunchUrl(url) => {
-                if let Err(err) = open::that_detached(&url) {
+                if let Some(rel) = url.strip_prefix("doc://") {
+                    let clean_rel = rel.split('#').next().unwrap_or(rel).trim();
+                    let mut candidates = Vec::new();
+                    if let Some(cur) = &self.selected_doc_path
+                        && let Some(parent) = cur.parent()
+                    {
+                        candidates.push(parent.join(clean_rel));
+                    }
+                    candidates.push(self.paths.popos_repo.join(clean_rel));
+                    candidates.push(self.paths.homelab_repo.join(clean_rel));
+                    if let Some(found) = candidates.into_iter().find(|p| p.is_file())
+                        && let Ok(content) = fs::read_to_string(&found)
+                    {
+                        self.docs_editor_content =
+                            cosmic::iced::widget::text_editor::Content::with_text(&content);
+                        self.selected_doc_path = Some(found);
+                        self.selected_doc_content = content;
+                    }
+                } else if let Some(anchor) = url.strip_prefix("anchor://") {
+                    let slug = anchor
+                        .trim_start_matches('#')
+                        .to_ascii_lowercase()
+                        .replace('-', " ");
+                    let lines: Vec<&str> = self.selected_doc_content.lines().collect();
+                    let total = lines.len().max(1) as f32;
+                    if let Some((idx, _)) = lines.iter().enumerate().find(|(_, l)| {
+                        let t = l.trim_start();
+                        t.starts_with('#')
+                            && t.trim_start_matches('#')
+                                .to_ascii_lowercase()
+                                .chars()
+                                .filter(|c| c.is_alphanumeric() || c.is_whitespace())
+                                .collect::<String>()
+                                .contains(&slug)
+                    }) {
+                        let ratio = (idx as f32 / total).clamp(0.0, 1.0);
+                        return cosmic::iced::widget::scrollable::snap_to(
+                            widget::Id::new("docs_reader_scroll"),
+                            cosmic::iced::widget::scrollable::RelativeOffset {
+                                x: Some(0.0),
+                                y: Some(ratio),
+                            },
+                        );
+                    }
+                } else if let Err(err) = open::that_detached(&url) {
                     self.banner_notice = Some((format!("Erro ao abrir URL: {err}"), true));
                 }
             }
@@ -1363,8 +1420,23 @@ impl cosmic::Application for AppModel {
                 }
             }
             Message::DocsSearchChanged(v) => self.docs_search = v,
+            Message::DocsCategorySelected(idx) => self.docs_category_idx = idx,
+            Message::DocsFontSizeDelta(delta) => {
+                self.docs_font_size = (self.docs_font_size + delta).clamp(11.0, 22.0);
+            }
+            Message::ToggleDocsSelectMode => {
+                self.docs_select_mode = !self.docs_select_mode;
+            }
+            Message::DocsEditorAction(action) => {
+                // Allow cursor movement, selection, and scrolling only (read-only)
+                if !action.is_edit() {
+                    self.docs_editor_content.perform(action);
+                }
+            }
             Message::SelectDocFile(path) => match fs::read_to_string(&path) {
                 Ok(content) => {
+                    self.docs_editor_content =
+                        cosmic::iced::widget::text_editor::Content::with_text(&content);
                     self.selected_doc_path = Some(path);
                     self.selected_doc_content = content;
                 }
@@ -1373,6 +1445,11 @@ impl cosmic::Application for AppModel {
             Message::CopyDocContent => {
                 if !self.selected_doc_content.is_empty() {
                     return cosmic::iced::clipboard::write(self.selected_doc_content.clone());
+                }
+            }
+            Message::CopyText(txt) => {
+                if !txt.is_empty() {
+                    return cosmic::iced::clipboard::write(txt);
                 }
             }
             Message::CloseLogPreview => {
