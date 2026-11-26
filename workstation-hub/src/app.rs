@@ -171,6 +171,10 @@ pub enum Message {
     SetRemoteNetworkMode(HomelabNetworkMode),
     SetSamsungTarget(SamsungTarget),
     RunRemoteAction(String),
+    RustDeskTargetChanged(String),
+    RustDeskConnect,
+    RustDeskOpen,
+    RustDeskToggleService,
     RunSamsungTargetAction(SamsungTarget, String),
     RunDockerAction(String),
     RunDockerContainerAction {
@@ -259,6 +263,7 @@ pub struct AppModel {
     pub vpn_otp_input: String,
     pub vpn_pass_input: String,
     pub remote_network_mode: HomelabNetworkMode,
+    pub rustdesk_target_id: String,
     pub samsung_target: SamsungTarget,
     pub alexa_tts_input: String,
     pub openrgb_hex_input: String,
@@ -405,6 +410,7 @@ impl cosmic::Application for AppModel {
             vpn_otp_input: String::new(),
             vpn_pass_input: String::new(),
             remote_network_mode: HomelabNetworkMode::Local,
+            rustdesk_target_id: String::new(),
             samsung_target: SamsungTarget::Tv,
             alexa_tts_input: String::new(),
             openrgb_hex_input: "7A5AF8".to_string(),
@@ -922,6 +928,49 @@ impl cosmic::Application for AppModel {
                         Err(e) => self.banner_notice = Some((e, true)),
                     }
                 }
+            }
+            Message::RustDeskTargetChanged(val) => {
+                self.rustdesk_target_id = val;
+            }
+            Message::RustDeskConnect => {
+                let id = self.rustdesk_target_id.trim().to_string();
+                if id.is_empty() {
+                    self.banner_notice = Some(("Informe o ID remoto do RustDesk para conectar.".to_string(), true));
+                } else {
+                    match std::process::Command::new("rustdesk").arg("--connect").arg(&id).spawn() {
+                        Ok(_) => {
+                            self.banner_notice = Some((format!("Abrindo conexão RustDesk para {id}..."), false));
+                        }
+                        Err(e) => {
+                            self.banner_notice = Some((format!("Falha ao abrir RustDesk: {e}"), true));
+                        }
+                    }
+                }
+            }
+            Message::RustDeskOpen => {
+                match std::process::Command::new("rustdesk").spawn() {
+                    Ok(_) => {
+                        self.banner_notice = Some(("RustDesk aberto.".to_string(), false));
+                    }
+                    Err(e) => {
+                        self.banner_notice = Some((format!("Falha ao abrir RustDesk: {e}"), true));
+                    }
+                }
+            }
+            Message::RustDeskToggleService => {
+                let spec = CommandSpec {
+                    label: "RustDesk: Ativar & Reiniciar Serviço".to_string(),
+                    program: "pkexec".to_string(),
+                    args: vec![
+                        "systemctl".to_string(),
+                        "enable".to_string(),
+                        "--now".to_string(),
+                        "rustdesk.service".to_string(),
+                    ],
+                    workdir: self.paths.popos_repo.clone(),
+                    cleanup_file: None,
+                };
+                self.start_command(spec);
             }
             Message::RunRemoteAction(id) => {
                 let mode = match self.remote_network_mode {

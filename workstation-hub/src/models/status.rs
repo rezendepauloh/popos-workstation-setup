@@ -49,6 +49,9 @@ pub struct RemoteDevicesInfo {
     pub projector_label: String,
     pub projector_ip: String,
     pub ha_configured: bool,
+    pub rustdesk_installed: bool,
+    pub rustdesk_service_active: bool,
+    pub rustdesk_id: String,
 }
 
 #[derive(Debug, Clone, Default)]

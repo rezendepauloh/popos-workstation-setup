@@ -553,6 +553,29 @@ done
 chown -R "$REAL_USER:$REAL_USER" "$ICONS_DIR" "$REAL_HOME/.local/share/applications"
 
 # ------------------------------------------------------------------------------
+# 7.1. Instalação do RustDesk 1.5.3 (Acesso Remoto P2P Multiplataforma)
+# ------------------------------------------------------------------------------
+RUSTDESK_VERSION="1.5.3"
+RUSTDESK_INSTALLED_VER=$(dpkg-query -W -f='${Version}' rustdesk 2>/dev/null || true)
+if [ "$RUSTDESK_INSTALLED_VER" != "$RUSTDESK_VERSION" ]; then
+    log_msg "INFO" "Instalando RustDesk v${RUSTDESK_VERSION} (x86_64)..."
+    RUSTDESK_DEB="/tmp/rustdesk-${RUSTDESK_VERSION}-x86_64.deb"
+    if curl -fSL "https://github.com/rustdesk/rustdesk/releases/download/${RUSTDESK_VERSION}/rustdesk-${RUSTDESK_VERSION}-x86_64.deb" -o "$RUSTDESK_DEB"; then
+        sudo apt-get install -y "$RUSTDESK_DEB" || true
+        rm -f "$RUSTDESK_DEB"
+        log_msg "SUCCESS" "RustDesk v${RUSTDESK_VERSION} instalado com sucesso."
+    else
+        log_msg "WARN" "Falha ao baixar RustDesk v${RUSTDESK_VERSION} do GitHub."
+    fi
+else
+    log_msg "INFO" "RustDesk v${RUSTDESK_VERSION} já está instalado."
+fi
+
+if command -v systemctl >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
+    sudo systemctl enable --now rustdesk.service 2>/dev/null || true
+fi
+
+# ------------------------------------------------------------------------------
 # 8. Ajuste de Permissões e Lançadores no COSMIC Desktop
 # ------------------------------------------------------------------------------
 log_msg "INFO" "Garantindo integração dos lançadores .desktop no sistema..."

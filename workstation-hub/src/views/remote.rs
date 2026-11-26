@@ -20,6 +20,42 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
                 .on_press(Message::RunRemoteAction("net_scan".to_string())),
         );
 
+    let rustdesk_status = if !rd.rustdesk_installed {
+        "○ RustDesk não instalado (execute o módulo 23 para instalar v1.5.3)".to_string()
+    } else {
+        let svc = if rd.rustdesk_service_active {
+            "Serviço ativo (pronto para receber)"
+        } else {
+            "Serviço parado"
+        };
+        let id_str = if rd.rustdesk_id.is_empty() {
+            "ID indisponível".to_string()
+        } else {
+            format!("Seu ID: {}", rd.rustdesk_id)
+        };
+        format!("✔ Instalado | {svc} | {id_str}")
+    };
+
+    let rustdesk_controls = widget::row::with_capacity(4)
+        .spacing(space_s)
+        .align_y(Alignment::Center)
+        .push(
+            widget::text_input("ID remoto (ex: computador da Kamila)", &app.rustdesk_target_id)
+                .on_input(Message::RustDeskTargetChanged)
+                .width(Length::FillPortion(2)),
+        )
+        .push(widget::button::suggested("Conectar").on_press(Message::RustDeskConnect))
+        .push(widget::button::standard("Abrir RustDesk").on_press(Message::RustDeskOpen))
+        .push(
+            widget::button::standard("Ativar/Reiniciar Serviço")
+                .on_press(Message::RustDeskToggleService),
+        );
+
+    let rustdesk_sec = settings::section()
+        .title("🖥️ RustDesk (Acesso Remoto P2P v1.5.3)")
+        .add(settings::item::builder("Status & Meu ID").control(widget::text::body(rustdesk_status)))
+        .add(widget::container(rustdesk_controls).padding(4));
+
     let win_host = match app.remote_network_mode {
         HomelabNetworkMode::Local => rd.win_lan_host.as_str(),
         HomelabNetworkMode::Tailscale => {
@@ -158,9 +194,10 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
                 .control(widget::text::caption("Somente mDNS / LocalSend / USB")),
         );
 
-    let col = widget::column::with_capacity(7)
+    let col = widget::column::with_capacity(8)
         .spacing(space_m)
         .push(header)
+        .push(rustdesk_sec)
         .push(win_sec)
         .push(android_sec)
         .push(tablet_sec)

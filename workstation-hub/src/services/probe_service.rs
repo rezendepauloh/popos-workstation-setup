@@ -436,6 +436,35 @@ async fn probe_remote_devices(popos_repo: &Path) -> RemoteDevicesInfo {
         None
     };
 
+    let rustdesk_installed = Path::new("/usr/bin/rustdesk").exists()
+        || Command::new("which")
+            .arg("rustdesk")
+            .output()
+            .await
+            .is_ok_and(|o| o.status.success());
+
+    let (rustdesk_service_active, rustdesk_id) = if rustdesk_installed {
+        let active = Command::new("systemctl")
+            .args(["is-active", "--quiet", "rustdesk"])
+            .status()
+            .await
+            .is_ok_and(|s| s.success());
+        let id = match tokio::time::timeout(
+            Duration::from_secs(1),
+            Command::new("rustdesk").arg("--get-id").output(),
+        )
+        .await
+        {
+            Ok(Ok(out)) if out.status.success() => {
+                String::from_utf8_lossy(&out.stdout).trim().to_string()
+            }
+            _ => String::new(),
+        };
+        (active, id)
+    } else {
+        (false, String::new())
+    };
+
     RemoteDevicesInfo {
         win_label: get("REMOTE_WIN_LABEL", "Windows 11 Remoto"),
         win_lan_host: win_lan,
@@ -455,6 +484,9 @@ async fn probe_remote_devices(popos_repo: &Path) -> RemoteDevicesInfo {
         projector_label: get("REMOTE_PROJECTOR_LABEL", "Projetor Samsung"),
         projector_ip: get("REMOTE_PROJECTOR_IP", ""),
         ha_configured: !get("HA_URL", "").is_empty() && !get("HA_TOKEN", "").is_empty(),
+        rustdesk_installed,
+        rustdesk_service_active,
+        rustdesk_id,
     }
 }
 
