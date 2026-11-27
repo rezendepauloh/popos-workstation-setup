@@ -1,4 +1,5 @@
 use crate::app::{AppModel, ContextPage, Message, Page};
+use crate::views::ui;
 use crate::models::log_entry::{AnsiColor, LogLine, RunStatus};
 use cosmic::app::context_drawer;
 use cosmic::iced::{Alignment, Color, Length};
@@ -47,31 +48,26 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .join("workstation-hub")
         .join("logs");
 
-    let mut toolbar = widget::row::with_capacity(7)
-        .spacing(space_s)
-        .align_y(Alignment::Center)
-        .push(widget::text::title2("Console em Tempo Real & Histórico de Logs").width(Length::Fill))
-        .push(
-            widget::button::standard("Logs Remotos Homelab")
-                .on_press(Message::FetchRemoteHomelabLogs),
+    let mut toolbar_btns = vec![
+        ui::btn_standard("Logs Remotos Homelab", Message::FetchRemoteHomelabLogs).into(),
+        ui::btn_standard("Copiar Saída", Message::CopyConsoleLogs).into(),
+        ui::btn_standard("Limpar Console", Message::ClearConsoleLogs).into(),
+        ui::btn_standard("Abrir Logs Hub", Message::OpenLocalFolder(hub_logs_dir)).into(),
+        ui::btn_standard(
+            "Abrir Pasta Logs/",
+            Message::OpenLocalFolder(app.paths.popos_repo.join("Logs")),
         )
-        .push(widget::button::standard("Copiar Saída").on_press(Message::CopyConsoleLogs))
-        .push(widget::button::standard("Limpar Console").on_press(Message::ClearConsoleLogs))
-        .push(
-            widget::button::standard("Abrir Logs Hub")
-                .on_press(Message::OpenLocalFolder(hub_logs_dir)),
-        )
-        .push(
-            widget::button::standard("Abrir Pasta Logs/")
-                .on_press(Message::OpenLocalFolder(app.paths.popos_repo.join("Logs"))),
-        );
+        .into(),
+    ];
 
     if app.process_handle.is_some() {
-        toolbar = toolbar.push(
-            widget::button::destructive("Encerrar Processo")
-                .on_press(Message::StopRunningProcess),
-        );
+        toolbar_btns.push(ui::btn_destructive("Encerrar Processo", Message::StopRunningProcess).into());
     }
+
+    let toolbar = widget::column::with_capacity(2)
+        .spacing(space_s)
+        .push(widget::text::title2("Console em Tempo Real & Histórico de Logs"))
+        .push(ui::wrap_row(toolbar_btns));
 
     let mut console_col = widget::column::with_capacity(app.log_lines.len().min(600))
         .spacing(2)
@@ -269,7 +265,7 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         root_col = root_col.push(preview_sec);
     }
 
-    widget::scrollable(root_col).height(Length::Fill).into()
+    ui::page_scroll(root_col)
 }
 
 pub fn console_drawer(app: &AppModel) -> context_drawer::ContextDrawer<'_, Message> {
@@ -358,7 +354,9 @@ pub fn console_drawer(app: &AppModel) -> context_drawer::ContextDrawer<'_, Messa
         )
         .push(widget::button::suggested("Enviar").on_press(Message::SendPtyInput));
 
-    let console_scroll = widget::scrollable(console_col)
+    let console_scroll = widget::scrollable(
+        widget::container(console_col).padding([0, 14, 14, 0]),
+    )
         .height(Length::Fixed(520.0))
         .width(Length::Fill)
         .direction(cosmic::iced::widget::scrollable::Direction::Both {

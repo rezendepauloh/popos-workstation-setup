@@ -1,5 +1,6 @@
 use crate::app::{AppModel, Message};
 use crate::models::env_entry::EnvTarget;
+use crate::views::ui;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget::{self, settings};
@@ -42,18 +43,16 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
                 ),
         );
 
-    let env_toolbar = widget::row::with_capacity(5)
-        .spacing(space_s)
-        .align_y(Alignment::Center)
-        .push(target_btn(EnvTarget::Popos, app.env_target))
-        .push(target_btn(EnvTarget::Homelab, app.env_target))
-        .push(
-            widget::text_input("Filtrar variável...", &app.env_search)
-                .on_input(Message::EnvSearchChanged)
-                .width(Length::Fill),
-        )
-        .push(widget::button::standard("Recarregar").on_press(Message::ReloadCurrentEnv))
-        .push(widget::button::suggested("Salvar (chmod 0600)").on_press(Message::SaveCurrentEnv));
+    let env_toolbar = ui::wrap_row(vec![
+        target_btn(EnvTarget::Popos, app.env_target),
+        target_btn(EnvTarget::Homelab, app.env_target),
+        widget::text_input("Filtrar variável...", &app.env_search)
+            .on_input(Message::EnvSearchChanged)
+            .width(Length::Fixed(240.0))
+            .into(),
+        ui::btn_standard("Recarregar", Message::ReloadCurrentEnv).into(),
+        ui::btn_suggested("Salvar (chmod 0600)", Message::SaveCurrentEnv).into(),
+    ]);
 
     let mut col = widget::column::with_capacity(16)
         .spacing(space_m)
@@ -130,7 +129,7 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         col = col.push(sec);
     }
 
-    widget::scrollable(col).height(Length::Fill).into()
+    ui::page_scroll(col)
 }
 
 fn target_btn(target: EnvTarget, active: EnvTarget) -> Element<'static, Message> {

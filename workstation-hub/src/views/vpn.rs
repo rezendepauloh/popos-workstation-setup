@@ -1,4 +1,5 @@
 use crate::app::{AppModel, Message};
+use crate::views::ui;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget::{self, settings};
@@ -18,17 +19,10 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         None => "○ Desconectado".to_string(),
     };
 
-    let mpms_controls = widget::row::with_capacity(3)
-        .spacing(space_s)
-        .align_y(Alignment::Center)
-        .push(
-            widget::button::suggested("Conectar VPN MPMS")
-                .on_press(Message::ConnectVpnMpms),
-        )
-        .push(
-            widget::button::destructive("Desconectar")
-                .on_press(Message::StopRunningProcess),
-        );
+    let mpms_controls = ui::wrap_row(vec![
+        ui::btn_suggested("Conectar VPN MPMS", Message::ConnectVpnMpms).into(),
+        ui::btn_destructive("Desconectar", Message::StopRunningProcess).into(),
+    ]);
 
     let mpms_sec = settings::section()
         .title("VPN Corporativa MPMS (FortiGate / openfortivpn)")
@@ -67,21 +61,11 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         None => "○ Desconectado".to_string(),
     };
 
-    let ts_controls = widget::row::with_capacity(3)
-        .spacing(space_s)
-        .align_y(Alignment::Center)
-        .push(
-            widget::button::suggested("Conectar")
-                .on_press(Message::RunTailscale("up".to_string())),
-        )
-        .push(
-            widget::button::destructive("Desconectar")
-                .on_press(Message::RunTailscale("down".to_string())),
-        )
-        .push(
-            widget::button::standard("Ver Status")
-                .on_press(Message::RunTailscale("status".to_string())),
-        );
+    let ts_controls = ui::wrap_row(vec![
+        ui::btn_suggested("Conectar", Message::RunTailscale("up".to_string())).into(),
+        ui::btn_destructive("Desconectar", Message::RunTailscale("down".to_string())).into(),
+        ui::btn_standard("Ver Status", Message::RunTailscale("status".to_string())).into(),
+    ]);
 
     let ts_sec = settings::section()
         .title("Tailscale Mesh VPN (WireGuard)")
@@ -101,5 +85,5 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .push(mpms_sec)
         .push(ts_sec);
 
-    widget::scrollable(col).height(Length::Fill).into()
+    ui::page_scroll(col)
 }

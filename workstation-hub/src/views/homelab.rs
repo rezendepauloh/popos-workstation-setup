@@ -3,6 +3,7 @@ use crate::models::catalog::{
     HOMELAB_SETUP_MODULES, HOMELAB_UTIL_ACTIONS, HOMELAB_WEB_SERVICES,
 };
 use crate::models::status::{HomelabAddressMode, HomelabNetworkMode};
+use crate::views::ui;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget::{self, settings};
@@ -29,31 +30,30 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
                 .on_press(Message::OpenLocalFolder(app.paths.homelab_repo.clone())),
         );
 
-    let net_row = widget::row::with_capacity(5)
-        .spacing(space_s)
-        .align_y(Alignment::Center)
-        .push(widget::text::body("Rede:"))
-        .push(net_btn(
+    let net_row = ui::wrap_row(vec![
+        widget::text::body("Rede:").into(),
+        net_btn(
             "Local (LAN)",
             HomelabNetworkMode::Local,
             app.homelab_network_mode,
-        ))
-        .push(net_btn(
+        ),
+        net_btn(
             "Tailscale",
             HomelabNetworkMode::Tailscale,
             app.homelab_network_mode,
-        ))
-        .push(widget::text::body("  Endereço Web:"))
-        .push(addr_btn(
+        ),
+        widget::text::body("  Endereço Web:").into(),
+        addr_btn(
             "DNS (*.pk.local)",
             HomelabAddressMode::Dns,
             app.homelab_address_mode,
-        ))
-        .push(addr_btn(
+        ),
+        addr_btn(
             "IP (:porta)",
             HomelabAddressMode::Ip,
             app.homelab_address_mode,
-        ));
+        ),
+    ]);
 
     let domain = if app.snapshot.homelab_domain.is_empty() {
         "pk.local"
@@ -61,10 +61,9 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         app.snapshot.homelab_domain.as_str()
     };
 
-    let mut web_rows = widget::column::with_capacity(6).spacing(space_s);
-    for chunk in HOMELAB_WEB_SERVICES.chunks(4) {
-        let mut r = widget::row::with_capacity(4).spacing(space_s);
-        for svc in chunk {
+    let web_buttons: Vec<Element<'_, Message>> = HOMELAB_WEB_SERVICES
+        .iter()
+        .map(|svc| {
             let url = match app.homelab_address_mode {
                 HomelabAddressMode::Dns => format!("https://{}.{domain}", svc.subdomain),
                 HomelabAddressMode::Ip => {
@@ -85,14 +84,10 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
                     }
                 }
             };
-            r = r.push(
-                widget::button::standard(label)
-                    .on_press(Message::LaunchUrl(url))
-                    .width(Length::Fill),
-            );
-        }
-        web_rows = web_rows.push(r);
-    }
+            ui::btn_standard(label, Message::LaunchUrl(url)).into()
+        })
+        .collect();
+    let web_rows = ui::wrap_row(web_buttons);
 
     let web_section = settings::section()
         .title("Acessos Web Rápidos (22 Serviços)")
@@ -180,7 +175,7 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         col = col.push(setup_sec);
     }
 
-    widget::scrollable(col).height(Length::Fill).into()
+    ui::page_scroll(col)
 }
 
 fn net_btn(

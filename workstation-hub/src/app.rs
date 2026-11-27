@@ -210,6 +210,7 @@ pub enum Message {
     DocsCategorySelected(usize),
     DocsFontSizeDelta(f32),
     ToggleDocsSelectMode,
+    ToggleDocsSidebar,
     DocsEditorAction(cosmic::iced::widget::text_editor::Action),
     SelectDocFile(PathBuf),
     CopyDocContent,
@@ -276,6 +277,7 @@ pub struct AppModel {
     pub docs_category_idx: usize,
     pub docs_font_size: f32,
     pub docs_select_mode: bool,
+    pub docs_sidebar_open: bool,
     pub docs_editor_content: cosmic::iced::widget::text_editor::Content,
     pub selected_doc_path: Option<PathBuf>,
     pub selected_doc_content: String,
@@ -425,6 +427,7 @@ impl cosmic::Application for AppModel {
             docs_category_idx: 0,
             docs_font_size: 14.0,
             docs_select_mode: false,
+            docs_sidebar_open: true,
             docs_editor_content: cosmic::iced::widget::text_editor::Content::new(),
             selected_doc_path: None,
             selected_doc_content: String::new(),
@@ -1475,6 +1478,9 @@ impl cosmic::Application for AppModel {
             }
             Message::ToggleDocsSelectMode => {
                 self.docs_select_mode = !self.docs_select_mode;
+            }
+            Message::ToggleDocsSidebar => {
+                self.docs_sidebar_open = !self.docs_sidebar_open;
             }
             Message::DocsEditorAction(action) => {
                 // Allow cursor movement, selection, and scrolling only (read-only)

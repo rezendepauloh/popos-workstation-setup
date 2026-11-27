@@ -1,4 +1,5 @@
 use crate::app::{AppModel, Message};
+use crate::views::ui;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget::{self, settings};
@@ -51,25 +52,29 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
     let tools_sec = settings::section()
         .title("Diagnóstico & Descoberta de Rede")
         .add(
-            widget::row::with_capacity(4)
-                .spacing(8)
-                .padding([8, 12])
-                .push(
-                    widget::button::suggested("Varrer Rede Local (Ping Sweep)")
-                        .on_press(Message::RunNetworkAction("lan_sweep".to_string())),
+            widget::container(ui::wrap_row(vec![
+                ui::btn_suggested(
+                    "Varrer Rede Local (Ping Sweep)",
+                    Message::RunNetworkAction("lan_sweep".to_string()),
                 )
-                .push(
-                    widget::button::standard("Testar DNS & Internet")
-                        .on_press(Message::RunNetworkAction("dns_check".to_string())),
+                .into(),
+                ui::btn_standard(
+                    "Testar DNS & Internet",
+                    Message::RunNetworkAction("dns_check".to_string()),
                 )
-                .push(
-                    widget::button::standard("Portas Abertas (ss)")
-                        .on_press(Message::RunNetworkAction("listening_ports".to_string())),
+                .into(),
+                ui::btn_standard(
+                    "Portas Abertas (ss)",
+                    Message::RunNetworkAction("listening_ports".to_string()),
                 )
-                .push(
-                    widget::button::standard("Tailscale Status Completo")
-                        .on_press(Message::RunNetworkAction("tailscale_status".to_string())),
-                ),
+                .into(),
+                ui::btn_standard(
+                    "Tailscale Status Completo",
+                    Message::RunNetworkAction("tailscale_status".to_string()),
+                )
+                .into(),
+            ]))
+            .padding([8, 12]),
         );
 
     // 3. Nós da Malha Tailscale
@@ -117,5 +122,5 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .push(ts_sec)
         .push(local_sec);
 
-    widget::scrollable(content).into()
+    ui::page_scroll(content)
 }

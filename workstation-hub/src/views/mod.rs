@@ -10,5 +10,6 @@ pub mod settings;
 pub mod setup;
 pub mod system;
 pub mod tests;
+pub mod ui;
 pub mod utils;
 pub mod vpn;

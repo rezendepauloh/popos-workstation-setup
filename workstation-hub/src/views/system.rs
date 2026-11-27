@@ -1,4 +1,5 @@
 use crate::app::{AppModel, Message};
+use crate::views::ui;
 use cosmic::iced::Alignment;
 use cosmic::prelude::*;
 use cosmic::widget::{self, settings};
@@ -105,34 +106,14 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
             widget::column::with_capacity(3)
                 .spacing(8)
                 .padding([8, 12])
-                .push(
-                    widget::row::with_capacity(6)
-                        .spacing(8)
-                        .push(
-                            widget::button::suggested("Roxo COSMIC")
-                                .on_press(Message::OpenRgbSetColor("7A5AF8".to_string())),
-                        )
-                        .push(
-                            widget::button::standard("Ciano")
-                                .on_press(Message::OpenRgbSetColor("00E5FF".to_string())),
-                        )
-                        .push(
-                            widget::button::standard("Branco")
-                                .on_press(Message::OpenRgbSetColor("FFFFFF".to_string())),
-                        )
-                        .push(
-                            widget::button::standard("Vermelho")
-                                .on_press(Message::OpenRgbSetColor("FF2A2A".to_string())),
-                        )
-                        .push(
-                            widget::button::standard("Verde")
-                                .on_press(Message::OpenRgbSetColor("00E676".to_string())),
-                        )
-                        .push(
-                            widget::button::standard("Azul")
-                                .on_press(Message::OpenRgbSetColor("2979FF".to_string())),
-                        ),
-                )
+                .push(ui::wrap_row(vec![
+                    ui::btn_suggested("Roxo COSMIC", Message::OpenRgbSetColor("7A5AF8".to_string())).into(),
+                    ui::btn_standard("Ciano", Message::OpenRgbSetColor("00E5FF".to_string())).into(),
+                    ui::btn_standard("Branco", Message::OpenRgbSetColor("FFFFFF".to_string())).into(),
+                    ui::btn_standard("Vermelho", Message::OpenRgbSetColor("FF2A2A".to_string())).into(),
+                    ui::btn_standard("Verde", Message::OpenRgbSetColor("00E676".to_string())).into(),
+                    ui::btn_standard("Azul", Message::OpenRgbSetColor("2979FF".to_string())).into(),
+                ]))
                 .push(
                     widget::row::with_capacity(3)
                         .spacing(8)
@@ -182,65 +163,71 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
             widget::column::with_capacity(2)
                 .spacing(8)
                 .padding([8, 12])
-                .push(
-                    widget::row::with_capacity(2)
-                        .spacing(8)
-                        .push(
-                            widget::button::suggested("Backup COSMIC (.config -> Google Drive)")
-                                .on_press(Message::RunSystemAction("backup_cosmic_gdrive".to_string())),
-                        )
-                        .push(
-                            widget::button::suggested("Verificar & Sincronizar disk3 -> Backups_Homelab")
-                                .on_press(Message::RunSystemAction("sync_homelab_disk3".to_string())),
-                        ),
-                )
-                .push(
-                    widget::row::with_capacity(3)
-                        .spacing(8)
-                        .push(
-                            widget::button::standard("Reiniciar Montagens Rclone")
-                                .on_press(Message::RunSystemAction("rclone_restart".to_string())),
-                        )
-                        .push(
-                            widget::button::standard("Forçar Sync OneDrive (MPMS)")
-                                .on_press(Message::RunSystemAction("onedrive_sync".to_string())),
-                        )
-                        .push(
-                            widget::button::standard("Abrir Backups_Homelab")
-                                .on_press(Message::OpenLocalFolder(PathBuf::from(
-                                    "/mnt/storage_930/Backups_Homelab",
-                                ))),
-                        ),
-                ),
+                .push(ui::wrap_row(vec![
+                    ui::btn_suggested(
+                        "Backup COSMIC (.config -> Google Drive)",
+                        Message::RunSystemAction("backup_cosmic_gdrive".to_string()),
+                    )
+                    .into(),
+                    ui::btn_suggested(
+                        "Verificar & Sincronizar disk3 -> Backups_Homelab",
+                        Message::RunSystemAction("sync_homelab_disk3".to_string()),
+                    )
+                    .into(),
+                ]))
+                .push(ui::wrap_row(vec![
+                    ui::btn_standard(
+                        "Reiniciar Montagens Rclone",
+                        Message::RunSystemAction("rclone_restart".to_string()),
+                    )
+                    .into(),
+                    ui::btn_standard(
+                        "Forçar Sync OneDrive (MPMS)",
+                        Message::RunSystemAction("onedrive_sync".to_string()),
+                    )
+                    .into(),
+                    ui::btn_standard(
+                        "Abrir Backups_Homelab",
+                        Message::OpenLocalFolder(PathBuf::from(
+                            "/mnt/storage_930/Backups_Homelab",
+                        )),
+                    )
+                    .into(),
+                ])),
         );
 
     // 4. Energia & Sessão COSMIC
     let power_sec = settings::section()
         .title("Energia & Sessão COSMIC")
         .add(
-            widget::row::with_capacity(5)
-                .spacing(8)
-                .padding([8, 12])
-                .push(
-                    widget::button::standard("Reparar IDEs (Locks/GPU)")
-                        .on_press(Message::RunSystemAction("repair_ides".to_string())),
+            widget::container(ui::wrap_row(vec![
+                ui::btn_standard(
+                    "Reparar IDEs (Locks/GPU)",
+                    Message::RunSystemAction("repair_ides".to_string()),
                 )
-                .push(
-                    widget::button::standard("Reiniciar COSMIC Panel")
-                        .on_press(Message::RunSystemAction("restart_cosmic_panel".to_string())),
+                .into(),
+                ui::btn_standard(
+                    "Reiniciar COSMIC Panel",
+                    Message::RunSystemAction("restart_cosmic_panel".to_string()),
                 )
-                .push(
-                    widget::button::standard("Suspender")
-                        .on_press(Message::RunSystemAction("power_suspend".to_string())),
+                .into(),
+                ui::btn_standard(
+                    "Suspender",
+                    Message::RunSystemAction("power_suspend".to_string()),
                 )
-                .push(
-                    widget::button::destructive("Reiniciar PC")
-                        .on_press(Message::RunSystemAction("power_reboot".to_string())),
+                .into(),
+                ui::btn_destructive(
+                    "Reiniciar PC",
+                    Message::RunSystemAction("power_reboot".to_string()),
                 )
-                .push(
-                    widget::button::destructive("Desligar PC")
-                        .on_press(Message::RunSystemAction("power_off".to_string())),
-                ),
+                .into(),
+                ui::btn_destructive(
+                    "Desligar PC",
+                    Message::RunSystemAction("power_off".to_string()),
+                )
+                .into(),
+            ]))
+            .padding([8, 12]),
         );
 
     let content = widget::column::with_capacity(6)
@@ -252,5 +239,5 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .push(backup_sec)
         .push(power_sec);
 
-    widget::scrollable(content).into()
+    ui::page_scroll(content)
 }

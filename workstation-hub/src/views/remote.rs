@@ -1,5 +1,6 @@
 use crate::app::{AppModel, Message};
 use crate::models::status::{HomelabNetworkMode, SamsungTarget};
+use crate::views::ui;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget::{self, settings};
@@ -75,16 +76,16 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         Some(false) => format!("○ Offline/Inacessível ({}@{win_host})", rd.win_user),
     };
 
-    let win_btns = widget::row::with_capacity(8)
-        .spacing(space_s)
-        .push(widget::button::standard("Testar SSH/RDP").on_press(Message::RunRemoteAction("win_check".to_string())))
-        .push(widget::button::standard("Status & Disco").on_press(Message::RunRemoteAction("win_status".to_string())))
-        .push(widget::button::suggested("Limpar Cache & Temp").on_press(Message::RunRemoteAction("win_clean".to_string())))
-        .push(widget::button::standard("Winget Upgrade").on_press(Message::RunRemoteAction("win_winget".to_string())))
-        .push(widget::button::suggested("Abrir Tela (Moonlight)").on_press(Message::RunRemoteAction("win_moonlight".to_string())))
-        .push(widget::button::standard("Abrir RDP").on_press(Message::RunRemoteAction("win_rdp".to_string())))
-        .push(widget::button::standard("Ligar (WoL)").on_press(Message::RunRemoteAction("win_wol".to_string())))
-        .push(widget::button::standard("Setup OpenSSH").on_press(Message::RunRemoteAction("win_setup_ssh".to_string())));
+    let win_btns = ui::wrap_row(vec![
+        ui::btn_standard("Testar SSH/RDP", Message::RunRemoteAction("win_check".to_string())).into(),
+        ui::btn_standard("Status & Disco", Message::RunRemoteAction("win_status".to_string())).into(),
+        ui::btn_suggested("Limpar Cache & Temp", Message::RunRemoteAction("win_clean".to_string())).into(),
+        ui::btn_standard("Winget Upgrade", Message::RunRemoteAction("win_winget".to_string())).into(),
+        ui::btn_suggested("Abrir Tela (Moonlight)", Message::RunRemoteAction("win_moonlight".to_string())).into(),
+        ui::btn_standard("Abrir RDP", Message::RunRemoteAction("win_rdp".to_string())).into(),
+        ui::btn_standard("Ligar (WoL)", Message::RunRemoteAction("win_wol".to_string())).into(),
+        ui::btn_standard("Setup OpenSSH", Message::RunRemoteAction("win_setup_ssh".to_string())).into(),
+    ]);
 
     let win_sec = settings::section()
         .title(format!("💻 {} (Windows 11)", rd.win_label))
@@ -107,13 +108,13 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         format!("Alvo ADB: {android_host}:{}", rd.android_port)
     };
 
-    let android_btns = widget::row::with_capacity(5)
-        .spacing(space_s)
-        .push(widget::button::standard("Conectar ADB").on_press(Message::RunRemoteAction("android_connect".to_string())))
-        .push(widget::button::standard("Status & Espaço").on_press(Message::RunRemoteAction("android_status".to_string())))
-        .push(widget::button::suggested("Limpar Cache Apps").on_press(Message::RunRemoteAction("android_clean".to_string())))
-        .push(widget::button::suggested("Espelhar Tela (scrcpy)").on_press(Message::RunRemoteAction("android_scrcpy".to_string())))
-        .push(widget::button::destructive("Desconectar").on_press(Message::RunRemoteAction("android_disconnect".to_string())));
+    let android_btns = ui::wrap_row(vec![
+        ui::btn_standard("Conectar ADB", Message::RunRemoteAction("android_connect".to_string())).into(),
+        ui::btn_standard("Status & Espaço", Message::RunRemoteAction("android_status".to_string())).into(),
+        ui::btn_suggested("Limpar Cache Apps", Message::RunRemoteAction("android_clean".to_string())).into(),
+        ui::btn_suggested("Espelhar Tela (scrcpy)", Message::RunRemoteAction("android_scrcpy".to_string())).into(),
+        ui::btn_destructive("Desconectar", Message::RunRemoteAction("android_disconnect".to_string())).into(),
+    ]);
 
     let android_sec = settings::section()
         .title(format!("📱 {} (ADB Wi-Fi + scrcpy)", rd.android_label))
@@ -136,13 +137,13 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         format!("Alvo ADB: {tablet_host}:{}", rd.tablet_port)
     };
 
-    let tablet_btns = widget::row::with_capacity(5)
-        .spacing(space_s)
-        .push(widget::button::standard("Conectar ADB").on_press(Message::RunRemoteAction("tablet_connect".to_string())))
-        .push(widget::button::standard("Status & Espaço").on_press(Message::RunRemoteAction("tablet_status".to_string())))
-        .push(widget::button::suggested("Limpar Cache Apps").on_press(Message::RunRemoteAction("tablet_clean".to_string())))
-        .push(widget::button::suggested("Espelhar Tela (scrcpy)").on_press(Message::RunRemoteAction("tablet_scrcpy".to_string())))
-        .push(widget::button::destructive("Desconectar").on_press(Message::RunRemoteAction("tablet_disconnect".to_string())));
+    let tablet_btns = ui::wrap_row(vec![
+        ui::btn_standard("Conectar ADB", Message::RunRemoteAction("tablet_connect".to_string())).into(),
+        ui::btn_standard("Status & Espaço", Message::RunRemoteAction("tablet_status".to_string())).into(),
+        ui::btn_suggested("Limpar Cache Apps", Message::RunRemoteAction("tablet_clean".to_string())).into(),
+        ui::btn_suggested("Espelhar Tela (scrcpy)", Message::RunRemoteAction("tablet_scrcpy".to_string())).into(),
+        ui::btn_destructive("Desconectar", Message::RunRemoteAction("tablet_disconnect".to_string())).into(),
+    ]);
 
     let tablet_sec = settings::section()
         .title(format!("📲 {} (ADB Wi-Fi + scrcpy)", rd.tablet_label))
@@ -165,17 +166,15 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         space_s,
     );
 
-    let alexa_ctrl = widget::row::with_capacity(3)
-        .spacing(space_s)
-        .align_y(Alignment::Center)
-        .push(
-            widget::text_input("Falar na Alexa (TTS via Home Assistant)...", &app.alexa_tts_input)
-                .on_input(Message::AlexaTtsInputChanged)
-                .on_submit(|_| Message::SendAlexaTts)
-                .width(Length::Fill),
-        )
-        .push(widget::button::suggested("Enviar TTS").on_press(Message::SendAlexaTts))
-        .push(widget::button::standard("Testar HA API").on_press(Message::RunRemoteAction("ha_check".to_string())));
+    let alexa_ctrl = ui::wrap_row(vec![
+        widget::text_input("Falar na Alexa (TTS via Home Assistant)...", &app.alexa_tts_input)
+            .on_input(Message::AlexaTtsInputChanged)
+            .on_submit(|_| Message::SendAlexaTts)
+            .width(Length::Fixed(300.0))
+            .into(),
+        ui::btn_suggested("Enviar TTS", Message::SendAlexaTts).into(),
+        ui::btn_standard("Testar HA API", Message::RunRemoteAction("ha_check".to_string())).into(),
+    ]);
 
     let other_sec = settings::section()
         .title("🔊 Alexa (Home Assistant) & 🍏 Apple (iPhone / iPad)")
@@ -186,8 +185,13 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
                 } else {
                     "Preencha HA_URL e HA_TOKEN em Configurações -> .env para enviar rotinas/TTS."
                 })
-                .control(alexa_ctrl),
+                .control(widget::text::caption(if rd.ha_configured {
+                    "Configurado"
+                } else {
+                    "Não configurado"
+                })),
         )
+        .add(widget::container(alexa_ctrl).padding(4))
         .add(
             settings::item::builder("iPhone & iPad (iOS / iPadOS)")
                 .description("Por restrição da Apple, não há SSH/RDP ou limpeza remota via rede. Use 'Escanear Rede' para presença mDNS, LocalSend para arquivos ou cabo USB (libimobiledevice) para backups.")
@@ -205,7 +209,7 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .push(projector_sec)
         .push(other_sec);
 
-    widget::scrollable(col).height(Length::Fill).into()
+    ui::page_scroll(col)
 }
 
 fn samsung_card<'a>(
@@ -215,16 +219,16 @@ fn samsung_card<'a>(
     target: SamsungTarget,
     space_s: u16,
 ) -> settings::Section<'a, Message> {
-    let btns = widget::row::with_capacity(8)
-        .spacing(space_s)
-        .push(widget::button::standard("Status API").on_press(Message::RunSamsungTargetAction(target, "status".to_string())))
-        .push(widget::button::suggested("Ligar (WoL)").on_press(Message::RunSamsungTargetAction(target, "wol".to_string())))
-        .push(widget::button::destructive("Power").on_press(Message::RunSamsungTargetAction(target, "KEY_POWER".to_string())))
-        .push(widget::button::standard("Vol +").on_press(Message::RunSamsungTargetAction(target, "KEY_VOLUP".to_string())))
-        .push(widget::button::standard("Vol -").on_press(Message::RunSamsungTargetAction(target, "KEY_VOLDOWN".to_string())))
-        .push(widget::button::standard("Mute").on_press(Message::RunSamsungTargetAction(target, "KEY_MUTE".to_string())))
-        .push(widget::button::standard("Home").on_press(Message::RunSamsungTargetAction(target, "KEY_HOME".to_string())))
-        .push(widget::button::standard("Source").on_press(Message::RunSamsungTargetAction(target, "KEY_SOURCE".to_string())));
+    let btns = ui::wrap_row(vec![
+        ui::btn_standard("Status API", Message::RunSamsungTargetAction(target, "status".to_string())).into(),
+        ui::btn_suggested("Ligar (WoL)", Message::RunSamsungTargetAction(target, "wol".to_string())).into(),
+        ui::btn_destructive("Power", Message::RunSamsungTargetAction(target, "KEY_POWER".to_string())).into(),
+        ui::btn_standard("Vol +", Message::RunSamsungTargetAction(target, "KEY_VOLUP".to_string())).into(),
+        ui::btn_standard("Vol -", Message::RunSamsungTargetAction(target, "KEY_VOLDOWN".to_string())).into(),
+        ui::btn_standard("Mute", Message::RunSamsungTargetAction(target, "KEY_MUTE".to_string())).into(),
+        ui::btn_standard("Home", Message::RunSamsungTargetAction(target, "KEY_HOME".to_string())).into(),
+        ui::btn_standard("Source", Message::RunSamsungTargetAction(target, "KEY_SOURCE".to_string())).into(),
+    ]);
 
     settings::section()
         .title(title)

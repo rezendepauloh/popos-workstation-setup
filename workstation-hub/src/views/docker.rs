@@ -1,4 +1,5 @@
 use crate::app::{AppModel, Message};
+use crate::views::ui;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget::{self, settings};
@@ -41,39 +42,46 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         }
     }
 
-    let global_actions = widget::row::with_capacity(4)
-        .spacing(8)
-        .push(
-            widget::button::standard("Analisar Disco (df -v)")
-                .on_press(Message::RunDockerAction("df_verbose".to_string())),
+    let global_actions = ui::wrap_row(vec![
+        ui::btn_standard(
+            "Analisar Disco (df -v)",
+            Message::RunDockerAction("df_verbose".to_string()),
         )
-        .push(
-            widget::button::standard("Limpar Imagens Não Usadas")
-                .on_press(Message::RunDockerAction("prune_images".to_string())),
+        .into(),
+        ui::btn_standard(
+            "Limpar Imagens Não Usadas",
+            Message::RunDockerAction("prune_images".to_string()),
         )
-        .push(
-            widget::button::standard("Limpar Build Cache")
-                .on_press(Message::RunDockerAction("prune_cache".to_string())),
+        .into(),
+        ui::btn_standard(
+            "Limpar Build Cache",
+            Message::RunDockerAction("prune_cache".to_string()),
         )
-        .push(
-            widget::button::destructive("Limpeza Geral (Prune)")
-                .on_press(Message::RunDockerAction("prune_system".to_string())),
-        );
+        .into(),
+        ui::btn_destructive(
+            "Limpeza Geral (Prune)",
+            Message::RunDockerAction("prune_system".to_string()),
+        )
+        .into(),
+    ]);
 
-    let daemon_actions = widget::row::with_capacity(3)
-        .spacing(8)
-        .push(
-            widget::button::suggested("Atualizar Todas Imagens (Pull)")
-                .on_press(Message::RunDockerAction("pull_all".to_string())),
+    let daemon_actions = ui::wrap_row(vec![
+        ui::btn_suggested(
+            "Atualizar Todas Imagens (Pull)",
+            Message::RunDockerAction("pull_all".to_string()),
         )
-        .push(
-            widget::button::standard("Iniciar Daemon")
-                .on_press(Message::RunDockerAction("start_daemon".to_string())),
+        .into(),
+        ui::btn_standard(
+            "Iniciar Daemon",
+            Message::RunDockerAction("start_daemon".to_string()),
         )
-        .push(
-            widget::button::standard("Reiniciar Daemon")
-                .on_press(Message::RunDockerAction("restart_daemon".to_string())),
-        );
+        .into(),
+        ui::btn_standard(
+            "Reiniciar Daemon",
+            Message::RunDockerAction("restart_daemon".to_string()),
+        )
+        .into(),
+    ]);
 
     global_sec = global_sec.add(
         widget::column::with_capacity(2)
@@ -181,5 +189,5 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .push(global_sec)
         .push(containers_sec);
 
-    widget::scrollable(content).into()
+    ui::page_scroll(content)
 }

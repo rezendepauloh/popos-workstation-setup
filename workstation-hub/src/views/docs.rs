@@ -1,4 +1,5 @@
 use crate::app::{AppModel, Message};
+use crate::views::ui;
 use cosmic::iced::font::{Font, Weight};
 use cosmic::iced::widget::{rich_text, span};
 use cosmic::iced::{Alignment, Color, Length};
@@ -519,7 +520,11 @@ fn render_markdown_column_owned<'a>(content: String, font_size: f32) -> Element<
 
 fn render_markdown<'a>(content: &'a str, font_size: f32) -> Element<'a, Message> {
     let col = render_markdown_column(content, font_size);
-    widget::scrollable(col)
+    widget::scrollable(
+        widget::container(col)
+            .padding([0, 14, 0, 0])
+            .width(Length::Fill),
+    )
         .id(widget::Id::new("docs_reader_scroll"))
         .height(Length::Fill)
         .width(Length::Fill)
@@ -575,9 +580,9 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         for (name, path) in filtered {
             let is_selected = app.selected_doc_path.as_ref() == Some(&path);
             let btn = if is_selected {
-                widget::button::suggested(name).on_press(Message::SelectDocFile(path))
+                ui::btn_suggested(name, Message::SelectDocFile(path))
             } else {
-                widget::button::standard(name).on_press(Message::SelectDocFile(path))
+                ui::btn_standard(name, Message::SelectDocFile(path))
             };
             sec = sec.add(widget::container(btn.width(Length::Fill)).padding([2, 4]));
         }
@@ -600,7 +605,10 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
             )
             .width(Length::Fill),
         )
-        .push(widget::scrollable(tree_col).height(Length::Fill));
+        .push(
+            widget::scrollable(widget::container(tree_col).padding([0, 14, 0, 0]))
+                .height(Length::Fill),
+        );
 
     let doc_title = app
         .selected_doc_path
@@ -655,9 +663,16 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .push(widget::divider::horizontal::default())
         .push(reader);
 
-    let top_header = widget::row::with_capacity(2)
+    let sidebar_toggle_label = if app.docs_sidebar_open {
+        "◀ Ocultar Lista"
+    } else {
+        "▶ Mostrar Lista"
+    };
+
+    let top_header = widget::row::with_capacity(3)
         .spacing(12)
         .align_y(Alignment::Center)
+        .push(ui::btn_standard(sidebar_toggle_label, Message::ToggleDocsSidebar))
         .push(
             widget::column::with_capacity(2)
                 .spacing(2)
@@ -669,12 +684,14 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         )
         .push(widget::text::body(format!("📚 {total_docs} documentos")));
 
-    let body = widget::row::with_capacity(2)
+    let mut body = widget::row::with_capacity(2)
         .spacing(16)
         .width(Length::Fill)
-        .height(Length::Fill)
-        .push(left_pane)
-        .push(right_pane);
+        .height(Length::Fill);
+    if app.docs_sidebar_open {
+        body = body.push(left_pane);
+    }
+    body = body.push(right_pane);
 
     widget::column::with_capacity(2)
         .spacing(12)
