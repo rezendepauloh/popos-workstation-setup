@@ -1,5 +1,5 @@
 [Unit]
-Description=Bluetooth Audio Switcher (QCY H3S Auto-Switch & Fallback)
+Description=Headset Audio Switcher (QCY H3S Bluetooth & Logitech G733 Auto-Switch & Fallback)
 After=pipewire.service wireplumber.service bluetooth.target
 Wants=bluetooth.target
 
