@@ -1,10 +1,15 @@
 use crate::models::catalog::{
     HOMELAB_SETUP_MODULES, HOMELAB_UTIL_ACTIONS, LOCAL_UTIL_ACTIONS, SETUP_MODULES,
 };
+use crate::models::doc_entry::{DocEntryItem, MarkdownBlock, MarkdownLinkResolution};
 use crate::models::env_entry::{EnvTarget, EnvVarItem};
 use crate::models::log_entry::{AnsiColor, LogLine, RunStatus};
 use crate::models::status::{
     HomelabAddressMode, HomelabNetworkMode, HubPaths, SamsungTarget, SystemSnapshot,
+};
+use crate::services::doc_service::{
+    CATEGORY_ALL, SOURCE_ALL, available_categories, available_sources, discover_all_documents,
+    export_standalone_html, parse_markdown, read_document_content, resolve_markdown_link,
 };
 use crate::services::env_service::{load_env_file, save_env_file};
 use crate::services::input_validator::validate_identifier;
@@ -207,13 +212,22 @@ pub enum Message {
     LogExecPagePrev,
     LogExecPageNext,
     DocsSearchChanged(String),
+    DocsSourceSelected(usize),
     DocsCategorySelected(usize),
+    DocsReloadCatalog,
+    DocsNavigateBack,
+    DocsNavigateForward,
     DocsFontSizeDelta(f32),
+    DocsFontSizeReset,
     ToggleDocsSelectMode,
     ToggleDocsSidebar,
     DocsEditorAction(cosmic::iced::widget::text_editor::Action),
     SelectDocFile(PathBuf),
     CopyDocContent,
+    DocsCopyCodeBlock { lang: String, code: String },
+    DocsExportHtml,
+    DocsOpenCurrentFolder,
+    DocsOpenMedia(PathBuf),
     CopyText(String),
     CloseLogPreview,
     LogPreviewFilterChanged(String),
@@ -273,14 +287,22 @@ pub struct AppModel {
     pub run_status: RunStatus,
     pub log_lines: Vec<LogLine>,
     pub console_progress: f32,
+    pub docs_catalog: Vec<DocEntryItem>,
+    pub docs_sources: Vec<String>,
+    pub docs_categories: Vec<String>,
     pub docs_search: String,
+    pub docs_source_idx: usize,
     pub docs_category_idx: usize,
     pub docs_font_size: f32,
     pub docs_select_mode: bool,
     pub docs_sidebar_open: bool,
+    pub docs_back_history: Vec<PathBuf>,
+    pub docs_forward_history: Vec<PathBuf>,
+    pub docs_status_badge: Option<(String, bool)>,
     pub docs_editor_content: cosmic::iced::widget::text_editor::Content,
     pub selected_doc_path: Option<PathBuf>,
     pub selected_doc_content: String,
+    pub selected_doc_blocks: Vec<MarkdownBlock>,
     pub pty_input: String,
     pub process_handle: Option<RunningProcessHandle>,
     runner_tx: UnboundedSender<RunnerEvent>,
@@ -423,14 +445,22 @@ impl cosmic::Application for AppModel {
                 false,
             )],
             console_progress: 0.15,
+            docs_catalog: Vec::new(),
+            docs_sources: vec![SOURCE_ALL.to_string()],
+            docs_categories: vec![CATEGORY_ALL.to_string()],
             docs_search: String::new(),
+            docs_source_idx: 0,
             docs_category_idx: 0,
             docs_font_size: 14.0,
             docs_select_mode: false,
             docs_sidebar_open: true,
+            docs_back_history: Vec::new(),
+            docs_forward_history: Vec::new(),
+            docs_status_badge: None,
             docs_editor_content: cosmic::iced::widget::text_editor::Content::new(),
             selected_doc_path: None,
             selected_doc_content: String::new(),
+            selected_doc_blocks: Vec::new(),
             pty_input: String::new(),
             process_handle: None,
             runner_tx,
@@ -447,6 +477,7 @@ impl cosmic::Application for AppModel {
         };
 
         app.load_env_for_target(EnvTarget::Popos);
+        app.reload_docs_catalog();
         let title_task = app.update_title();
         let probe_task = app.spawn_probe_task();
 
@@ -644,50 +675,47 @@ impl cosmic::Application for AppModel {
                 }
             }
             Message::LaunchUrl(url) => {
-                if let Some(rel) = url.strip_prefix("doc://") {
-                    let clean_rel = rel.split('#').next().unwrap_or(rel).trim();
-                    let mut candidates = Vec::new();
-                    if let Some(cur) = &self.selected_doc_path
-                        && let Some(parent) = cur.parent()
-                    {
-                        candidates.push(parent.join(clean_rel));
-                    }
-                    candidates.push(self.paths.popos_repo.join(clean_rel));
-                    candidates.push(self.paths.homelab_repo.join(clean_rel));
-                    if let Some(found) = candidates.into_iter().find(|p| p.is_file())
-                        && let Ok(content) = fs::read_to_string(&found)
-                    {
-                        self.docs_editor_content =
-                            cosmic::iced::widget::text_editor::Content::with_text(&content);
-                        self.selected_doc_path = Some(found);
-                        self.selected_doc_content = content;
+                if let Some(raw_href) = url.strip_prefix("doc://") {
+                    if let Some(current_doc) = self.current_doc_entry().cloned() {
+                        match resolve_markdown_link(
+                            &current_doc.source_root,
+                            &current_doc.full_path,
+                            raw_href,
+                        ) {
+                            MarkdownLinkResolution::InternalDocument { path, .. } => {
+                                return self.open_doc_by_path(path, true);
+                            }
+                            MarkdownLinkResolution::LocalImage(path)
+                            | MarkdownLinkResolution::LocalAttachment(path) => {
+                                if let Err(err) = open::that_detached(&path) {
+                                    self.docs_status_badge =
+                                        Some((format!("⚠️ Falha ao abrir: {err}"), true));
+                                } else {
+                                    let name = path
+                                        .file_name()
+                                        .and_then(|s| s.to_str())
+                                        .unwrap_or("arquivo");
+                                    self.docs_status_badge =
+                                        Some((format!("📂 Aberto: {name}"), false));
+                                }
+                            }
+                            MarkdownLinkResolution::ExternalHttpUrl(ext) => {
+                                if let Err(err) = open::that_detached(&ext) {
+                                    self.banner_notice =
+                                        Some((format!("Erro ao abrir URL: {err}"), true));
+                                }
+                            }
+                            MarkdownLinkResolution::Anchor(anchor) => {
+                                return self.scroll_doc_to_anchor(&anchor);
+                            }
+                            MarkdownLinkResolution::Unsupported(target) => {
+                                self.docs_status_badge =
+                                    Some((format!("ℹ️ Referência externa: {target}"), false));
+                            }
+                        }
                     }
                 } else if let Some(anchor) = url.strip_prefix("anchor://") {
-                    let slug = anchor
-                        .trim_start_matches('#')
-                        .to_ascii_lowercase()
-                        .replace('-', " ");
-                    let lines: Vec<&str> = self.selected_doc_content.lines().collect();
-                    let total = lines.len().max(1) as f32;
-                    if let Some((idx, _)) = lines.iter().enumerate().find(|(_, l)| {
-                        let t = l.trim_start();
-                        t.starts_with('#')
-                            && t.trim_start_matches('#')
-                                .to_ascii_lowercase()
-                                .chars()
-                                .filter(|c| c.is_alphanumeric() || c.is_whitespace())
-                                .collect::<String>()
-                                .contains(&slug)
-                    }) {
-                        let ratio = (idx as f32 / total).clamp(0.0, 1.0);
-                        return cosmic::iced::widget::scrollable::snap_to(
-                            widget::Id::new("docs_reader_scroll"),
-                            cosmic::iced::widget::scrollable::RelativeOffset {
-                                x: Some(0.0),
-                                y: Some(ratio),
-                            },
-                        );
-                    }
+                    return self.scroll_doc_to_anchor(anchor);
                 } else if let Err(err) = open::that_detached(&url) {
                     self.banner_notice = Some((format!("Erro ao abrir URL: {err}"), true));
                 }
@@ -1471,10 +1499,53 @@ impl cosmic::Application for AppModel {
                     self.log_exec_page += 1;
                 }
             }
-            Message::DocsSearchChanged(v) => self.docs_search = v,
-            Message::DocsCategorySelected(idx) => self.docs_category_idx = idx,
+            Message::DocsSearchChanged(v) => {
+                self.docs_search = v;
+                self.docs_status_badge = None;
+            }
+            Message::DocsSourceSelected(idx) => {
+                self.docs_source_idx = idx;
+                let source = self
+                    .docs_sources
+                    .get(idx)
+                    .map(String::as_str)
+                    .unwrap_or(SOURCE_ALL);
+                self.docs_categories = available_categories(&self.docs_catalog, source);
+                self.docs_category_idx = 0;
+                self.docs_status_badge = None;
+            }
+            Message::DocsCategorySelected(idx) => {
+                self.docs_category_idx = idx;
+                self.docs_status_badge = None;
+            }
+            Message::DocsReloadCatalog => {
+                self.reload_docs_catalog();
+                self.docs_status_badge = Some((
+                    format!("🔄 {} doc(s) reindexado(s)", self.docs_catalog.len()),
+                    false,
+                ));
+            }
+            Message::DocsNavigateBack => {
+                if let Some(prev_path) = self.docs_back_history.pop() {
+                    if let Some(cur) = self.selected_doc_path.clone() {
+                        self.docs_forward_history.push(cur);
+                    }
+                    return self.open_doc_by_path(prev_path, false);
+                }
+            }
+            Message::DocsNavigateForward => {
+                if let Some(next_path) = self.docs_forward_history.pop() {
+                    if let Some(cur) = self.selected_doc_path.clone() {
+                        self.docs_back_history.push(cur);
+                    }
+                    return self.open_doc_by_path(next_path, false);
+                }
+            }
             Message::DocsFontSizeDelta(delta) => {
                 self.docs_font_size = (self.docs_font_size + delta).clamp(11.0, 22.0);
+            }
+            Message::DocsFontSizeReset => {
+                self.docs_font_size = 14.0;
             }
             Message::ToggleDocsSelectMode => {
                 self.docs_select_mode = !self.docs_select_mode;
@@ -1488,18 +1559,83 @@ impl cosmic::Application for AppModel {
                     self.docs_editor_content.perform(action);
                 }
             }
-            Message::SelectDocFile(path) => match fs::read_to_string(&path) {
-                Ok(content) => {
-                    self.docs_editor_content =
-                        cosmic::iced::widget::text_editor::Content::with_text(&content);
-                    self.selected_doc_path = Some(path);
-                    self.selected_doc_content = content;
-                }
-                Err(e) => self.banner_notice = Some((format!("Erro ao ler documento: {e}"), true)),
-            },
+            Message::SelectDocFile(path) => {
+                return self.open_doc_by_path(path, true);
+            }
             Message::CopyDocContent => {
                 if !self.selected_doc_content.is_empty() {
+                    let fname = self
+                        .current_doc_entry()
+                        .map(|d| d.file_name.clone())
+                        .unwrap_or_else(|| "documento.md".to_string());
+                    self.docs_status_badge = Some((format!("📋 {fname} copiado!"), false));
                     return cosmic::iced::clipboard::write(self.selected_doc_content.clone());
+                }
+            }
+            Message::DocsCopyCodeBlock { lang, code } => {
+                if !code.is_empty() {
+                    let label = if lang.is_empty() { "código" } else { &lang };
+                    self.docs_status_badge =
+                        Some((format!("📋 Bloco {label} copiado!"), false));
+                    return cosmic::iced::clipboard::write(code);
+                }
+            }
+            Message::DocsExportHtml => {
+                if let Some(doc) = self.current_doc_entry().cloned() {
+                    let html = export_standalone_html(&doc, &self.selected_doc_content);
+                    let downloads_dir = dirs::download_dir()
+                        .or_else(dirs::home_dir)
+                        .unwrap_or_else(|| PathBuf::from("/tmp"));
+                    let _ = fs::create_dir_all(&downloads_dir);
+                    let stem = doc
+                        .file_name
+                        .strip_suffix(".md")
+                        .unwrap_or(&doc.file_name);
+                    let out_path = downloads_dir.join(format!("{stem}_offline.html"));
+                    match fs::write(&out_path, html) {
+                        Ok(()) => {
+                            let fname = out_path
+                                .file_name()
+                                .and_then(|s| s.to_str())
+                                .unwrap_or("offline.html");
+                            self.docs_status_badge =
+                                Some((format!("📦 Exportado: {fname}"), false));
+                            self.banner_notice = Some((
+                                format!("HTML offline exportado em {}", out_path.display()),
+                                false,
+                            ));
+                        }
+                        Err(e) => {
+                            self.docs_status_badge =
+                                Some(("⚠️ Falha ao exportar HTML".to_string(), true));
+                            self.banner_notice =
+                                Some((format!("Erro ao exportar HTML: {e}"), true));
+                        }
+                    }
+                }
+            }
+            Message::DocsOpenCurrentFolder => {
+                let target_dir = self
+                    .selected_doc_path
+                    .as_ref()
+                    .and_then(|p| p.parent())
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| self.paths.popos_repo.join("Docs"));
+                if let Err(err) = open::that_detached(&target_dir) {
+                    self.docs_status_badge =
+                        Some((format!("⚠️ Falha ao abrir pasta: {err}"), true));
+                }
+            }
+            Message::DocsOpenMedia(path) => {
+                if let Err(err) = open::that_detached(&path) {
+                    self.docs_status_badge =
+                        Some((format!("⚠️ Falha ao abrir mídia: {err}"), true));
+                } else {
+                    let name = path
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("mídia");
+                    self.docs_status_badge = Some((format!("📂 Aberto: {name}"), false));
                 }
             }
             Message::CopyText(txt) => {
@@ -1566,6 +1702,7 @@ impl cosmic::Application for AppModel {
                     } else {
                         self.paths = new_paths;
                         self.load_env_for_target(self.env_target);
+                        self.reload_docs_catalog();
                         return self.spawn_probe_task();
                     }
                 }
@@ -1766,6 +1903,125 @@ impl AppModel {
                 self.env_status_msg = Some(e);
             }
         }
+    }
+
+    pub fn current_doc_entry(&self) -> Option<&DocEntryItem> {
+        let path = self.selected_doc_path.as_ref()?;
+        self.docs_catalog.iter().find(|d| &d.full_path == path)
+    }
+
+    fn reload_docs_catalog(&mut self) {
+        let prev_path = self.selected_doc_path.clone();
+        self.docs_catalog =
+            discover_all_documents(&self.paths.popos_repo, &self.paths.homelab_repo);
+        self.docs_sources = available_sources(&self.docs_catalog);
+        if self.docs_source_idx >= self.docs_sources.len() {
+            self.docs_source_idx = 0;
+        }
+        let selected_source = self
+            .docs_sources
+            .get(self.docs_source_idx)
+            .map(String::as_str)
+            .unwrap_or(SOURCE_ALL);
+        self.docs_categories = available_categories(&self.docs_catalog, selected_source);
+        if self.docs_category_idx >= self.docs_categories.len() {
+            self.docs_category_idx = 0;
+        }
+        if self.docs_catalog.is_empty() {
+            self.selected_doc_path = None;
+            self.selected_doc_content.clear();
+            self.selected_doc_blocks.clear();
+            self.docs_editor_content = cosmic::iced::widget::text_editor::Content::new();
+            return;
+        }
+        let target = prev_path
+            .and_then(|p| self.docs_catalog.iter().find(|d| d.full_path == p))
+            .or_else(|| {
+                self.docs_catalog
+                    .iter()
+                    .find(|d| d.relative_path.eq_ignore_ascii_case("Docs/README.md"))
+            })
+            .or_else(|| self.docs_catalog.first())
+            .map(|d| d.full_path.clone());
+
+        if let Some(path) = target {
+            let _ = self.open_doc_by_path(path, false);
+        }
+    }
+
+    fn open_doc_by_path(
+        &mut self,
+        path: PathBuf,
+        record_history: bool,
+    ) -> Task<cosmic::Action<Message>> {
+        let Some(entry) = self
+            .docs_catalog
+            .iter()
+            .find(|d| d.full_path == path)
+            .cloned()
+        else {
+            self.docs_status_badge =
+                Some(("⚠️ Documento não encontrado no catálogo".to_string(), true));
+            return Task::none();
+        };
+
+        match read_document_content(&entry.source_root, &entry.full_path) {
+            Ok(content) => {
+                if record_history
+                    && let Some(prev) = self.selected_doc_path.clone()
+                    && prev != entry.full_path
+                {
+                    self.docs_back_history.push(prev);
+                    self.docs_forward_history.clear();
+                }
+                self.docs_editor_content =
+                    cosmic::iced::widget::text_editor::Content::with_text(&content);
+                self.selected_doc_blocks = parse_markdown(&content);
+                self.selected_doc_path = Some(entry.full_path);
+                self.selected_doc_content = content;
+                self.docs_status_badge = None;
+                cosmic::iced::widget::scrollable::snap_to(
+                    widget::Id::new("docs_reader_scroll"),
+                    cosmic::iced::widget::scrollable::RelativeOffset {
+                        x: Some(0.0),
+                        y: Some(0.0),
+                    },
+                )
+            }
+            Err(e) => {
+                self.docs_status_badge = Some((format!("⚠️ Falha ao ler: {e}"), true));
+                Task::none()
+            }
+        }
+    }
+
+    fn scroll_doc_to_anchor(&self, anchor: &str) -> Task<cosmic::Action<Message>> {
+        let slug = anchor
+            .trim_start_matches('#')
+            .to_ascii_lowercase()
+            .replace('-', " ");
+        let lines: Vec<&str> = self.selected_doc_content.lines().collect();
+        let total = lines.len().max(1) as f32;
+        if let Some((idx, _)) = lines.iter().enumerate().find(|(_, l)| {
+            let t = l.trim_start();
+            t.starts_with('#')
+                && t.trim_start_matches('#')
+                    .to_ascii_lowercase()
+                    .chars()
+                    .filter(|c| c.is_alphanumeric() || c.is_whitespace())
+                    .collect::<String>()
+                    .contains(&slug)
+        }) {
+            let ratio = (idx as f32 / total).clamp(0.0, 1.0);
+            return cosmic::iced::widget::scrollable::snap_to(
+                widget::Id::new("docs_reader_scroll"),
+                cosmic::iced::widget::scrollable::RelativeOffset {
+                    x: Some(0.0),
+                    y: Some(ratio),
+                },
+            );
+        }
+        Task::none()
     }
 
     fn status_footer(&self) -> Element<'_, Message> {

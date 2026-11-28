@@ -24,6 +24,7 @@
 | **🔐 VPN** | MPMS & Tailscale | Conexão VPN corporativa MPMS com input de Token 2FA (`cosmic-term`) e controle rápido do Tailscale (`pkexec`). |
 | **🧪 Testes** | `tests/` + `cargo test` | Dispara `popos-workstation-setup/tests/run_all.py`, `tests/test_in_docker.sh`, `cargo test` (Rust) e `umbrelos-scripts/tests/run_all.py` (Tudo, `--unit`, `--integration`). |
 | **📜 Console & Logs** | PTY + `Logs/` + rotativo | Saída em tempo real ANSI, entrada interativa `stdin`, indicador visual de execução, altura ajustável, rotatividade `3 MB × 3`, paginação e prévia colorida. |
+| **📚 Documentação (Wiki)** | `Docs/` (Pop!_OS + Homelab) | Catálogo indexado com cards ricos (origem, categoria, emoji, título H1, resumo e caminho), busca **full-text** (título e conteúdo), filtros duplos (*Origem* + *Categoria*), histórico (`◀` / `▶`), zoom com reset (`A-` / `100%` / `A+`), alertas GitHub (`NOTE`/`TIP`/`IMPORTANT`/`WARNING`/`CAUTION`), listas ordenadas/aninhadas/checkboxes, imagens locais inline, cards de anexos, **📦 Exportar HTML offline** (com imagens em Base64) e **Modo Seleção**. |
 | **⚙️ Configurações** | `.env` & `config.env` | Configuração dos caminhos dos repositórios (`0600`) e editor seguro de `.env` / `config.env` com mascaramento de segredos e merge automático de novas chaves do `.example`. |
 
 ---

@@ -6,9 +6,16 @@ use workstation_hub::models::catalog::{
     HOMELAB_SETUP_MODULES, HOMELAB_UTIL_ACTIONS, HOMELAB_WEB_SERVICES, LOCAL_UTIL_ACTIONS,
     SETUP_MODULES,
 };
+use workstation_hub::models::doc_entry::{
+    AlertKind, DocSourceKind, MarkdownBlock, MarkdownInlineKind, MarkdownLinkResolution,
+};
 use workstation_hub::models::env_entry::{EnvTarget, EnvVarItem, is_secret_key};
 use workstation_hub::models::log_entry::AnsiColor;
 use workstation_hub::services::ansi_parser::parse_ansi_line;
+use workstation_hub::services::doc_service::{
+    CATEGORY_ALL, SOURCE_ALL, available_categories, available_sources, discover_all_documents,
+    export_standalone_html, filter_documents, parse_inlines, parse_markdown, resolve_markdown_link,
+};
 use workstation_hub::services::env_service::{load_env_file, save_env_file};
 use workstation_hub::services::input_validator::{
     resolve_safe_script, validate_env_key, validate_env_value, validate_identifier,
@@ -307,4 +314,177 @@ fn test_ui_responsiveness_and_padding_helpers() {
             }
         }
     }
+}
+
+#[test]
+fn test_doc_service_discovery_fulltext_search_and_symlink_blocking() {
+    let popos = TempSandbox::new("docs_popos");
+    let homelab = TempSandbox::new("docs_homelab");
+    let outside = TempSandbox::new("docs_outside");
+
+    fs::create_dir_all(popos.path().join("Docs/guias")).unwrap();
+    fs::create_dir_all(popos.path().join("Docs/issues")).unwrap();
+    fs::create_dir_all(homelab.path().join("Docs")).unwrap();
+
+    fs::write(
+        popos.path().join("README.md"),
+        "# 🚀 Workstation Setup\n\n> Guia principal de automação COSMIC Wayland.\n",
+    )
+    .unwrap();
+    fs::write(
+        popos.path().join("Docs/guias/backup_android.md"),
+        "# 📱 Backup Android ADB\n\nProcedimento rápido para extração de fotos via ADB.\n\nPalavra-chave oculta: `scrcpy_wireless_token`.\n",
+    )
+    .unwrap();
+    fs::write(
+        popos.path().join("Docs/issues/issue_cedilha.md"),
+        "# 🚨 Cedilha Wayland\n\nPatch binário em ui::CharacterComposer.\n",
+    )
+    .unwrap();
+    fs::write(
+        homelab.path().join("Docs/README.md"),
+        "# 🏠 Homelab umbrelOS\n\nDocumentação da infraestrutura self-hosted.\n",
+    )
+    .unwrap();
+
+    // Cria symlink apontando para fora da raiz — deve ser ignorado (fail-closed)
+    let secret_outside = outside.path().join("leak.md");
+    fs::write(&secret_outside, "# Segredo Externo\n\nNão deve aparecer.").unwrap();
+    symlink(&secret_outside, popos.path().join("Docs/guias/symlink_leak.md")).unwrap();
+
+    let docs = discover_all_documents(popos.path(), homelab.path());
+    assert_eq!(docs.len(), 4);
+    assert!(docs.iter().all(|d| !d.file_name.contains("symlink_leak")));
+
+    let android_doc = docs
+        .iter()
+        .find(|d| d.file_name == "backup_android.md")
+        .unwrap();
+    assert_eq!(android_doc.emoji, "📱");
+    assert_eq!(android_doc.title, "Backup Android ADB");
+    assert_eq!(android_doc.badge_text, "GUIA");
+    assert!(android_doc.summary.contains("extração de fotos"));
+
+    let sources = available_sources(&docs);
+    assert!(sources.contains(&SOURCE_ALL.to_string()));
+    assert!(sources.contains(&DocSourceKind::PoposWorkstation.label().to_string()));
+    assert!(sources.contains(&DocSourceKind::Homelab.label().to_string()));
+
+    let cats = available_categories(&docs, DocSourceKind::PoposWorkstation.label());
+    assert!(cats.contains(&CATEGORY_ALL.to_string()));
+    assert!(cats.contains(&"Guias & Manuais".to_string()));
+    assert!(cats.contains(&"Issues & Diagnósticos".to_string()));
+
+    // Busca full-text no corpo do documento
+    let hits = filter_documents(&docs, "scrcpy_wireless_token", SOURCE_ALL, CATEGORY_ALL);
+    assert_eq!(hits.len(), 1);
+    assert_eq!(hits[0].file_name, "backup_android.md");
+
+    // Filtro por origem
+    let homelab_hits = filter_documents(&docs, "", DocSourceKind::Homelab.label(), CATEGORY_ALL);
+    assert_eq!(homelab_hits.len(), 1);
+    assert_eq!(homelab_hits[0].source_kind, DocSourceKind::Homelab);
+}
+
+#[test]
+fn test_doc_service_markdown_parser_alerts_lists_inlines_and_links() {
+    let md = r#"# Título Principal
+
+> [!WARNING]
+> Atenção ao rodar *comando* com ~~risco~~ e `flag`.
+
+1. Primeiro passo
+  - Subitem aninhado
+- [x] Concluído
+- [ ] Pendente
+
+```bash
+echo "hello"
+```
+"#;
+    let blocks = parse_markdown(md);
+    assert!(matches!(blocks[0], MarkdownBlock::Heading { level: 1, .. }));
+    assert!(matches!(
+        blocks[1],
+        MarkdownBlock::BlockQuote {
+            alert: Some(AlertKind::Warning),
+            ..
+        }
+    ));
+    let Some(MarkdownBlock::List { items }) = blocks.get(2) else {
+        panic!("Bloco de lista esperado");
+    };
+    assert_eq!(items.len(), 4);
+    assert_eq!(items[0].marker, "1.");
+    assert_eq!(items[1].indent_level, 1);
+    assert_eq!(items[2].checked, Some(true));
+    assert_eq!(items[3].checked, Some(false));
+
+    let inlines = parse_inlines("**negrito** *itálico* ~~riscado~~ `cod` <kbd>Ctrl</kbd>");
+    assert!(inlines.iter().any(|s| s.kind == MarkdownInlineKind::Bold));
+    assert!(inlines.iter().any(|s| s.kind == MarkdownInlineKind::Italic));
+    assert!(
+        inlines
+            .iter()
+            .any(|s| s.kind == MarkdownInlineKind::Strikethrough)
+    );
+    assert!(inlines.iter().any(|s| s.kind == MarkdownInlineKind::Code));
+    assert!(inlines.iter().any(|s| s.kind == MarkdownInlineKind::Kbd));
+
+    // Resolução fail-closed de links
+    let sb = TempSandbox::new("docs_links");
+    fs::create_dir_all(sb.path().join("Docs/img")).unwrap();
+    let cur = sb.path().join("Docs/guia.md");
+    let target = sb.path().join("Docs/outro.md");
+    let img = sb.path().join("Docs/img/foto.png");
+    fs::write(&cur, "# Guia").unwrap();
+    fs::write(&target, "# Outro").unwrap();
+    fs::write(&img, [0x89, b'P', b'N', b'G']).unwrap();
+
+    assert!(matches!(
+        resolve_markdown_link(sb.path(), &cur, "outro.md"),
+        MarkdownLinkResolution::InternalDocument { .. }
+    ));
+    assert!(matches!(
+        resolve_markdown_link(sb.path(), &cur, "img/foto.png"),
+        MarkdownLinkResolution::LocalImage(_)
+    ));
+    assert!(matches!(
+        resolve_markdown_link(sb.path(), &cur, "https://example.com"),
+        MarkdownLinkResolution::ExternalHttpUrl(_)
+    ));
+    assert!(matches!(
+        resolve_markdown_link(sb.path(), &cur, "#secao-1"),
+        MarkdownLinkResolution::Anchor(_)
+    ));
+    // Traversal deve ser bloqueado
+    assert!(matches!(
+        resolve_markdown_link(sb.path(), &cur, "../../../etc/passwd"),
+        MarkdownLinkResolution::Unsupported(_)
+    ));
+}
+
+#[test]
+fn test_doc_service_export_standalone_html_embeds_images_and_escapes_xss() {
+    let sb = TempSandbox::new("docs_html");
+    fs::create_dir_all(sb.path().join("Docs")).unwrap();
+    let img = sb.path().join("Docs/sample.png");
+    fs::write(&img, [0x89, b'P', b'N', b'G', 0x0D, 0x0A]).unwrap();
+    let doc_path = sb.path().join("Docs/manual.md");
+    let raw_md = "# 📘 Manual <script>alert(1)</script>\n\n> [!TIP]\n> Dica útil.\n\n![Print](sample.png)\n";
+    fs::write(&doc_path, raw_md).unwrap();
+
+    let docs = discover_all_documents(sb.path(), sb.path());
+    let doc = docs.iter().find(|d| d.file_name == "manual.md").unwrap();
+    let html = export_standalone_html(doc, raw_md);
+
+    assert!(html.contains("<!DOCTYPE html>"));
+    assert!(!html.contains("<script>alert(1)</script>"));
+    assert!(html.contains("&lt;script&gt;alert(1)&lt;/script&gt;"));
+    assert!(html.contains("alert-tip"));
+    assert!(html.contains("data:image/png;base64,"));
+    assert!(html.contains("id=\"btnToggleToc\""));
+    assert!(html.contains("↑ Topo"));
+    assert!(html.contains("id=\"sec-1\""));
+    assert!(html.contains("class=\"toc-item toc-l1\""));
 }

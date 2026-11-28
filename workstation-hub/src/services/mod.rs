@@ -1,4 +1,5 @@
 pub mod ansi_parser;
+pub mod doc_service;
 pub mod env_service;
 pub mod input_validator;
 pub mod log_service;
