@@ -171,10 +171,11 @@ Para evitar ter que abrir a VM ou janelas do Windows apenas para acessar arquivo
 2. **Indicador Nativo no Painel Superior (Bandeja / StatusArea):**
    - O daemon [`scripts/daemons/onedrive-indicator.py`](scripts/daemons/onedrive-indicator.py) opera via protocolo nativo Wayland **StatusNotifierItem** (`AyatanaAppIndicator3`), residindo no canto superior direito do painel COSMIC (`com.system76.CosmicAppletStatusArea`).
    - Gerenciado pelo serviço systemd de usuário `onedrive-indicator.service` (`systemctl --user`).
-   - Apresenta status em tempo real (`● OneDrive MPMS: Conectado` / `○ Desconectado`).
+   - Apresenta status em tempo real (`● OneDrive MPMS: Conectado` / `○ Desconectado` / `⏳ Sincronizando...`).
    - Menu com ações rápidas com 1 clique:
      - 📂 **Abrir Pasta Local (`~/OneDrive_MPMS`)** no Nautilus
-     - 🔄 **Remontar / Sincronizar Compartilhamento SMB**
+     - ☁️ **Sincronizar Arquivos do OneDrive:** dispara silenciosamente o `OneDrive.exe /background` dentro da VM Windows via FreeRDP RemoteApp (`util/winapps/sync_onedrive.vbs` + `sync_onedrive.ps1`), acompanha o progresso em tempo real sem abrir janela da VM, notifica ao concluir e atualiza o compartilhamento SMB.
+     - 🔄 **Remontar Compartilhamento SMB**
      - 🌐 **Abrir OneDrive na Web (M365 Corporativo):** utiliza a URL oficial SSO multi-tenant `https://www.office.com/launch/onedrive?auth=2`, evitando falhas de locatário Azure AD do SharePoint.
      - 🖥️ **Abrir Windows 11 no Remmina:** conecta diretamente pelo perfil salvo `winapps_windows11.remmina` (Console VNC ou RDP), com a mesma praticidade do perfil corporativo RDP configurado no `.env`.
      - 🖥️ **Abrir Console Web da VM (`:8006`):** acesso rápido via navegador ao painel do container.
@@ -201,6 +202,7 @@ Para evitar ter que abrir a VM ou janelas do Windows apenas para acessar arquivo
 | `winapps-vm fix-smb` | Reajusta imediatamente as regras do iptables no container e remonta no Nautilus. |
 | `winapps-vm fix-autologon` | Aplica o AutoLogon sem senha e desativa a tela de bloqueio da VM via RemoteApp. |
 | `winapps-vm onedrive` | Abre diretamente a pasta corporativa do OneDrive (MPMS) no Nautilus. |
+| `winapps-vm sync-onedrive` | Dispara e aguarda a sincronização silenciosa do OneDrive dentro da VM Windows sem abrir janela. |
 
 > [!NOTE]
 > **Inicialização Automática com o Sistema:**

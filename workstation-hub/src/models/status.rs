@@ -170,6 +170,23 @@ pub struct PanelAndTrayInfo {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct WinAppsInfo {
+    pub container_running: bool,
+    pub container_status: String,
+    pub smb_mounted: bool,
+    pub smb_files_count: usize,
+    pub rdp_port_open: bool,
+    pub vnc_web_open: bool,
+    pub indicator_active: bool,
+    pub smb_service_active: bool,
+    pub last_sync_state: String,
+    pub last_sync_message: String,
+    pub last_sync_timestamp: String,
+    pub winapps_cli_installed: bool,
+    pub sync_scripts_ready: bool,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct SystemSnapshot {
     pub completed_flags: HashSet<String>,
     pub adb_devices: Vec<String>,
@@ -179,6 +196,7 @@ pub struct SystemSnapshot {
     pub network_info: NetworkMonitorInfo,
     pub panel_tray_info: PanelAndTrayInfo,
     pub winapps_running: bool,
+    pub winapps_info: WinAppsInfo,
     pub antigravity_version: String,
     pub homelab_online: Option<bool>,
     pub homelab_local_host: String,

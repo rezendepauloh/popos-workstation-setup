@@ -553,3 +553,25 @@ fn test_docker_update_analyzer_parsers() {
         Some("sha256:singledigest55555555")
     );
 }
+
+#[test]
+fn test_parse_onedrive_sync_status_and_winapps_view() {
+    use workstation_hub::services::probe_service::parse_onedrive_sync_status;
+
+    let sample = "\u{feff}{\"state\":\"completed\",\"message\":\"Sincronização concluída (34s).\",\"timestamp\":\"2026-11-28T02:43:20\"}";
+    let (state, msg, ts) = parse_onedrive_sync_status(sample);
+    assert_eq!(state, "completed");
+    assert_eq!(msg, "Sincronização concluída (34s).");
+    assert_eq!(ts, "2026-11-28T02:43:20");
+
+    let (empty_st, empty_msg, empty_ts) = parse_onedrive_sync_status("not json");
+    assert!(empty_st.is_empty());
+    assert!(empty_msg.is_empty());
+    assert!(empty_ts.is_empty());
+
+    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let winapps_view = fs::read_to_string(manifest_dir.join("src/views/winapps.rs")).unwrap();
+    assert!(winapps_view.contains("sync_onedrive"));
+    assert!(winapps_view.contains("ui::page_scroll"));
+    assert!(winapps_view.contains("ui::wrap_row"));
+}

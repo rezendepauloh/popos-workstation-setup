@@ -1,7 +1,7 @@
 use crate::models::status::{
     DockerContainerInfo, DockerImageUpdateInfo, DockerSystemInfo, DockerUpdateState, HubPaths,
     NetworkHostStatus, NetworkMonitorInfo, RemoteDevicesInfo, SystemHardwareInfo, SystemSnapshot,
-    TailscalePeerStatus,
+    TailscalePeerStatus, WinAppsInfo,
 };
 use crate::services::env_service::read_env_map;
 use crate::services::progress_service::read_completed_flags;
@@ -38,7 +38,7 @@ pub async fn collect_snapshot(paths: &HubPaths) -> SystemSnapshot {
         probe_remote_devices(&paths.popos_repo),
     );
 
-    let (network_info, panel_tray_info) = tokio::join!(
+    let (network_info, panel_tray_info, winapps_info) = tokio::join!(
         probe_network_monitor(
             &paths.popos_repo,
             &homelab_local_host,
@@ -46,6 +46,7 @@ pub async fn collect_snapshot(paths: &HubPaths) -> SystemSnapshot {
             &remote_devices,
         ),
         crate::services::panel_tray_service::probe_panel_and_tray(),
+        probe_winapps_info(&docker_info),
     );
 
     let local_android_backups = list_android_backups();
@@ -63,7 +64,8 @@ pub async fn collect_snapshot(paths: &HubPaths) -> SystemSnapshot {
         hardware_info,
         network_info,
         panel_tray_info,
-        winapps_running: docker_res.1,
+        winapps_running: docker_res.1 || winapps_info.container_running,
+        winapps_info,
         antigravity_version,
         homelab_online: Some(homelab_online),
         homelab_local_host,
@@ -153,6 +155,95 @@ async fn probe_docker_and_winapps() -> (bool, bool) {
     let text = String::from_utf8_lossy(&out.stdout);
     let winapps = text.lines().any(|l| l.trim() == "winapps-windows");
     (true, winapps)
+}
+
+pub fn parse_onedrive_sync_status(raw_json: &str) -> (String, String, String) {
+    let cleaned = raw_json.trim_start_matches('\u{feff}').trim();
+    let Ok(val) = serde_json::from_str::<serde_json::Value>(cleaned) else {
+        return (String::new(), String::new(), String::new());
+    };
+    let state = val
+        .get("state")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    let message = val
+        .get("message")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    let timestamp = val
+        .get("timestamp")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    (state, message, timestamp)
+}
+
+async fn probe_winapps_info(docker_info: &DockerSystemInfo) -> WinAppsInfo {
+    let mut info = WinAppsInfo::default();
+
+    if let Some(c) = docker_info
+        .containers
+        .iter()
+        .find(|c| c.name == "winapps-windows")
+    {
+        info.container_running = c.running;
+        info.container_status = c.status.clone();
+    }
+
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home"));
+    let onedrive_dir = home.join("OneDrive_MPMS");
+    if let Ok(rd) = fs::read_dir(&onedrive_dir) {
+        let count = rd.filter_map(Result::ok).count();
+        info.smb_files_count = count;
+        info.smb_mounted = count > 0;
+    }
+
+    let shared_dir = home.join("Compartilhado_VM");
+    info.sync_scripts_ready = shared_dir.join("sync_onedrive.ps1").is_file()
+        && shared_dir.join("sync_onedrive.vbs").is_file();
+    info.winapps_cli_installed = home.join(".local/bin/winapps-vm").is_file();
+
+    if let Ok(raw) = fs::read_to_string(shared_dir.join("onedrive_sync_status.json")) {
+        let (st, msg, ts) = parse_onedrive_sync_status(&raw);
+        info.last_sync_state = st;
+        info.last_sync_message = msg;
+        info.last_sync_timestamp = ts;
+    }
+
+    let (rdp_res, vnc_res, ind_res, smb_svc_res) = tokio::join!(
+        tokio::time::timeout(
+            Duration::from_millis(350),
+            tokio::net::TcpStream::connect("127.0.0.1:3389"),
+        ),
+        tokio::time::timeout(
+            Duration::from_millis(350),
+            tokio::net::TcpStream::connect("127.0.0.1:8006"),
+        ),
+        tokio::time::timeout(
+            Duration::from_secs(1),
+            Command::new("systemctl")
+                .args(["--user", "is-active", "--quiet", "onedrive-indicator.service"])
+                .status(),
+        ),
+        tokio::time::timeout(
+            Duration::from_secs(1),
+            Command::new("systemctl")
+                .args(["--user", "is-active", "--quiet", "winapps-smb-sync.service"])
+                .status(),
+        ),
+    );
+
+    info.rdp_port_open = rdp_res.is_ok_and(|r| r.is_ok());
+    info.vnc_web_open = vnc_res.is_ok_and(|r| r.is_ok());
+    info.indicator_active = ind_res.is_ok_and(|r| r.is_ok_and(|s| s.success()));
+    info.smb_service_active = smb_svc_res.is_ok_and(|r| r.is_ok_and(|s| s.success()));
+
+    info
 }
 
 async fn probe_docker_info() -> DockerSystemInfo {

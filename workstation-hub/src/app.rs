@@ -50,6 +50,7 @@ pub enum Page {
     System,
     PanelTray,
     Docker,
+    WinApps,
     Homelab,
     RemoteDevices,
     Network,
@@ -96,11 +97,13 @@ pub enum MenuAction {
     GoSystem,
     GoPanelTray,
     GoDocker,
+    GoWinApps,
     GoHomelab,
     GoNetwork,
     QuickBackupCosmic,
     QuickRepairIdes,
     QuickRestartRclone,
+    QuickSyncOneDrive,
     QuickRunTests,
     OpenDocsFolder,
     About,
@@ -121,11 +124,13 @@ impl menu::action::MenuAction for MenuAction {
             MenuAction::GoSystem => Message::NavigateTo(Page::System),
             MenuAction::GoPanelTray => Message::NavigateTo(Page::PanelTray),
             MenuAction::GoDocker => Message::NavigateTo(Page::Docker),
+            MenuAction::GoWinApps => Message::NavigateTo(Page::WinApps),
             MenuAction::GoHomelab => Message::NavigateTo(Page::Homelab),
             MenuAction::GoNetwork => Message::NavigateTo(Page::Network),
             MenuAction::QuickBackupCosmic => Message::RunSystemAction("backup_cosmic_gdrive".to_string()),
             MenuAction::QuickRepairIdes => Message::RunSystemAction("repair_ides".to_string()),
             MenuAction::QuickRestartRclone => Message::RunSystemAction("rclone_restart".to_string()),
+            MenuAction::QuickSyncOneDrive => Message::RunWinAppsAction("sync_onedrive".to_string()),
             MenuAction::QuickRunTests => Message::RunTestTarget(TestTarget::PoposFull),
             MenuAction::OpenDocsFolder => Message::NavigateTo(Page::Docs),
             MenuAction::About => Message::ToggleContextPage(ContextPage::About),
@@ -190,6 +195,7 @@ pub enum Message {
     },
     CheckDockerUpdates,
     DockerUpdatesChecked(HashMap<String, DockerImageUpdateInfo>),
+    RunWinAppsAction(String),
     RunSystemAction(String),
     OpenRgbHexChanged(String),
     ApplyOpenRgbHex,
@@ -376,6 +382,10 @@ impl cosmic::Application for AppModel {
             .data::<Page>(Page::Docker)
             .icon(icon::from_name("utilities-system-monitor-symbolic"));
         nav.insert()
+            .text("WinApps & OneDrive")
+            .data::<Page>(Page::WinApps)
+            .icon(icon::from_name("applications-office-symbolic"));
+        nav.insert()
             .text("Homelab (umbrelOS)")
             .data::<Page>(Page::Homelab)
             .icon(icon::from_name("network-server-symbolic"));
@@ -530,6 +540,7 @@ impl cosmic::Application for AppModel {
                         menu::Item::Button("Sistema", None, MenuAction::GoSystem),
                         menu::Item::Button("Painel & Tray", None, MenuAction::GoPanelTray),
                         menu::Item::Button("Docker (Pop!_OS)", None, MenuAction::GoDocker),
+                        menu::Item::Button("WinApps & OneDrive", None, MenuAction::GoWinApps),
                         menu::Item::Button("Homelab (umbrelOS)", None, MenuAction::GoHomelab),
                         menu::Item::Button("Monitor de Rede", None, MenuAction::GoNetwork),
                     ],
@@ -554,6 +565,11 @@ impl cosmic::Application for AppModel {
                             "Reiniciar Montagens Rclone",
                             None,
                             MenuAction::QuickRestartRclone,
+                        ),
+                        menu::Item::Button(
+                            "Sincronizar OneDrive MPMS (VM)",
+                            None,
+                            MenuAction::QuickSyncOneDrive,
                         ),
                         menu::Item::Divider,
                         menu::Item::Button(
@@ -1469,6 +1485,159 @@ print(f"[OK] Container '{cname}' atualizado e recriado com sucesso.")
                     cleanup_file: None,
                 });
             }
+            Message::RunWinAppsAction(action) => {
+                let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/home"));
+                let winapps_bin = home.join(".local/bin/winapps-vm");
+                let winapps_bin_str = winapps_bin.to_string_lossy().to_string();
+
+                match action.as_str() {
+                    "open_onedrive_folder" => {
+                        if let Err(e) = open::that_detached(home.join("OneDrive_MPMS")) {
+                            self.banner_notice =
+                                Some((format!("Erro ao abrir ~/OneDrive_MPMS: {e}"), true));
+                        }
+                        return Task::none();
+                    }
+                    "open_shared_folder" => {
+                        if let Err(e) = open::that_detached(home.join("Compartilhado_VM")) {
+                            self.banner_notice =
+                                Some((format!("Erro ao abrir ~/Compartilhado_VM: {e}"), true));
+                        }
+                        return Task::none();
+                    }
+                    "open_onedrive_web" => {
+                        if let Err(e) =
+                            open::that_detached("https://www.office.com/launch/onedrive?auth=2")
+                        {
+                            self.banner_notice =
+                                Some((format!("Erro ao abrir OneDrive Web: {e}"), true));
+                        }
+                        return Task::none();
+                    }
+                    "open_web_console" => {
+                        if let Err(e) = open::that_detached("http://127.0.0.1:8006") {
+                            self.banner_notice =
+                                Some((format!("Erro ao abrir Console Web (:8006): {e}"), true));
+                        }
+                        return Task::none();
+                    }
+                    "open_remmina_vnc" | "open_remmina_rdp" => {
+                        let profile = if action == "open_remmina_vnc" {
+                            home.join(".local/share/remmina/winapps_windows11.remmina")
+                        } else {
+                            home.join(".local/share/remmina/winapps_windows11_rdp.remmina")
+                        };
+                        if profile.is_file() {
+                            if let Err(e) = std::process::Command::new("remmina")
+                                .arg("-c")
+                                .arg(&profile)
+                                .spawn()
+                            {
+                                self.banner_notice =
+                                    Some((format!("Erro ao abrir Remmina: {e}"), true));
+                            }
+                        } else {
+                            self.banner_notice = Some((
+                                format!("Perfil Remmina não encontrado: {}", profile.display()),
+                                true,
+                            ));
+                        }
+                        return Task::none();
+                    }
+                    _ => {}
+                }
+
+                // Garante scripts sync_onedrive em ~/Compartilhado_VM antes de sincronizar
+                if action == "sync_onedrive" {
+                    let shared_dir = home.join("Compartilhado_VM");
+                    let _ = fs::create_dir_all(&shared_dir);
+                    for fname in ["sync_onedrive.ps1", "sync_onedrive.vbs"] {
+                        let dst = shared_dir.join(fname);
+                        let src = self.paths.popos_repo.join("util/winapps").join(fname);
+                        if !dst.is_file() && src.is_file() {
+                            let _ = fs::copy(&src, &dst);
+                        }
+                    }
+                }
+
+                let (label, program, args): (&str, String, Vec<String>) = match action.as_str() {
+                    "sync_onedrive" => (
+                        "WinApps: Sincronizar Arquivos do OneDrive (VM)",
+                        winapps_bin_str,
+                        vec!["sync-onedrive".into()],
+                    ),
+                    "fix_smb" => (
+                        "WinApps: Remontar Compartilhamento SMB",
+                        winapps_bin_str,
+                        vec!["fix-smb".into()],
+                    ),
+                    "start_vm" => (
+                        "WinApps: Iniciar VM Windows 11",
+                        winapps_bin_str,
+                        vec!["start".into()],
+                    ),
+                    "stop_vm" => (
+                        "WinApps: Desligar VM Windows 11",
+                        winapps_bin_str,
+                        vec!["stop".into()],
+                    ),
+                    "restart_vm" => (
+                        "WinApps: Reiniciar VM Windows 11",
+                        winapps_bin_str,
+                        vec!["restart".into()],
+                    ),
+                    "logs_vm" => (
+                        "WinApps: Logs do Container (winapps-windows)",
+                        "docker".to_string(),
+                        vec!["logs".into(), "--tail".into(), "120".into(), "winapps-windows".into()],
+                    ),
+                    "setup_apps" => (
+                        "WinApps: Detectar Apps Office (setup-apps)",
+                        winapps_bin_str,
+                        vec!["setup-apps".into()],
+                    ),
+                    "fix_autologon" => (
+                        "WinApps: Reparar AutoLogon sem Senha",
+                        winapps_bin_str,
+                        vec!["fix-autologon".into()],
+                    ),
+                    "restart_indicator" => (
+                        "WinApps: Reiniciar Indicador do Painel (OneDrive MPMS)",
+                        "systemctl".to_string(),
+                        vec!["--user".into(), "restart".into(), "onedrive-indicator.service".into()],
+                    ),
+                    "restart_smb_service" => (
+                        "WinApps: Reiniciar Serviço Automount SMB",
+                        "systemctl".to_string(),
+                        vec!["--user".into(), "restart".into(), "winapps-smb-sync.service".into()],
+                    ),
+                    "view_sync_log" => (
+                        "WinApps: Log de Sincronização OneDrive",
+                        "bash".to_string(),
+                        vec![
+                            "-lc".into(),
+                            "if [ -f \"$HOME/Compartilhado_VM/onedrive_sync.log\" ]; then tail -n 80 \"$HOME/Compartilhado_VM/onedrive_sync.log\"; else echo 'Nenhum log encontrado em ~/Compartilhado_VM/onedrive_sync.log'; fi".into(),
+                        ],
+                    ),
+                    "deploy_winapps_scripts" => (
+                        "WinApps: Atualizar Scripts da VM & Indicador do Painel",
+                        "bash".to_string(),
+                        vec![
+                            "-lc".into(),
+                            "set -e; mkdir -p \"$HOME/Compartilhado_VM\" \"$HOME/.local/bin\"; cp -f util/winapps/sync_onedrive.ps1 util/winapps/sync_onedrive.vbs \"$HOME/Compartilhado_VM/\"; cp -f scripts/daemons/onedrive-indicator.py \"$HOME/.local/bin/onedrive-indicator.py\"; chmod +x \"$HOME/.local/bin/onedrive-indicator.py\"; systemctl --user restart onedrive-indicator.service; echo '✔ Scripts da VM e indicador do painel atualizados com sucesso!'".into(),
+                        ],
+                    ),
+                    _ => return Task::none(),
+                };
+
+                self.start_command(CommandSpec {
+                    label: label.to_string(),
+                    program,
+                    args,
+                    workdir: self.paths.popos_repo.clone(),
+                    cleanup_file: None,
+                });
+            }
             Message::RunNetworkAction(action) => {
                 let (label, program, args): (&str, &str, Vec<String>) = match action.as_str() {
                     "lan_sweep" => (
@@ -2025,6 +2194,7 @@ print(f"[OK] Container '{cname}' atualizado e recriado com sucesso.")
             Page::System => views::system::view(self),
             Page::PanelTray => views::panel_tray::view(self),
             Page::Docker => views::docker::view(self),
+            Page::WinApps => views::winapps::view(self),
             Page::Homelab => views::homelab::view(self),
             Page::RemoteDevices => views::remote::view(self),
             Page::Network => views::network::view(self),

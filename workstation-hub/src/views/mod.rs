@@ -13,3 +13,4 @@ pub mod tests;
 pub mod ui;
 pub mod utils;
 pub mod vpn;
+pub mod winapps;

@@ -250,8 +250,64 @@ case "$1" in
         echo "📂 Abrindo OneDrive Corporativo (MPMS) no Nautilus..."
         gio open "smb://172.20.0.2/onedrive-mpms" 2>/dev/null || xdg-open "$HOME/OneDrive_MPMS"
         ;;
+    sync-onedrive)
+        echo "☁️  Disparando sincronização silenciosa do OneDrive MPMS na VM Windows..."
+        if ! docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null | grep -q "true"; then
+            echo "❌ Erro: Container $CONTAINER não está em execução. Inicie com 'winapps-vm start'." >&2
+            exit 1
+        fi
+        if [ -f "$HOME/.config/winapps/winapps.conf" ]; then
+            source "$HOME/.config/winapps/winapps.conf"
+        fi
+        USER_RDP="${RDP_USER:-winapps}"
+        PASS_RDP="${RDP_PASS:-}"
+        IP_RDP="${RDP_IP:-127.0.0.1}"
+        PORT_RDP="${RDP_PORT:-3389}"
+        if [ -z "$PASS_RDP" ]; then
+            echo "❌ Erro: RDP_PASS não definido em ~/.config/winapps/winapps.conf" >&2
+            exit 1
+        fi
+        STATUS_JSON="$HOME/Compartilhado_VM/onedrive_sync_status.json"
+        rm -f "$STATUS_JSON"
+        xfreerdp3 /cert:ignore /u:"$USER_RDP" /p:"$PASS_RDP" /app:program:"C:\\Windows\\System32\\wscript.exe",cmd:"//B //Nologo \\\\host.lan\\Data\\sync_onedrive.vbs" /v:"$IP_RDP":"$PORT_RDP" </dev/null &>/dev/null &
+        RDP_PID=$!
+        ELAPSED=0
+        FINAL_STATE=""
+        while [ "$ELAPSED" -lt 150 ]; do
+            if [ -f "$STATUS_JSON" ]; then
+                if grep -q '"state":"completed"' "$STATUS_JSON" 2>/dev/null; then
+                    FINAL_STATE="completed"
+                    break
+                elif grep -q '"state":"error"' "$STATUS_JSON" 2>/dev/null; then
+                    FINAL_STATE="error"
+                    break
+                fi
+            fi
+            if ! kill -0 "$RDP_PID" 2>/dev/null; then
+                break
+            fi
+            sleep 2
+            ELAPSED=$((ELAPSED + 2))
+        done
+        if kill -0 "$RDP_PID" 2>/dev/null; then
+            kill "$RDP_PID" 2>/dev/null || true
+            wait "$RDP_PID" 2>/dev/null || true
+        fi
+        if [ "$FINAL_STATE" = "completed" ]; then
+            if [ -x "$HOME/.local/bin/winapps-smb-sync.sh" ]; then
+                "$HOME/.local/bin/winapps-smb-sync.sh" --once >/dev/null 2>&1 || true
+            fi
+            echo "✅ Sincronização do OneDrive MPMS concluída! Arquivos atualizados em ~/OneDrive_MPMS."
+        elif [ "$FINAL_STATE" = "error" ]; then
+            echo "❌ Erro na sincronização do OneDrive. Consulte ~/Compartilhado_VM/onedrive_sync.log" >&2
+            exit 1
+        else
+            echo "⚠️  Tempo limite atingido aguardando sincronização. Consulte ~/Compartilhado_VM/onedrive_sync.log" >&2
+            exit 1
+        fi
+        ;;
     *)
-        echo "Uso: winapps-vm {start|stop|restart|status|logs|web|setup-apps|fix-smb|fix-autologon|onedrive}"
+        echo "Uso: winapps-vm {start|stop|restart|status|logs|web|setup-apps|fix-smb|fix-autologon|onedrive|sync-onedrive}"
         exit 1
         ;;
 esac
@@ -490,11 +546,15 @@ Type=Application
 Categories=Office;Network;FileManager;
 Keywords=onedrive;mpms;nuvem;arquivos;nautilus;share;
 StartupNotify=true
-Actions=OpenLocalFolder;SyncSMB;WebOneDrive;WindowsRemmina;
+Actions=OpenLocalFolder;SyncOneDriveFiles;SyncSMB;WebOneDrive;WindowsRemmina;
 
 [Desktop Action OpenLocalFolder]
 Name=Abrir Pasta Local (~/OneDrive_MPMS)
 Exec=nautilus $REAL_HOME/OneDrive_MPMS
+
+[Desktop Action SyncOneDriveFiles]
+Name=Sincronizar Arquivos do OneDrive (VM)
+Exec=$REAL_HOME/.local/bin/winapps-vm sync-onedrive
 
 [Desktop Action SyncSMB]
 Name=Remontar Compartilhamento SMB

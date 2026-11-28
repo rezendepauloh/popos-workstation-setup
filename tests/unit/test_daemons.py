@@ -43,6 +43,10 @@ class TestDaemonsAndPatches(unittest.TestCase):
             "rclone_cloud_indicator",
             os.path.join(DAEMONS_DIR, "rclone-cloud-indicator.py")
         )
+        cls.onedrive_indicator = load_module_from_path(
+            "onedrive_indicator",
+            os.path.join(DAEMONS_DIR, "onedrive-indicator.py")
+        )
 
     def test_01_patch_cedilla_binary_and_idempotency(self):
         """Testa aplicação de bytes de cedilha/aspas em um binário mockado, criação de .orig e idempotência."""
@@ -202,6 +206,52 @@ class TestDaemonsAndPatches(unittest.TestCase):
                 'avail': 49392123904,
                 'pcent': '8%',
             })
+
+    def test_06_onedrive_indicator_sync_helpers_and_windows_scripts(self):
+        """Valida parse_winapps_conf, leitura/formatação de status e scripts Windows do OneDrive MPMS."""
+        mod = self.onedrive_indicator
+
+        # Verifica presença dos scripts silenciosos do lado Windows
+        winapps_util_dir = os.path.join(ROOT_DIR, 'util', 'winapps')
+        self.assertTrue(os.path.isfile(os.path.join(winapps_util_dir, 'sync_onedrive.ps1')))
+        self.assertTrue(os.path.isfile(os.path.join(winapps_util_dir, 'sync_onedrive.vbs')))
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            conf_file = os.path.join(tmpdir, 'winapps.conf')
+            with open(conf_file, 'w', encoding='utf-8') as f:
+                f.write('# comment\nRDP_USER="winapps"\nRDP_PASS=\'secret123\'\nRDP_IP=127.0.0.1\nRDP_PORT="3389"\n')
+
+            parsed = mod.parse_winapps_conf(conf_file)
+            self.assertEqual(parsed['RDP_USER'], 'winapps')
+            self.assertEqual(parsed['RDP_PASS'], 'secret123')
+            self.assertEqual(parsed['RDP_IP'], '127.0.0.1')
+            self.assertEqual(parsed['RDP_PORT'], '3389')
+
+            status_file = os.path.join(tmpdir, 'onedrive_sync_status.json')
+            with open(status_file, 'w', encoding='utf-8-sig') as f:
+                f.write('{"state":"syncing","message":"Sincronizando...","files_to_upload":2,"files_to_download":1}')
+
+            status_data = mod.read_sync_status(status_file)
+            self.assertEqual(status_data['state'], 'syncing')
+            self.assertEqual(mod.format_sync_status_label(status_data), '⏳ OneDrive MPMS: Sincronizando (↑2 ↓1)...')
+            self.assertEqual(
+                mod.format_sync_status_label({'state': 'starting'}),
+                '⏳ OneDrive MPMS: Iniciando OneDrive...',
+            )
+            self.assertEqual(
+                mod.format_sync_status_label({'state': 'completed'}),
+                '● OneDrive MPMS: Sincronizado',
+            )
+            self.assertIn(
+                'Falha',
+                mod.format_sync_status_label({'state': 'error', 'message': 'Falha X'}),
+            )
+
+            # Testa ensure_sync_scripts copiando do repositório para um diretório vazio
+            shared_dir = os.path.join(tmpdir, 'Compartilhado_VM')
+            self.assertTrue(mod.ensure_sync_scripts(shared_dir))
+            self.assertTrue(os.path.isfile(os.path.join(shared_dir, 'sync_onedrive.ps1')))
+            self.assertTrue(os.path.isfile(os.path.join(shared_dir, 'sync_onedrive.vbs')))
 
 
 if __name__ == '__main__':
