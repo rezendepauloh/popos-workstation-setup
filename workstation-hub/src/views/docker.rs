@@ -1,4 +1,6 @@
 use crate::app::{AppModel, Message};
+use crate::models::status::DockerUpdateState;
+use crate::services::probe_service::short_sha;
 use crate::views::ui;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
@@ -27,6 +29,43 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         "Status do Daemon Docker",
         widget::text::body(daemon_label),
     ));
+
+    if app.docker_updates_checking {
+        global_sec = global_sec.add(settings::item(
+            "Análise de Atualizações",
+            widget::text::caption("Verificando digests remotos dos containers em paralelo..."),
+        ));
+    } else if !app.docker_update_results.is_empty() {
+        let mut updates_avail = 0usize;
+        let mut up_to_date = 0usize;
+        let mut local_or_unverifiable = 0usize;
+        let mut errors = 0usize;
+        for res in app.docker_update_results.values() {
+            match res.state {
+                DockerUpdateState::UpdateAvailable { .. } => updates_avail += 1,
+                DockerUpdateState::UpToDate => up_to_date += 1,
+                DockerUpdateState::LocalOrUnverifiable => local_or_unverifiable += 1,
+                DockerUpdateState::Error(_) => errors += 1,
+            }
+        }
+        let checked_at = app
+            .docker_updates_checked_at
+            .as_deref()
+            .unwrap_or("agora");
+        let summary = if errors > 0 {
+            format!(
+                "Última análise ({checked_at}): {updates_avail} com atualização | {up_to_date} atualizados | {local_or_unverifiable} locais/não verificáveis | {errors} erro(s)"
+            )
+        } else {
+            format!(
+                "Última análise ({checked_at}): {updates_avail} com atualização | {up_to_date} atualizados | {local_or_unverifiable} locais/não verificáveis"
+            )
+        };
+        global_sec = global_sec.add(settings::item(
+            "Análise de Atualizações",
+            widget::text::caption(summary),
+        ));
+    }
 
     if info.df_lines.is_empty() {
         global_sec = global_sec.add(settings::item(
@@ -65,8 +104,15 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .into(),
     ]);
 
+    let check_updates_btn = if app.docker_updates_checking {
+        widget::button::standard("Analisando Atualizações...").into()
+    } else {
+        ui::btn_suggested("Analisar Atualizações", Message::CheckDockerUpdates).into()
+    };
+
     let daemon_actions = ui::wrap_row(vec![
-        ui::btn_suggested(
+        check_updates_btn,
+        ui::btn_standard(
             "Atualizar Todas Imagens (Pull)",
             Message::RunDockerAction("pull_all".to_string()),
         )
@@ -99,7 +145,7 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         ));
     } else {
         for c in &info.containers {
-            let subtitle = if c.compose_dir.is_empty() {
+            let mut subtitle = if c.compose_dir.is_empty() {
                 format!("Imagem: {} | Status: {}", c.image, c.status)
             } else {
                 format!(
@@ -107,6 +153,37 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
                     c.image, c.status, c.compose_dir
                 )
             };
+
+            if let Some(upd) = app.docker_update_results.get(&c.name) {
+                let local_info = if upd.local_version.is_empty() {
+                    short_sha(&upd.local_digest)
+                } else {
+                    format!(
+                        "v{} | {}",
+                        upd.local_version.trim_start_matches('v'),
+                        short_sha(&upd.local_digest)
+                    )
+                };
+                let status_line = match &upd.state {
+                    DockerUpdateState::UpToDate => {
+                        format!("✔ Atualizado (local: {local_info})")
+                    }
+                    DockerUpdateState::UpdateAvailable { remote_digest } => {
+                        format!(
+                            "⬆ Atualização disponível (local: {local_info} → remoto: {})",
+                            short_sha(remote_digest)
+                        )
+                    }
+                    DockerUpdateState::LocalOrUnverifiable => {
+                        format!("⚠ Build local / não verificável remotamente (local: {local_info})")
+                    }
+                    DockerUpdateState::Error(err) => {
+                        format!("✖ Erro ao verificar atualização: {err}")
+                    }
+                };
+                subtitle.push('\n');
+                subtitle.push_str(&status_line);
+            }
 
             let mut btns = widget::row::with_capacity(6).spacing(6);
             if c.running {
@@ -169,6 +246,16 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
                             },
                         ),
                     );
+            } else {
+                btns = btns.push(
+                    widget::button::standard("Atualizar").on_press(
+                        Message::RunDockerContainerAction {
+                            name: c.name.clone(),
+                            compose_dir: String::new(),
+                            action: "standalone_update".to_string(),
+                        },
+                    ),
+                );
             }
 
             containers_sec = containers_sec.add(settings::item_row(vec![

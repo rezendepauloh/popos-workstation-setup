@@ -1,9 +1,11 @@
 use crate::models::status::{
-    DockerContainerInfo, DockerSystemInfo, HubPaths, NetworkHostStatus, NetworkMonitorInfo,
-    RemoteDevicesInfo, SystemHardwareInfo, SystemSnapshot, TailscalePeerStatus,
+    DockerContainerInfo, DockerImageUpdateInfo, DockerSystemInfo, DockerUpdateState, HubPaths,
+    NetworkHostStatus, NetworkMonitorInfo, RemoteDevicesInfo, SystemHardwareInfo, SystemSnapshot,
+    TailscalePeerStatus,
 };
 use crate::services::env_service::read_env_map;
 use crate::services::progress_service::read_completed_flags;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -212,6 +214,226 @@ async fn probe_docker_info() -> DockerSystemInfo {
         }
     }
     info
+}
+
+pub fn short_sha(s: &str) -> String {
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        return "desconhecido".to_string();
+    }
+    let stripped = trimmed.strip_prefix("sha256:").unwrap_or(trimmed);
+    stripped.chars().take(12).collect()
+}
+
+pub fn parse_local_image_metadata(
+    img_json: &str,
+    fallback_img_id: &str,
+) -> (String, HashSet<String>, String) {
+    let Ok(val) = serde_json::from_str::<serde_json::Value>(img_json) else {
+        return (String::new(), HashSet::new(), fallback_img_id.to_string());
+    };
+    let Some(img_data) = val.as_array().and_then(|arr| arr.first()) else {
+        return (String::new(), HashSet::new(), fallback_img_id.to_string());
+    };
+
+    let labels = img_data
+        .get("Config")
+        .and_then(|c| c.get("Labels"))
+        .and_then(|l| l.as_object());
+    let oci_ver = labels
+        .and_then(|m| {
+            m.get("org.opencontainers.image.version")
+                .or_else(|| m.get("version"))
+        })
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
+
+    let mut local_digests = HashSet::new();
+    let mut first_digest: Option<String> = None;
+    if let Some(repo_digests) = img_data.get("RepoDigests").and_then(|r| r.as_array()) {
+        for item in repo_digests {
+            if let Some(s) = item.as_str() {
+                if let Some((_, digest)) = s.split_once('@') {
+                    let d = digest.trim().to_string();
+                    if !d.is_empty() {
+                        if first_digest.is_none() {
+                            first_digest = Some(d.clone());
+                        }
+                        local_digests.insert(d);
+                    }
+                }
+            }
+        }
+    }
+
+    let primary_digest = first_digest.unwrap_or_else(|| fallback_img_id.to_string());
+    (oci_ver, local_digests, primary_digest)
+}
+
+pub fn parse_imagetools_digest(text: &str) -> Option<String> {
+    for line in text.lines() {
+        if let Some(rest) = line.strip_prefix("Digest:") {
+            let digest = rest.trim();
+            if digest.starts_with("sha256:") {
+                return Some(digest.to_string());
+            }
+        }
+    }
+    None
+}
+
+pub fn parse_remote_manifest_digest(manifest_json: &str, host_arch: &str) -> Option<String> {
+    let val = serde_json::from_str::<serde_json::Value>(manifest_json).ok()?;
+    if let Some(arr) = val.as_array() {
+        for entry in arr {
+            let desc = entry.get("Descriptor");
+            let plat = desc.and_then(|d| d.get("platform"));
+            let os = plat.and_then(|p| p.get("os")).and_then(|v| v.as_str());
+            let arch = plat
+                .and_then(|p| p.get("architecture"))
+                .and_then(|v| v.as_str());
+            if os == Some("linux") && arch == Some(host_arch) {
+                if let Some(digest) = desc.and_then(|d| d.get("digest")).and_then(|v| v.as_str()) {
+                    return Some(digest.to_string());
+                }
+            }
+        }
+        arr.first()
+            .and_then(|e| e.get("Descriptor"))
+            .and_then(|d| d.get("digest"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+    } else if val.is_object() {
+        val.get("Descriptor")
+            .and_then(|d| d.get("digest"))
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
+    } else {
+        None
+    }
+}
+
+fn docker_host_arch() -> &'static str {
+    match std::env::consts::ARCH {
+        "x86_64" => "amd64",
+        "aarch64" => "arm64",
+        "arm" => "arm",
+        _ => "amd64",
+    }
+}
+
+async fn check_single_container_update(c: DockerContainerInfo) -> (String, DockerImageUpdateInfo) {
+    let cname = c.name.clone();
+    let image = c.image.clone();
+
+    let inspect_c = tokio::time::timeout(
+        Duration::from_secs(5),
+        Command::new("docker").args(["inspect", &cname]).output(),
+    )
+    .await;
+
+    let img_id = match inspect_c {
+        Ok(Ok(out)) if out.status.success() => {
+            let text = String::from_utf8_lossy(&out.stdout);
+            serde_json::from_str::<serde_json::Value>(&text)
+                .ok()
+                .and_then(|v| {
+                    v.as_array()
+                        .and_then(|a| a.first())
+                        .and_then(|o| o.get("Image"))
+                        .and_then(|i| i.as_str())
+                        .map(|s| s.to_string())
+                })
+                .unwrap_or_default()
+        }
+        _ => {
+            return (
+                cname.clone(),
+                DockerImageUpdateInfo {
+                    container_name: cname,
+                    image,
+                    local_version: String::new(),
+                    local_digest: String::new(),
+                    state: DockerUpdateState::Error("Falha ao inspecionar container".to_string()),
+                },
+            );
+        }
+    };
+
+    let inspect_img = tokio::time::timeout(
+        Duration::from_secs(5),
+        Command::new("docker").args(["inspect", &img_id]).output(),
+    )
+    .await;
+
+    let (local_version, local_digests, local_digest) = match inspect_img {
+        Ok(Ok(out)) if out.status.success() => {
+            let text = String::from_utf8_lossy(&out.stdout);
+            parse_local_image_metadata(&text, &img_id)
+        }
+        _ => (String::new(), HashSet::new(), img_id),
+    };
+
+    let imagetools_out = tokio::time::timeout(
+        Duration::from_secs(15),
+        Command::new("docker")
+            .args(["buildx", "imagetools", "inspect", &image])
+            .output(),
+    )
+    .await;
+
+    let mut remote_digest = match imagetools_out {
+        Ok(Ok(out)) if out.status.success() => {
+            let text = String::from_utf8_lossy(&out.stdout);
+            parse_imagetools_digest(&text)
+        }
+        _ => None,
+    };
+
+    if remote_digest.is_none() {
+        let manifest_out = tokio::time::timeout(
+            Duration::from_secs(15),
+            Command::new("docker")
+                .args(["manifest", "inspect", "-v", &image])
+                .output(),
+        )
+        .await;
+
+        remote_digest = match manifest_out {
+            Ok(Ok(out)) if out.status.success() => {
+                let text = String::from_utf8_lossy(&out.stdout);
+                parse_remote_manifest_digest(&text, docker_host_arch())
+            }
+            _ => None,
+        };
+    }
+
+    let state = match remote_digest {
+        None => DockerUpdateState::LocalOrUnverifiable,
+        Some(rd) if local_digests.contains(&rd) => DockerUpdateState::UpToDate,
+        Some(rd) => DockerUpdateState::UpdateAvailable { remote_digest: rd },
+    };
+
+    (
+        cname.clone(),
+        DockerImageUpdateInfo {
+            container_name: cname,
+            image,
+            local_version,
+            local_digest,
+            state,
+        },
+    )
+}
+
+pub async fn check_docker_updates(
+    containers: Vec<DockerContainerInfo>,
+) -> HashMap<String, DockerImageUpdateInfo> {
+    let futures_vec = containers.into_iter().map(check_single_container_update);
+    let results = futures::future::join_all(futures_vec).await;
+    results.into_iter().collect()
 }
 
 async fn probe_hardware_info() -> SystemHardwareInfo {

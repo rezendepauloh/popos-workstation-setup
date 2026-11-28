@@ -488,3 +488,68 @@ fn test_doc_service_export_standalone_html_embeds_images_and_escapes_xss() {
     assert!(html.contains("id=\"sec-1\""));
     assert!(html.contains("class=\"toc-item toc-l1\""));
 }
+
+#[test]
+fn test_docker_update_analyzer_parsers() {
+    use workstation_hub::services::probe_service::{
+        parse_imagetools_digest, parse_local_image_metadata, parse_remote_manifest_digest,
+        short_sha,
+    };
+
+    assert_eq!(short_sha("sha256:abcdef1234567890"), "abcdef123456");
+    assert_eq!(short_sha(""), "desconhecido");
+
+    let imagetools_out = "Name:      docker.io/dockurr/windows:latest\nMediaType: application/vnd.oci.image.index.v1+json\nDigest:    sha256:16fd7c39a3e48bb946d29c59dc6015942e5b900a1fa5d7e5552053bfc48ee2ea\n";
+    assert_eq!(
+        parse_imagetools_digest(imagetools_out).as_deref(),
+        Some("sha256:16fd7c39a3e48bb946d29c59dc6015942e5b900a1fa5d7e5552053bfc48ee2ea")
+    );
+
+    let img_json = r#"[{
+        "Config": {
+            "Labels": {
+                "org.opencontainers.image.version": "1.2.3"
+            }
+        },
+        "RepoDigests": [
+            "nginx@sha256:11111111111122222222222233333333"
+        ]
+    }]"#;
+    let (ver, digests, primary) = parse_local_image_metadata(img_json, "sha256:fallback");
+    assert_eq!(ver, "1.2.3");
+    assert!(digests.contains("sha256:11111111111122222222222233333333"));
+    assert_eq!(primary, "sha256:11111111111122222222222233333333");
+
+    let manifest_list_json = r#"[
+        {
+            "Descriptor": {
+                "digest": "sha256:arm64digest0000000000",
+                "platform": { "os": "linux", "architecture": "arm64" }
+            }
+        },
+        {
+            "Descriptor": {
+                "digest": "sha256:amd64digest9999999999",
+                "platform": { "os": "linux", "architecture": "amd64" }
+            }
+        }
+    ]"#;
+    assert_eq!(
+        parse_remote_manifest_digest(manifest_list_json, "amd64").as_deref(),
+        Some("sha256:amd64digest9999999999")
+    );
+    assert_eq!(
+        parse_remote_manifest_digest(manifest_list_json, "arm64").as_deref(),
+        Some("sha256:arm64digest0000000000")
+    );
+
+    let single_manifest_json = r#"{
+        "Descriptor": {
+            "digest": "sha256:singledigest55555555"
+        }
+    }"#;
+    assert_eq!(
+        parse_remote_manifest_digest(single_manifest_json, "amd64").as_deref(),
+        Some("sha256:singledigest55555555")
+    );
+}

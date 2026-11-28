@@ -5,7 +5,8 @@ use crate::models::doc_entry::{DocEntryItem, MarkdownBlock, MarkdownLinkResoluti
 use crate::models::env_entry::{EnvTarget, EnvVarItem};
 use crate::models::log_entry::{AnsiColor, LogLine, RunStatus};
 use crate::models::status::{
-    HomelabAddressMode, HomelabNetworkMode, HubPaths, SamsungTarget, SystemSnapshot,
+    DockerImageUpdateInfo, DockerUpdateState, HomelabAddressMode, HomelabNetworkMode, HubPaths,
+    SamsungTarget, SystemSnapshot,
 };
 use crate::services::doc_service::{
     CATEGORY_ALL, SOURCE_ALL, available_categories, available_sources, discover_all_documents,
@@ -16,7 +17,7 @@ use crate::services::input_validator::validate_identifier;
 use crate::services::path_locator::{
     discover_paths, is_valid_homelab_repo, is_valid_popos_repo, save_paths,
 };
-use crate::services::probe_service::collect_snapshot;
+use crate::services::probe_service::{check_docker_updates, collect_snapshot, short_sha};
 use crate::services::progress_service::{clear_all_flags, clear_flag};
 use crate::services::runner_service::{
     CommandSpec, RunnerEvent, RunningProcessHandle, build_cargo_test_command,
@@ -187,6 +188,8 @@ pub enum Message {
         compose_dir: String,
         action: String,
     },
+    CheckDockerUpdates,
+    DockerUpdatesChecked(HashMap<String, DockerImageUpdateInfo>),
     RunSystemAction(String),
     OpenRgbHexChanged(String),
     ApplyOpenRgbHex,
@@ -320,6 +323,11 @@ pub struct AppModel {
     pub env_entries: Vec<EnvVarItem>,
     pub env_loaded_from_example: bool,
     pub env_status_msg: Option<String>,
+
+    // Docker update analyzer state
+    pub docker_updates_checking: bool,
+    pub docker_update_results: HashMap<String, DockerImageUpdateInfo>,
+    pub docker_updates_checked_at: Option<String>,
 }
 
 impl cosmic::Application for AppModel {
@@ -474,6 +482,9 @@ impl cosmic::Application for AppModel {
             env_entries: Vec::new(),
             env_loaded_from_example: false,
             env_status_msg: None,
+            docker_updates_checking: false,
+            docker_update_results: HashMap::new(),
+            docker_updates_checked_at: None,
         };
 
         app.load_env_for_target(EnvTarget::Popos);
@@ -1064,12 +1075,9 @@ impl cosmic::Application for AppModel {
                     "prune_cache" => ("Docker: Limpar Build Cache", "docker", vec!["builder".into(), "prune".into(), "-f".into()]),
                     "prune_system" => ("Docker: Limpeza Geral (Prune)", "docker", vec!["system".into(), "prune".into(), "-f".into()]),
                     "pull_all" => (
-                        "Docker: Atualizar Todas Imagens (Pull)",
+                        "Docker: Atualizar Todas Imagens & Containers",
                         "bash",
-                        vec![
-                            "-lc".into(),
-                            "docker images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>' | sort -u | xargs -r -n1 docker pull".into(),
-                        ],
+                        vec!["./util/docker-update/update_containers.sh".into()],
                     ),
                     "start_daemon" => ("Docker: Iniciar Daemon", "sudo", vec!["systemctl".into(), "start".into(), "docker".into()]),
                     "restart_daemon" => ("Docker: Reiniciar Daemon", "sudo", vec!["systemctl".into(), "restart".into(), "docker".into()]),
@@ -1101,6 +1109,89 @@ impl cosmic::Application for AppModel {
                         vec!["-lc".into(), "docker compose build --no-cache && docker compose up -d".into()],
                         Some(PathBuf::from(compose_dir)),
                     ),
+                    "standalone_update" => (
+                        format!("Docker Standalone: Atualizar {name}"),
+                        "python3",
+                        vec![
+                            "-c".into(),
+                            r#"import json, shlex, subprocess, sys
+
+cname = sys.argv[1]
+data = json.loads(subprocess.check_output(["docker", "inspect", cname]))[0]
+cfg = data.get("Config", {})
+hcfg = data.get("HostConfig", {})
+image = cfg.get("Image", "")
+current_id = data.get("Image", "")
+
+print(f"[INFO] Atualizando container standalone '{cname}' (imagem: {image})...")
+if subprocess.run(["docker", "pull", image]).returncode != 0:
+    print(f"[AVISO] Não foi possível fazer pull de '{image}'. Container '{cname}' não foi alterado.")
+    sys.exit(1)
+
+new_id = subprocess.check_output(["docker", "image", "inspect", "--format", "{{.Id}}", image], text=True).strip()
+if current_id == new_id:
+    print(f"[OK] '{cname}' já está na versão mais recente.")
+    sys.exit(0)
+
+cmd = ["docker", "run", "-d", "--name", cname]
+
+rp = hcfg.get("RestartPolicy") or {}
+rname = rp.get("Name")
+if rname and rname != "no":
+    rcount = rp.get("MaximumRetryCount") or 0
+    cmd.extend(["--restart", f"{rname}:{rcount}" if rname == "on-failure" and rcount > 0 else rname])
+
+net = hcfg.get("NetworkMode")
+if net and net != "default":
+    cmd.extend(["--network", net])
+
+if hcfg.get("Privileged"):
+    cmd.append("--privileged")
+
+for cap in (hcfg.get("CapAdd") or []):
+    cmd.extend(["--cap-add", cap])
+
+for dev in (hcfg.get("Devices") or []):
+    hp, cp, perms = dev.get("PathOnHost", ""), dev.get("PathInContainer", ""), dev.get("CgroupPermissions", "rwm")
+    if hp and cp:
+        cmd.extend(["--device", f"{hp}:{cp}:{perms}"])
+
+shm = hcfg.get("ShmSize") or 0
+if shm and shm != 67108864:
+    cmd.extend(["--shm-size", str(shm)])
+
+for port_spec, bindings in (hcfg.get("PortBindings") or {}).items():
+    for b in (bindings or []):
+        host_ip = b.get("HostIp") or ""
+        host_port = b.get("HostPort") or ""
+        mapping = f"{host_ip}:{host_port}:{port_spec}" if host_ip else f"{host_port}:{port_spec}"
+        cmd.extend(["-p", mapping])
+
+for bind in (hcfg.get("Binds") or []):
+    cmd.extend(["-v", bind])
+
+for env in (cfg.get("Env") or []):
+    if not env.startswith("PATH="):
+        cmd.extend(["-e", env])
+
+cmd.append(image)
+for c in (cfg.get("Cmd") or []):
+    cmd.append(c)
+
+print("[INFO] Nova versão encontrada. Recriando container...")
+subprocess.run(["docker", "stop", cname], stdout=subprocess.DEVNULL)
+subprocess.run(["docker", "rm", cname], check=True, stdout=subprocess.DEVNULL)
+res = subprocess.run(cmd)
+if res.returncode != 0:
+    print("[ERRO] Falha ao recriar container. Comando gerado:")
+    print(" ".join(shlex.quote(x) for x in cmd))
+    sys.exit(res.returncode)
+print(f"[OK] Container '{cname}' atualizado e recriado com sucesso.")
+"#.into(),
+                            name,
+                        ],
+                        None,
+                    ),
                     _ => return Task::none(),
                 };
                 self.start_command(CommandSpec {
@@ -1110,6 +1201,183 @@ impl cosmic::Application for AppModel {
                     workdir: workdir.unwrap_or_else(|| self.paths.popos_repo.clone()),
                     cleanup_file: None,
                 });
+            }
+            Message::CheckDockerUpdates => {
+                if self.docker_updates_checking {
+                    self.context_page = ContextPage::Console;
+                    self.core.window.show_context = true;
+                    return Task::none();
+                }
+                if !self.snapshot.docker_info.daemon_active
+                    || self.snapshot.docker_info.containers.is_empty()
+                {
+                    self.banner_notice = Some((
+                        "Nenhum container detectado ou daemon Docker inativo.".to_string(),
+                        true,
+                    ));
+                    return Task::none();
+                }
+                self.docker_updates_checking = true;
+                self.banner_notice = None;
+                let containers = self.snapshot.docker_info.containers.clone();
+                let total = containers.len();
+
+                self.context_page = ContextPage::Console;
+                self.core.window.show_context = true;
+                if self.process_handle.is_none() {
+                    self.log_lines.clear();
+                    self.run_status = RunStatus::Running {
+                        label: "Docker: Analisando atualizações de imagens...".to_string(),
+                    };
+                    self.console_progress = 0.25;
+                }
+                self.log_lines.push(LogLine::plain(
+                    "================================================================",
+                    AnsiColor::Cyan,
+                    true,
+                ));
+                self.log_lines.push(LogLine::plain(
+                    format!("🐳 Analisando atualizações de {total} container(s) Docker (modo somente leitura)..."),
+                    AnsiColor::Cyan,
+                    true,
+                ));
+                self.log_lines.push(LogLine::plain(
+                    "Comparando digests locais com os registries remotos em paralelo...",
+                    AnsiColor::Muted,
+                    false,
+                ));
+
+                return Task::perform(
+                    async move { check_docker_updates(containers).await },
+                    |res| cosmic::Action::App(Message::DockerUpdatesChecked(res)),
+                );
+            }
+            Message::DockerUpdatesChecked(results) => {
+                self.docker_updates_checking = false;
+                let mut sorted: Vec<&DockerImageUpdateInfo> = results.values().collect();
+                sorted.sort_by(|a, b| a.container_name.cmp(&b.container_name));
+
+                let mut updatable: Vec<String> = Vec::new();
+                let mut up_to_date = 0usize;
+                let mut local_only = 0usize;
+                let mut errors = 0usize;
+
+                for upd in &sorted {
+                    let local_info = if upd.local_version.is_empty() {
+                        short_sha(&upd.local_digest)
+                    } else {
+                        format!(
+                            "v{} | {}",
+                            upd.local_version.trim_start_matches('v'),
+                            short_sha(&upd.local_digest)
+                        )
+                    };
+                    match &upd.state {
+                        DockerUpdateState::UpdateAvailable { remote_digest } => {
+                            updatable.push(format!("{} ({})", upd.container_name, upd.image));
+                            self.log_lines.push(LogLine::plain(
+                                format!(
+                                    "  ⬆ {} | {} | local: {} -> Atualização disponível (remoto: {})",
+                                    upd.container_name,
+                                    upd.image,
+                                    local_info,
+                                    short_sha(remote_digest)
+                                ),
+                                AnsiColor::Cyan,
+                                true,
+                            ));
+                        }
+                        DockerUpdateState::UpToDate => {
+                            up_to_date += 1;
+                            self.log_lines.push(LogLine::plain(
+                                format!(
+                                    "  ✔ {} | {} | local: {} -> Atualizado",
+                                    upd.container_name, upd.image, local_info
+                                ),
+                                AnsiColor::Green,
+                                false,
+                            ));
+                        }
+                        DockerUpdateState::LocalOrUnverifiable => {
+                            local_only += 1;
+                            self.log_lines.push(LogLine::plain(
+                                format!(
+                                    "  ⚠ {} | {} | local: {} -> Build local / não verificável remotamente",
+                                    upd.container_name, upd.image, local_info
+                                ),
+                                AnsiColor::Yellow,
+                                false,
+                            ));
+                        }
+                        DockerUpdateState::Error(err) => {
+                            errors += 1;
+                            self.log_lines.push(LogLine::plain(
+                                format!(
+                                    "  ✖ {} | {} -> Erro na verificação: {}",
+                                    upd.container_name, upd.image, err
+                                ),
+                                AnsiColor::Red,
+                                false,
+                            ));
+                        }
+                    }
+                }
+
+                let updates_avail = updatable.len();
+                self.log_lines.push(LogLine::plain(
+                    "----------------------------------------------------------------",
+                    AnsiColor::Muted,
+                    false,
+                ));
+                self.log_lines.push(LogLine::plain(
+                    format!(
+                        "Resumo: {updates_avail} passível(is) de atualização | {up_to_date} atualizado(s) | {local_only} local(is)/não verificável(is) | {errors} erro(s)"
+                    ),
+                    AnsiColor::Default,
+                    true,
+                ));
+                if !updatable.is_empty() {
+                    self.log_lines.push(LogLine::plain(
+                        format!(
+                            "Containers passíveis de atualização ({updates_avail}): {}",
+                            updatable.join(", ")
+                        ),
+                        AnsiColor::Cyan,
+                        true,
+                    ));
+                } else {
+                    self.log_lines.push(LogLine::plain(
+                        "✔ Nenhum container pendente de atualização.",
+                        AnsiColor::Green,
+                        true,
+                    ));
+                }
+
+                if self.process_handle.is_none() {
+                    self.run_status = RunStatus::Succeeded {
+                        label: "Docker: Análise de atualizações concluída".to_string(),
+                        duration_ms: 0,
+                    };
+                    self.console_progress = 1.0;
+                }
+
+                self.docker_update_results = results;
+                self.docker_updates_checked_at =
+                    Some(chrono::Local::now().format("%H:%M:%S").to_string());
+                if updates_avail > 0 {
+                    self.banner_notice = Some((
+                        format!(
+                            "Análise Docker concluída: {updates_avail} container(s) com atualização disponível."
+                        ),
+                        false,
+                    ));
+                } else {
+                    self.banner_notice = Some((
+                        "Análise Docker concluída: nenhuma atualização pendente encontrada."
+                            .to_string(),
+                        false,
+                    ));
+                }
             }
             Message::RunSystemAction(action) => {
                 let homelab_user = self.snapshot.homelab_user.clone();

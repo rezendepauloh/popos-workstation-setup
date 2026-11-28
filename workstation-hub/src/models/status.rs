@@ -63,6 +63,23 @@ pub struct DockerContainerInfo {
     pub compose_dir: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DockerUpdateState {
+    UpToDate,
+    UpdateAvailable { remote_digest: String },
+    LocalOrUnverifiable,
+    Error(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DockerImageUpdateInfo {
+    pub container_name: String,
+    pub image: String,
+    pub local_version: String,
+    pub local_digest: String,
+    pub state: DockerUpdateState,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct DockerSystemInfo {
     pub daemon_active: bool,
