@@ -1,4 +1,5 @@
 use crate::app::{AppModel, Message};
+use crate::views::ui;
 use crate::models::status::{PanelAppletInfo, PanelSegment};
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
@@ -268,5 +269,5 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .push(end_sec)
         .push(hidden_sec);
 
-    widget::scrollable(content).into()
+    ui::page_scroll(content)
 }

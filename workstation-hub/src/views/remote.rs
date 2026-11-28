@@ -37,20 +37,15 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         format!("✔ Instalado | {svc} | {id_str}")
     };
 
-    let rustdesk_controls = widget::row::with_capacity(4)
-        .spacing(space_s)
-        .align_y(Alignment::Center)
-        .push(
-            widget::text_input("ID remoto (ex: computador da Kamila)", &app.rustdesk_target_id)
-                .on_input(Message::RustDeskTargetChanged)
-                .width(Length::FillPortion(2)),
-        )
-        .push(widget::button::suggested("Conectar").on_press(Message::RustDeskConnect))
-        .push(widget::button::standard("Abrir RustDesk").on_press(Message::RustDeskOpen))
-        .push(
-            widget::button::standard("Ativar/Reiniciar Serviço")
-                .on_press(Message::RustDeskToggleService),
-        );
+    let rustdesk_controls = ui::wrap_row(vec![
+        widget::text_input("ID remoto (ex: computador da Kamila)", &app.rustdesk_target_id)
+            .on_input(Message::RustDeskTargetChanged)
+            .width(Length::Fixed(280.0))
+            .into(),
+        ui::btn_suggested("Conectar", Message::RustDeskConnect).into(),
+        ui::btn_standard("Abrir RustDesk", Message::RustDeskOpen).into(),
+        ui::btn_standard("Ativar/Reiniciar Serviço", Message::RustDeskToggleService).into(),
+    ]);
 
     let rustdesk_sec = settings::section()
         .title("🖥️ RustDesk (Acesso Remoto P2P v1.5.3)")
@@ -217,7 +212,7 @@ fn samsung_card<'a>(
     ip: &'a str,
     empty_hint: &'static str,
     target: SamsungTarget,
-    space_s: u16,
+    _space_s: u16,
 ) -> settings::Section<'a, Message> {
     let btns = ui::wrap_row(vec![
         ui::btn_standard("Status API", Message::RunSamsungTargetAction(target, "status".to_string())).into(),
@@ -252,22 +247,6 @@ fn net_btn(
     } else {
         widget::button::standard(label)
             .on_press(Message::SetRemoteNetworkMode(target))
-            .into()
-    }
-}
-
-fn samsung_btn(
-    label: &str,
-    target: SamsungTarget,
-    active: SamsungTarget,
-) -> Element<'_, Message> {
-    if target == active {
-        widget::button::suggested(label)
-            .on_press(Message::SetSamsungTarget(target))
-            .into()
-    } else {
-        widget::button::standard(label)
-            .on_press(Message::SetSamsungTarget(target))
             .into()
     }
 }

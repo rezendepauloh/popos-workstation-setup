@@ -8,10 +8,12 @@ pub fn btn_standard<'a>(
     label: impl Into<Cow<'a, str>> + 'a,
     on_press: Message,
 ) -> widget::Button<'a, Message> {
-    widget::button::custom(widget::text::body(label))
-        .padding([8, 16])
-        .class(cosmic::theme::Button::Standard)
-        .on_press(on_press)
+    widget::button::custom(
+        widget::text::body(label).wrapping(cosmic::iced::widget::text::Wrapping::WordOrGlyph),
+    )
+    .padding([8, 16])
+    .class(cosmic::theme::Button::Standard)
+    .on_press(on_press)
 }
 
 /// Botão de ação sugerida/primária com padding interno confortável e altura automática.
@@ -19,10 +21,12 @@ pub fn btn_suggested<'a>(
     label: impl Into<Cow<'a, str>> + 'a,
     on_press: Message,
 ) -> widget::Button<'a, Message> {
-    widget::button::custom(widget::text::body(label))
-        .padding([8, 16])
-        .class(cosmic::theme::Button::Suggested)
-        .on_press(on_press)
+    widget::button::custom(
+        widget::text::body(label).wrapping(cosmic::iced::widget::text::Wrapping::WordOrGlyph),
+    )
+    .padding([8, 16])
+    .class(cosmic::theme::Button::Suggested)
+    .on_press(on_press)
 }
 
 /// Botão de ação destrutiva com padding interno confortável e altura automática.
@@ -30,10 +34,12 @@ pub fn btn_destructive<'a>(
     label: impl Into<Cow<'a, str>> + 'a,
     on_press: Message,
 ) -> widget::Button<'a, Message> {
-    widget::button::custom(widget::text::body(label))
-        .padding([8, 16])
-        .class(cosmic::theme::Button::Destructive)
-        .on_press(on_press)
+    widget::button::custom(
+        widget::text::body(label).wrapping(cosmic::iced::widget::text::Wrapping::WordOrGlyph),
+    )
+    .padding([8, 16])
+    .class(cosmic::theme::Button::Destructive)
+    .on_press(on_press)
 }
 
 /// Linha responsiva que quebra automaticamente os itens para a próxima linha quando a janela é reduzida.

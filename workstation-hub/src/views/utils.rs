@@ -1,4 +1,5 @@
 use crate::app::{AppModel, Message};
+use crate::views::ui;
 use crate::models::catalog::LOCAL_UTIL_ACTIONS;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
@@ -108,5 +109,5 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         );
     col = col.push(winapps_section);
 
-    widget::scrollable(col).height(Length::Fill).into()
+    ui::page_scroll(col)
 }

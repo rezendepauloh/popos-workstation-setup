@@ -1,4 +1,5 @@
 use crate::app::{AppModel, Message, TestTarget};
+use crate::views::ui;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
 use cosmic::widget::{self, settings};
@@ -72,5 +73,5 @@ pub fn view(_app: &AppModel) -> Element<'_, Message> {
         .push(popos_sec)
         .push(homelab_sec);
 
-    widget::scrollable(col).height(Length::Fill).into()
+    ui::page_scroll(col)
 }

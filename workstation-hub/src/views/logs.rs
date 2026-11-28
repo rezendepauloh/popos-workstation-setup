@@ -322,11 +322,11 @@ pub fn console_drawer(app: &AppModel) -> context_drawer::ContextDrawer<'_, Messa
         .push(status_row)
         .push(cosmic::iced::widget::progress_bar(0.0..=1.0, progress_val).girth(Length::Fixed(6.0)));
 
-    let actions = widget::row::with_capacity(3)
-        .spacing(6)
-        .push(widget::button::standard("Copiar").on_press(Message::CopyConsoleLogs))
-        .push(widget::button::standard("Limpar").on_press(Message::ClearConsoleLogs))
-        .push(widget::button::standard("Aba Logs").on_press(Message::NavigateTo(Page::Logs)));
+    let actions = ui::wrap_row(vec![
+        ui::btn_standard("Copiar", Message::CopyConsoleLogs).into(),
+        ui::btn_standard("Limpar", Message::ClearConsoleLogs).into(),
+        ui::btn_standard("Aba Logs", Message::NavigateTo(Page::Logs)).into(),
+    ]);
 
     let mut console_col = widget::column::with_capacity(app.log_lines.len().min(400).max(1))
         .spacing(2)

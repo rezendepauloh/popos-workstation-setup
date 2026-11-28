@@ -130,7 +130,7 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .push(filter_row)
         .push(presets_row)
         .push(batch_row)
-        .push(widget::scrollable(modules_section).height(Length::Fill));
+        .push(ui::page_scroll(modules_section));
 
     content.into()
 }

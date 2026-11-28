@@ -1,4 +1,5 @@
 use crate::app::{AppModel, Message, Page, TestTarget};
+use crate::views::ui;
 use crate::models::catalog::SETUP_MODULES;
 use cosmic::iced::{Alignment, Length};
 use cosmic::prelude::*;
@@ -148,5 +149,5 @@ pub fn view(app: &AppModel) -> Element<'_, Message> {
         .push(quick_actions)
         .push(repos_section);
 
-    widget::scrollable(body).height(Length::Fill).into()
+    ui::page_scroll(body)
 }

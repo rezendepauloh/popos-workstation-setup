@@ -269,3 +269,42 @@ fn test_env_service_merges_missing_example_keys() {
     assert_eq!(loaded.entries[0].value, "custom");
     assert_eq!(loaded.entries[1].key, "NEW_REMOTE_KEY");
 }
+
+#[test]
+fn test_ui_responsiveness_and_padding_helpers() {
+    let manifest_dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let ui_src = fs::read_to_string(manifest_dir.join("src/views/ui.rs")).unwrap();
+    assert!(ui_src.contains("widget::flex_row"));
+    assert!(ui_src.contains("Wrapping::WordOrGlyph"));
+    assert!(ui_src.contains("padding([8, 16])"));
+    assert!(ui_src.contains("padding([0, 14, 0, 0])"));
+
+    let views_dir = manifest_dir.join("src/views");
+    for entry in fs::read_dir(&views_dir).unwrap().flatten() {
+        let path = entry.path();
+        if path.extension().is_some_and(|e| e == "rs") {
+            let fname = path.file_name().unwrap().to_str().unwrap();
+            if matches!(
+                fname,
+                "dashboard.rs"
+                    | "docker.rs"
+                    | "homelab.rs"
+                    | "network.rs"
+                    | "panel_tray.rs"
+                    | "remote.rs"
+                    | "settings.rs"
+                    | "setup.rs"
+                    | "system.rs"
+                    | "tests.rs"
+                    | "utils.rs"
+                    | "vpn.rs"
+            ) {
+                let content = fs::read_to_string(&path).unwrap();
+                assert!(
+                    content.contains("ui::page_scroll("),
+                    "{fname} deve usar ui::page_scroll para manter margem da barra de rolagem"
+                );
+            }
+        }
+    }
+}
